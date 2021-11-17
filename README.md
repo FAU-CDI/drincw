@@ -7,4 +7,13 @@ It's a quick tool to help with importing data into [WissKI](http://wiss-ki.eu/) 
 
 ## Usage
 
-go run ./cmd/makeimport path/to/pathbuilder.xml
+```bash
+# generate a blank odbc for pathbuilder
+go run ./cmd/makeodbc path/to/pathbuilder.xml
+
+# format a pathbuilder as xml
+go run ./cmd/pbfmt -pretty path/to/pathbuilder.xml
+
+# format a pathbuilder as ascii text
+go run ./cmd/pbfmt -ascii path/to/pathbuilder.xml
+```

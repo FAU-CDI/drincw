@@ -175,6 +175,14 @@ func (bundle Bundle) Fields() []Field {
 	return bundle.ChildFields
 }
 
+func (bundle Bundle) AllFields() []Field {
+	fields := bundle.Fields()
+	for _, bundle := range bundle.Bundles() {
+		fields = append(fields, bundle.AllFields()...)
+	}
+	return fields
+}
+
 type Field struct {
 	Path
 }

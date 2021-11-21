@@ -1,6 +1,8 @@
 package drincw
 
-import "strings"
+import (
+	"strings"
+)
 
 func (pb Pathbuilder) Text() string {
 	var builder strings.Builder

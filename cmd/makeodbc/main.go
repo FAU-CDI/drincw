@@ -2,50 +2,80 @@
 package main
 
 import (
+	"encoding/json"
 	"encoding/xml"
+	"flag"
 	"fmt"
-	"io"
 	"log"
-	"net/http"
 	"os"
-	"strings"
 
 	"github.com/tkw1536/FAU-CDI/drincw"
+	"github.com/tkw1536/FAU-CDI/drincw/sql"
 )
 
 func main() {
-	if len(os.Args) != 2 {
-		log.Fatal("Usage: makeodbc /path/to/pathbuilder")
+	if len(nArgs) != 1 {
+		log.Print("Usage: makeodbc [-help] [...flags] /path/to/pathbuilder")
+		flag.PrintDefaults()
+		os.Exit(1)
 	}
 
-	content, err := open(os.Args[1])
+	pbx, err := drincw.LoadPathbuilderXML(nArgs[0])
 	if err != nil {
-		log.Fatalf("Unable to open pathbuilder: %s", err)
+		log.Fatalf("Unable to load Pathbuilder: %s", err)
+	}
+	pb := pbx.Pathbuilder()
+	odbc := pb.ODBC()
+
+	var builder sql.Builder
+	if flagLoadSelectors != "" {
+		bytes, err := os.ReadFile(flagLoadSelectors)
+		if err != nil {
+			log.Fatalf("Unable to load Selectors: %s", err)
+		}
+		if err := json.Unmarshal(bytes, &builder); err != nil {
+			log.Fatalf("Unable to load Selectors: %s", err)
+		}
+	} else {
+		builder = sql.NewBuilder(pb)
 	}
 
-	var pb drincw.XMLPathbuilder
-	if err := xml.Unmarshal(content, &pb); err != nil {
-		log.Fatalf("Unable to Unmarshal Pathbuilder: %s", err)
+	if err := builder.Apply(&odbc); err != nil {
+		log.Fatalf("Unable to apply builder: %s", err)
 	}
 
-	bytes, err := xml.MarshalIndent(pb.Pathbuilder().ODBC(), "", "    ")
+	switch {
+	case flagDumpSelectors:
+		writeSelectors(builder)
+	default:
+		writeXML(odbc)
+	}
+}
+
+func writeSelectors(builder sql.Builder) {
+	bytes, err := json.MarshalIndent(&builder, "", "    ")
+	if err != nil {
+		log.Fatalf("Unable to Marshal Builder: %s", err)
+	}
+	fmt.Println(string(bytes))
+}
+
+func writeXML(odbc drincw.ODBCServer) {
+	bytes, err := xml.MarshalIndent(odbc, "", "    ")
 	if err != nil {
 		log.Fatalf("Unable to Marshal Pathbuilder: %s", err)
 	}
 	fmt.Println(string(bytes))
 }
 
-// open opens a URL or a file
-func open(path string) ([]byte, error) {
-	if !(strings.HasPrefix(path, "http://") || strings.HasPrefix(path, "https://")) {
-		return os.ReadFile(path)
-	}
+var nArgs []string
 
-	res, err := http.Get(path)
-	if err != nil {
-		return nil, err
-	}
-	defer res.Body.Close()
+var flagLoadSelectors string
+var flagDumpSelectors bool
 
-	return io.ReadAll(res.Body)
+func init() {
+	flag.StringVar(&flagLoadSelectors, "load-selectors", flagLoadSelectors, "load selector file")
+	flag.BoolVar(&flagDumpSelectors, "dump-selectors", flagDumpSelectors, "generate a selectors template to generate sql statements")
+	flag.Parse()
+	nArgs = flag.Args()
 }

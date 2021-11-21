@@ -5,11 +5,8 @@ import (
 	"encoding/xml"
 	"flag"
 	"fmt"
-	"io"
 	"log"
-	"net/http"
 	"os"
-	"strings"
 
 	"github.com/tkw1536/FAU-CDI/drincw"
 )
@@ -21,17 +18,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	content, err := open(nArgs[0])
+	pbx, err := drincw.LoadPathbuilderXML(os.Args[1])
 	if err != nil {
-		log.Fatalf("Unable to open pathbuilder: %s", err)
+		log.Fatalf("Unable to load Pathbuilder: %s", err)
 	}
-
-	var x drincw.XMLPathbuilder
-	if err := xml.Unmarshal(content, &x); err != nil {
-		log.Fatalf("Unable to Unmarshal Pathbuilder: %s", err)
-
-	}
-	pb := x.Pathbuilder()
+	pb := pbx.Pathbuilder()
 
 	switch {
 	case flagAscii: // format as text
@@ -49,21 +40,6 @@ func main() {
 		}
 		fmt.Println(string(bytes))
 	}
-}
-
-// open opens a URL or a file
-func open(path string) ([]byte, error) {
-	if !(strings.HasPrefix(path, "http://") || strings.HasPrefix(path, "https://")) {
-		return os.ReadFile(path)
-	}
-
-	res, err := http.Get(path)
-	if err != nil {
-		return nil, err
-	}
-	defer res.Body.Close()
-
-	return io.ReadAll(res.Body)
 }
 
 var nArgs []string

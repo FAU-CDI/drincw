@@ -1,100 +1,72 @@
 package sql
 
 import (
+	"errors"
 	"fmt"
-	"strings"
 )
 
-// Selector represents an sql selector for a path
+// Selector provides means of selecting a value from an sql table
 type Selector interface {
-	// part to put into the select clause
-	selectClause(table, name string) string
-	// part to be put into the append clause
-	appendClause(table, name string) string
+	// unmarshalFields unmarshals this selector from a tokenized list of fields.
+	unmarshalFields(fields []string) error
+
+	// marshalFields marshals this selector into a tokenized list of fields.
+	marshalFields() []string
+
+	// selectExpression generates an expression to insert into an sql select statement.
+	// It will be used roughly like:
+	//
+	//   "SELECT " + selectExpression(table, temp) + " AS my_column FROM " + table
+	//
+	// table is the name of the primary table.
+	// temp is the name of a temporary identifier that is guaranteed to be unique between different selectors.
+	selectExpression(table string, temp string) (string, error)
+
+	// appendStatment generates a statement that will be inserted at the end of the sql statement.
+	// when err is
+	// It will be used roughly like:
+	//
+	// "SELECT ... FROM ... " + appendStatement(table, temp)
+	//
+	// table is the name of the primary table.
+	// temp is the name of a temporary identifier that is guaranteed to be unique between different selectors.
+	appendStatement(table string, temp string) (string, error)
 }
 
-const allowedChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghiklmnopqrstuvwxyz_"
+var errSelectorInvalidIdentifier = errors.New("Selector: invalid identifier")
+var errSelectorNoAppend = errors.New("Selector: no append")
 
-// Escape escapes value as a column name
-// TODO: This calls panic if unsafe, make it actually escape!
-func Escape(value string) string {
-	for _, r := range value {
-		if !strings.ContainsRune(allowedChars, r) {
-			panic("Unsafe rune " + string(r) + " in name " + value)
-		}
-	}
-	return "`" + value + "`"
+// ColumnSelector selects a single Column from the main table
+type ColumnSelector struct {
+	Column string
 }
 
-// NewSelect parses a new selector from line
-func NewSelector(line string) Selector {
-	fields := strings.Fields(line)
-	if len(fields) == 0 {
-		return nil
+func (c *ColumnSelector) unmarshalFields(fields []string) error {
+	if len(fields) != 1 {
+		return errors.New("column: exactly one argument required")
 	}
-
-	switch fields[0] {
-	case "raw":
-		if len(fields) != 2 {
-			return nil
-		}
-		return Raw(fields[1])
-	case "column":
-		if len(fields) != 2 {
-			return nil
-		}
-		return Column(Escape(fields[1]))
-	case "left-join":
-		if len(fields) != 6 {
-			return nil
-		}
-		return LeftJoin{
-			Table: Escape(fields[1]),
-			Alias: Escape(fields[2]),
-
-			OurKey:     Escape(fields[3]),
-			ForeignKey: Escape(fields[4]),
-
-			ForeignColumn: Escape(fields[5]),
-		}
-	}
+	c.Column = fields[0]
 	return nil
 }
 
-type Column string
-
-func (c Column) selectClause(table, name string) string {
-	return fmt.Sprintf("%s.%s as %s", table, string(c), name)
+func (c ColumnSelector) marshalFields() []string {
+	return []string{c.Column}
 }
 
-func (c Column) appendClause(table, name string) string {
-	return ""
+func (c ColumnSelector) selectExpression(table string, temp string) (string, error) {
+	table, ok := EscapeIdentifier(table)
+	if !ok {
+		return "", errSelectorInvalidIdentifier
+	}
+
+	column, ok := EscapeIdentifier(c.Column)
+	if !ok {
+		return "", errSelectorInvalidIdentifier
+	}
+
+	return fmt.Sprintf("%s.%s", table, column), nil
 }
 
-type Raw string
-
-func (ss Raw) selectClause(table, name string) string {
-	return fmt.Sprintf("%s as %s", string(ss), name)
-}
-
-func (ss Raw) appendClause(table, name string) string {
-	return ""
-}
-
-type LeftJoin struct {
-	Table string // foreign table
-	Alias string // alias for the foreign table
-
-	OurKey     string // key in the main table
-	ForeignKey string // key in the other table
-
-	ForeignColumn string // name of the column to print
-}
-
-func (l LeftJoin) selectClause(table, name string) string {
-	return fmt.Sprintf("%s.%s as %s", l.Alias, l.ForeignColumn, name)
-}
-
-func (l LeftJoin) appendClause(table, name string) string {
-	return fmt.Sprintf("LEFT JOIN %s AS %s ON %s.%s = %s.%s", l.Table, l.Alias, table, l.OurKey, l.Alias, l.ForeignKey)
+func (c ColumnSelector) appendStatement(table string, temp string) (string, error) {
+	return "", errSelectorNoAppend
 }

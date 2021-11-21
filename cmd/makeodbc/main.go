@@ -11,6 +11,7 @@ import (
 
 	"github.com/tkw1536/FAU-CDI/drincw"
 	"github.com/tkw1536/FAU-CDI/drincw/sql"
+	"muzzammil.xyz/jsonc"
 )
 
 func main() {
@@ -33,7 +34,7 @@ func main() {
 		if err != nil {
 			log.Fatalf("Unable to load Selectors: %s", err)
 		}
-		if err := json.Unmarshal(bytes, &builder); err != nil {
+		if err := jsonc.Unmarshal(bytes, &builder); err != nil {
 			log.Fatalf("Unable to load Selectors: %s", err)
 		}
 	} else {

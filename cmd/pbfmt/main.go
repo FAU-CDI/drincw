@@ -18,7 +18,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	pbx, err := drincw.LoadPathbuilderXML(os.Args[1])
+	pbx, err := drincw.LoadPathbuilderXML(nArgs[0])
 	if err != nil {
 		log.Fatalf("Unable to load Pathbuilder: %s", err)
 	}

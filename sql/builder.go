@@ -108,10 +108,23 @@ func (bb BundleBuilder) Apply(table *drincw.ODBCTable) error {
 	selectors := make(map[string]Selector)
 	names := make(map[string]string)
 
-	// iterate over everything, collects selectors and names
-	for key := range table.Row.Bundles {
-		bb.ApplyBundle(&table.Row.Bundles[key], selectors, names)
+	bundles := make([]drincw.ODBCBundle, 0, len(table.Row.Bundles))
+	for _, bundle := range table.Row.Bundles {
+		if !bb.ApplyBundle(&bundle, selectors, names) {
+			continue
+		}
+		bundles = append(bundles, bundle)
 	}
+	table.Row.Bundles = bundles
+
+	fields := make([]drincw.ODBCField, 0, len(table.Row.Fields))
+	for _, field := range table.Row.Fields {
+		if !bb.ApplyField(&field, selectors, names) {
+			continue
+		}
+		fields = append(fields, field)
+	}
+	table.Row.Fields = fields
 
 	var err error
 	table.Select, table.Append, err = bb.build(selectors, names)

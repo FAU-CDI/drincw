@@ -9,6 +9,20 @@ import (
 	"github.com/tkw1536/FAU-CDI/drincw"
 )
 
+const MARSHAL_COMMENT_PREFIX = `
+/*
+	This file contains mappings from bundles and fields to sql columns.
+	The JSON syntax is self-explanatory; it supports comments using js syntax.
+
+	Supported Fields:
+
+	'column name'
+
+	'join column from table on our_id their_id'
+
+*/
+`
+
 // Builder maps bundle ids to BundleBuilders
 type Builder map[string]BundleBuilder
 
@@ -41,6 +55,7 @@ func (builder Builder) Apply(server *drincw.ODBCServer) error {
 type BundleBuilder struct {
 	TableName string // name of the table to use
 	ID        string // name of the column for ID
+	Disinct   bool   // should we select distinct fields?
 
 	Fields map[string]Selector // Selectors for each bundle
 }
@@ -48,7 +63,7 @@ type BundleBuilder struct {
 func NewBundleBuilder(bundle *drincw.Bundle) BundleBuilder {
 	builder := BundleBuilder{}
 	builder.TableName = bundle.Group.ID
-	builder.ID = "ID"
+	builder.ID = "id"
 
 	fields := bundle.AllFields()
 	builder.Fields = make(map[string]Selector, len(fields))
@@ -62,6 +77,7 @@ func NewBundleBuilder(bundle *drincw.Bundle) BundleBuilder {
 type bundleBuilderJSON struct {
 	TableName string            `json:"table"`
 	ID        string            `json:"id"`
+	Distinct  bool              `json:"distinct"`
 	Fields    map[string]string `json:"fields"`
 }
 
@@ -69,6 +85,7 @@ func (bb BundleBuilder) MarshalJSON() ([]byte, error) {
 	jb := bundleBuilderJSON{
 		TableName: bb.TableName,
 		ID:        bb.ID,
+		Distinct:  bb.Disinct,
 		Fields:    make(map[string]string, len(bb.Fields)),
 	}
 
@@ -91,6 +108,7 @@ func (bb *BundleBuilder) UnmarshalJSON(data []byte) error {
 
 	bb.TableName = jb.TableName
 	bb.ID = jb.ID
+	bb.Disinct = jb.Distinct
 	bb.Fields = make(map[string]Selector, len(jb.Fields))
 
 	var err error
@@ -105,6 +123,8 @@ func (bb *BundleBuilder) UnmarshalJSON(data []byte) error {
 }
 
 func (bb BundleBuilder) Apply(table *drincw.ODBCTable) error {
+	table.Name = bb.TableName
+
 	selectors := make(map[string]Selector)
 	names := make(map[string]string)
 
@@ -218,5 +238,10 @@ func (bb BundleBuilder) build(fields map[string]Selector, names map[string]strin
 		appendS = append(appendS, a)
 	}
 
-	return strings.Join(selectorS, ", "), strings.Join(appendS, " "), nil
+	selectPrefix := ""
+	if bb.Disinct {
+		selectPrefix = "DISTINCT "
+	}
+
+	return selectPrefix + strings.Join(selectorS, ", "), strings.Join(appendS, " "), nil
 }

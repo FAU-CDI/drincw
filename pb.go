@@ -33,6 +33,15 @@ type Path struct {
 	Name string
 }
 
+// MachineName returns the machine name of this path
+func (p Path) MachineName() string {
+	if p.IsGroup {
+		return p.Bundle
+	} else {
+		return p.Field
+	}
+}
+
 // Paths recursively returns all paths in this bundle
 func (pb Pathbuilder) Paths() []Path {
 	paths := make([]Path, 0, len(pb))

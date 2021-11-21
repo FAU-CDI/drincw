@@ -17,6 +17,8 @@ func UnmarshalSelector(line string) (selector Selector, err error) {
 	switch fields[0] {
 	case "column":
 		selector = &ColumnSelector{}
+	case "join":
+		selector = &JoinSelector{}
 	default:
 		return nil, fmt.Errorf("ParseLine: unknown selector type %q", fields[1])
 	}

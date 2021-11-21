@@ -43,7 +43,7 @@ type ODBCTable struct {
 
 	Row struct {
 		ODBCBundlesAndFields
-	}
+	} `xml:"row"`
 }
 
 func (bundle Bundle) odbcTable() (t ODBCTable) {
@@ -55,7 +55,7 @@ func (bundle Bundle) odbcTable() (t ODBCTable) {
 	t.ID = "id"
 	t.Trim = true
 
-	t.Row.ODBCBundlesAndFields = bundle.odbcBundlesAndFields()
+	t.Row.ODBCBundlesAndFields.Bundles = []ODBCBundle{bundle.odbcBundle()}
 
 	return
 }
@@ -70,7 +70,7 @@ type ODBCBundle struct {
 }
 
 func (bundle Bundle) odbcBundle() (b ODBCBundle) {
-	b.ID = bundle.Group.UUID
+	b.ID = bundle.Group.Bundle
 	b.Comment = " " + bundle.Group.Name + " "
 
 	b.ODBCBundlesAndFields = bundle.odbcBundlesAndFields()
@@ -88,7 +88,7 @@ type ODBCField struct {
 }
 
 func (field Field) odbcField() (f ODBCField) {
-	f.ID = field.UUID
+	f.ID = field.Field
 	f.FieldName = field.ID
 	f.Comment = " " + field.Name + " "
 	return

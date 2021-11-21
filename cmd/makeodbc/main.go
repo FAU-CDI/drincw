@@ -58,6 +58,7 @@ func writeSelectors(builder sql.Builder) {
 	if err != nil {
 		log.Fatalf("Unable to Marshal Builder: %s", err)
 	}
+	fmt.Println(string(sql.MARSHAL_COMMENT_PREFIX))
 	fmt.Println(string(bytes))
 }
 

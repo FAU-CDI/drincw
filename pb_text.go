@@ -28,7 +28,7 @@ func (field Field) textIndent(builder *strings.Builder, prefix, indent string) {
 
 func (path Path) textIndent(builder *strings.Builder, kind string, prefix, indent string) {
 	builder.WriteString(prefix)
-	builder.WriteString(path.UUID)
+	builder.WriteString(path.MachineName())
 	builder.WriteString(" (")
 	if kind != "" {
 		builder.WriteString(kind)

@@ -68,7 +68,7 @@ func NewBundleBuilder(bundle *drincw.Bundle) BundleBuilder {
 	fields := bundle.AllFields()
 	builder.Fields = make(map[string]Selector, len(fields))
 	for _, field := range fields {
-		builder.Fields[field.Path.ID] = &ColumnSelector{field.Path.ID}
+		builder.Fields[field.Path.ID] = &ColumnSelector{Identifier(field.Path.ID)}
 	}
 
 	return builder
@@ -211,24 +211,26 @@ func (bb BundleBuilder) build(fields map[string]Selector, names map[string]strin
 	}
 	sort.Strings(keys)
 
+	bbTable := Identifier(bb.TableName)
+
 	// iterate over them
-	for index, key := range keys {
-		temp := fmt.Sprintf("column_%s_%d", key, index)
+	for _, key := range keys {
+		temp := IdentifierFactory(fmt.Sprintf("column_%s", key))
 
 		// get the name of the column for the sql
 		name := names[key]
 		if name == "" {
 			name = key
 		}
-		name, _ = QuoteIdentifier(names[key])
+		name = Identifier(names[key]).Quoted()
 
-		s, err := fields[key].selectExpression(bb.TableName, temp)
+		s, err := fields[key].selectExpression(bbTable, temp)
 		if err != nil {
 			return "", "", err
 		}
 		selectorS = append(selectorS, fmt.Sprintf("%s as %s", s, name))
 
-		a, err := fields[key].appendStatement(bb.TableName, temp)
+		a, err := fields[key].appendStatement(bbTable, temp)
 		if err == errSelectorNoAppend {
 			continue
 		}

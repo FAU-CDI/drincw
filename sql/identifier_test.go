@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func Test_checkIdentifier(t *testing.T) {
+func Test_Identifier_check(t *testing.T) {
 	tests := []struct {
 		identifier         string
 		wantValid          bool
@@ -25,7 +25,7 @@ func Test_checkIdentifier(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.identifier, func(t *testing.T) {
-			gotValid, gotNeedsQuote, gotQuoteCharCount := checkIdentifier(tt.identifier)
+			gotValid, gotNeedsQuote, gotQuoteCharCount := Identifier(tt.identifier).check()
 			if gotValid != tt.wantValid {
 				t.Errorf("checkIdentifier() gotValid = %v, want %v", gotValid, tt.wantValid)
 			}
@@ -59,7 +59,7 @@ func TestQuoteIdentifier(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotQuoted, gotOk := QuoteIdentifier(tt.name)
+			gotQuoted, gotOk := Identifier(tt.name).Quote()
 			if gotQuoted != tt.wantQuoted {
 				t.Errorf("QuoteIdentifier() gotQuoted = %v, want %v", gotQuoted, tt.wantQuoted)
 			}
@@ -70,7 +70,7 @@ func TestQuoteIdentifier(t *testing.T) {
 	}
 }
 
-func TestEscapeIdentifier(t *testing.T) {
+func TestIdentifier_Escape(t *testing.T) {
 	tests := []struct {
 		name       string
 		wantQuoted string
@@ -90,7 +90,7 @@ func TestEscapeIdentifier(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotQuoted, gotOk := EscapeIdentifier(tt.name)
+			gotQuoted, gotOk := Identifier(tt.name).Escape()
 			if gotQuoted != tt.wantQuoted {
 				t.Errorf("EscapeIdentifier() gotQuoted = %v, want %v", gotQuoted, tt.wantQuoted)
 			}
@@ -104,7 +104,7 @@ func TestEscapeIdentifier(t *testing.T) {
 func TestGobbleIdentifier(t *testing.T) {
 	tests := []struct {
 		name           string
-		wantIdentifier string
+		wantIdentifier Identifier
 		wantRest       string
 	}{
 		{"", "", ""},         // empty

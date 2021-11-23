@@ -7,11 +7,14 @@ import (
 
 // Selector provides means of selecting a value from an sql table
 type Selector interface {
-	// unmarshalFields unmarshals this selector from a tokenized list of fields.
-	unmarshalFields(fields []string) error
+	withName
 
-	// marshalFields marshals this selector into a tokenized list of fields.
-	marshalFields() []string
+	// fields returns the fields used for unmarshaling and marshaling this selector.
+	//
+	// A field must either be of the following forms:
+	// - "$StructField" where StructField is a field of the underlying struct literal.
+	// - any string value not starting with '$', which will be assumed to occur literally in the source.
+	fields() []string
 
 	// selectExpression generates an expression to insert into an sql select statement.
 	// It will be used roughly like:
@@ -20,7 +23,7 @@ type Selector interface {
 	//
 	// table is the name of the primary table.
 	// temp is the name of a temporary identifier that is guaranteed to be unique between different selectors.
-	selectExpression(table string, temp string) (string, error)
+	selectExpression(table Identifier, temp IdentifierFactory) (string, error)
 
 	// appendStatment generates a statement that will be inserted at the end of the sql statement.
 	// when err is
@@ -30,7 +33,13 @@ type Selector interface {
 	//
 	// table is the name of the primary table.
 	// temp is the name of a temporary identifier that is guaranteed to be unique between different selectors.
-	appendStatement(table string, temp string) (string, error)
+	appendStatement(table Identifier, temp IdentifierFactory) (string, error)
+}
+
+type withName interface {
+	// name must return the name of this selector
+	// it may not be implemented in a pointer type
+	name() Identifier
 }
 
 var errSelectorInvalidIdentifier = errors.New("Selector: invalid identifier")
@@ -38,108 +47,69 @@ var errSelectorNoAppend = errors.New("Selector: no append")
 
 // ColumnSelector selects a single Column from the main table
 type ColumnSelector struct {
-	Column string
+	Column Identifier
 }
 
-func (c *ColumnSelector) unmarshalFields(fields []string) error {
-	if len(fields) != 1 {
-		return errors.New("column: exactly one argument required")
-	}
-	c.Column = fields[0]
-	return nil
+func (ColumnSelector) name() Identifier {
+	return "column"
 }
 
-func (c ColumnSelector) marshalFields() []string {
-	// "column <name>"
-	return []string{c.Column}
+func (*ColumnSelector) fields() []string {
+	return []string{"$Column"}
 }
 
-func (c ColumnSelector) selectExpression(table string, temp string) (string, error) {
-	table, ok := EscapeIdentifier(table)
-	if !ok {
-		return "", errSelectorInvalidIdentifier
-	}
-
-	column, ok := EscapeIdentifier(c.Column)
-	if !ok {
-		return "", errSelectorInvalidIdentifier
-	}
-
-	return fmt.Sprintf("%s.%s", table, column), nil
+func (c ColumnSelector) selectExpression(table Identifier, temp IdentifierFactory) (string, error) {
+	return fmt.Sprintf("%q.%q", table, c.Column), nil
 }
 
-func (c ColumnSelector) appendStatement(table string, temp string) (string, error) {
+func (c ColumnSelector) appendStatement(table Identifier, temp IdentifierFactory) (string, error) {
 	return "", errSelectorNoAppend
 }
 
 // JoinSelector selects Column from Table using a (left) join on OurKey, TheirKey
 type JoinSelector struct {
-	Column string
+	Column Identifier
 
-	Table string
+	Table Identifier
 
-	OurKey   string
-	TheirKey string
+	OurKey   Identifier
+	TheirKey Identifier
 }
 
-func (j *JoinSelector) unmarshalFields(fields []string) error {
-	if len(fields) != 6 {
-		return errors.New("join: exactly six fields required")
-	}
-	j.Column = fields[0]
-	if fields[1] != "from" {
-		return errors.New("join: second field must be 'from'")
-	}
-	j.Table = fields[2]
-	if fields[3] != "on" {
-		return errors.New("join: fourth field must be 'on'")
-	}
-	j.OurKey = fields[4]
-	j.TheirKey = fields[5]
-
-	return nil
+func (JoinSelector) name() Identifier {
+	return "join"
 }
 
-func (j JoinSelector) marshalFields() []string {
-	return []string{j.Column, "from", j.Table, "on", j.OurKey, j.TheirKey}
+func (*JoinSelector) fields() []string {
+	return []string{"$Column", "from", "$Table", "on", "$OurKey", "$TheirKey"}
 }
 
-func (j JoinSelector) selectExpression(table string, temp string) (string, error) {
-	temp, ok := EscapeIdentifier(temp)
-	if !ok {
-		return "", errSelectorInvalidIdentifier
-	}
-
-	column, ok := EscapeIdentifier(j.Column)
-	if !ok {
-		return "", errSelectorInvalidIdentifier
-	}
-
-	return fmt.Sprintf("%s.%s", temp, column), nil
+func (j JoinSelector) selectExpression(table Identifier, temp IdentifierFactory) (string, error) {
+	return fmt.Sprintf("%q.%q", temp, j.Column), nil
 }
 
-func (j JoinSelector) appendStatement(table string, temp string) (string, error) {
-	theirTable, ok := EscapeIdentifier(j.Table)
+func (j JoinSelector) appendStatement(table Identifier, temp IdentifierFactory) (string, error) {
+	theirTable, ok := Identifier(j.Table).Escape()
 	if !ok {
 		return "", errSelectorInvalidIdentifier
 	}
 
-	theirKey, ok := EscapeIdentifier(j.TheirKey)
+	theirKey, ok := Identifier(j.TheirKey).Escape()
 	if !ok {
 		return "", errSelectorInvalidIdentifier
 	}
 
-	tempTable, ok := EscapeIdentifier(temp)
+	tempTable, ok := Identifier(temp).Escape()
 	if !ok {
 		return "", errSelectorInvalidIdentifier
 	}
 
-	ourTable, ok := EscapeIdentifier(table)
+	ourTable, ok := Identifier(table).Escape()
 	if !ok {
 		return "", errSelectorInvalidIdentifier
 	}
 
-	ourKey, ok := EscapeIdentifier(j.OurKey)
+	ourKey, ok := Identifier(j.OurKey).Escape()
 	if !ok {
 		return "", errSelectorInvalidIdentifier
 	}

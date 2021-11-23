@@ -19,6 +19,8 @@ const MARSHAL_COMMENT_PREFIX = `
 	'column $Column'
 
 	'join $Column from $Table on $OurKey $TheirKey'
+
+	'm2m $Column from $Table through $Through on $OurKey $OurThroughKey $TheirThroughKey $TheirKey'
 */
 `
 

@@ -7,6 +7,67 @@ import (
 	"unicode"
 )
 
+// PrepareSQL formats an sql statement with the provided arguments.
+//
+// ${NAME} is replaced by a quoted version of the provided identifiers
+// calls panic() when NAME is missing in arguments.
+func PrepareSQL(sql string, arguments map[string]Identifier) string {
+	// grab a new builder from the pool
+	builder := builderPool.Get().(*strings.Builder)
+	builder.Reset()
+	defer builderPool.Put(builder)
+
+	// grab a temporary builder from the pool
+	second := builderPool.Get().(*strings.Builder)
+	second.Reset()
+	defer builderPool.Put(second)
+
+	modeNormal := true
+	modeDollar := false // saw dollar sign
+	modeOpen := false   // saw open '{'
+	for _, r := range sql {
+		switch {
+		// saw $: expect a '{'
+		case modeNormal && r == '$':
+			modeNormal = false
+			modeDollar = true
+		// normal character
+		case modeNormal:
+			builder.WriteRune(r)
+		// saw dollar, gobble opening identifier
+		case modeDollar && r == '{':
+			modeDollar = false
+			modeOpen = true
+		case modeDollar:
+			panic("$ not followed by {")
+		// closing '}' brace: write the identifier
+		case modeOpen && r == '}':
+			identifier := second.String()
+			second.Reset()
+
+			value, ok := arguments[identifier]
+			if !ok {
+				panic("missing identifier: " + identifier)
+			}
+			builder.WriteString(value.Quoted())
+
+			modeOpen = false
+			modeNormal = true
+		// store name of closing '}'
+		case modeOpen:
+			second.WriteRune(r)
+		default:
+			panic("never reached")
+		}
+	}
+
+	if !modeOpen {
+		panic("unclosed variable input")
+	}
+
+	return builder.String()
+}
+
 // Identifier represents an SQL Identifier
 //
 // An identifier can be quoted or escaped, see the Quote() and Escape() methods.

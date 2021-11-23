@@ -15,6 +15,17 @@ type ODBCServer struct {
 	Tables []ODBCTable
 }
 
+// TableByID returns the table in this server with the provided main bundle id
+// If no such table exists, returns an empty ODBCTable.
+func (server ODBCServer) TableByID(mainBundleID string) ODBCTable {
+	for _, table := range server.Tables {
+		if table.MainBundleID() == mainBundleID {
+			return table
+		}
+	}
+	return ODBCTable{}
+}
+
 func (pb Pathbuilder) ODBC() (s ODBCServer) {
 	s.URL = "localhost"
 	s.Database = ""
@@ -58,6 +69,17 @@ func (bundle Bundle) odbcTable() (t ODBCTable) {
 	t.Row.ODBCBundlesAndFields.Bundles = []ODBCBundle{bundle.odbcBundle()}
 
 	return
+}
+
+// MainBundleID returns the main bundle id corresponding to this table
+func (table ODBCTable) MainBundleID() string {
+	// if there are no bundles, return
+	if len(table.Row.Bundles) == 0 {
+		return ""
+	}
+
+	// id of the first bundle
+	return table.Row.Bundles[0].ID
 }
 
 type ODBCBundle struct {

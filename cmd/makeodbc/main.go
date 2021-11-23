@@ -46,6 +46,8 @@ func main() {
 	}
 
 	switch {
+	case flagDumpSQL != "":
+		writeSQL(flagDumpSQL, pb, odbc)
 	case flagDumpSelectors:
 		writeSelectors(builder)
 	default:
@@ -70,14 +72,29 @@ func writeXML(odbc drincw.ODBCServer) {
 	fmt.Println(string(bytes))
 }
 
+func writeSQL(name string, pb drincw.Pathbuilder, odbc drincw.ODBCServer) {
+	bundle := pb[name]
+	if bundle == nil {
+		log.Fatalf("no such bundle: %s", name)
+	}
+	table := odbc.TableByID(bundle.Group.MachineName())
+	if table.Name == "" {
+		log.Fatalf("no table for: %s", flagDumpSQL)
+	}
+	fmt.Println(sql.ForTable(table))
+}
+
 var nArgs []string
 
 var flagLoadSelectors string
 var flagDumpSelectors bool
+var flagDumpSQL string
 
 func init() {
 	flag.StringVar(&flagLoadSelectors, "load-selectors", flagLoadSelectors, "load selector file")
 	flag.BoolVar(&flagDumpSelectors, "dump-selectors", flagDumpSelectors, "generate a selectors template to generate sql statements")
+	flag.StringVar(&flagDumpSQL, "sql", flagDumpSQL, "generate sql that the importer would run for the given bundle name")
+
 	flag.Parse()
 	nArgs = flag.Args()
 }

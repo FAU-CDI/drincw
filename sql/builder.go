@@ -16,10 +16,9 @@ const MARSHAL_COMMENT_PREFIX = `
 
 	Supported Fields:
 
-	'column name'
+	'column $Column'
 
-	'join column from table on our_id their_id'
-
+	'join $Column from $Table on $OurKey $TheirKey'
 */
 `
 
@@ -246,4 +245,21 @@ func (bb BundleBuilder) build(fields map[string]Selector, names map[string]strin
 	}
 
 	return selectPrefix + strings.Join(selectorS, ", "), strings.Join(appendS, " "), nil
+}
+
+// ForTable returns the SQL Statement corresponding to a specific table
+func ForTable(table drincw.ODBCTable) string {
+	id := Identifier(table.ID)
+	sSelect := ""
+	if table.Select != "" {
+		sSelect = ", " + table.Select
+	}
+
+	name := Identifier(table.Name)
+
+	suffix := ""
+	if table.Append != "" {
+		suffix = " " + table.Append
+	}
+	return fmt.Sprintf("SELECT %q.%q as %q%s FROM %q%s", name, id, Identifier("id"), sSelect, name, suffix)
 }

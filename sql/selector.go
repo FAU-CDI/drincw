@@ -7,13 +7,18 @@ import (
 
 // Selector provides means of selecting a value from an sql table
 type Selector interface {
-	withName
+	// name must return the name of this selector
+	//
+	// this method must take a pointer receiver.
+	name() Identifier
 
 	// fields returns the fields used for unmarshaling and marshaling this selector.
 	//
 	// A field must either be of the following forms:
 	// - "$StructField" where StructField is a field of the underlying struct literal.
 	// - any string value not starting with '$', which will be assumed to occur literally in the source.
+	//
+	// this method must take a pointer receiver.
 	fields() []string
 
 	// selectExpression generates an expression to insert into an sql select statement.
@@ -36,12 +41,6 @@ type Selector interface {
 	appendStatement(table Identifier, temp IdentifierFactory) (string, error)
 }
 
-type withName interface {
-	// name must return the name of this selector
-	// it may not be implemented in a pointer type
-	name() Identifier
-}
-
 var errSelectorInvalidIdentifier = errors.New("Selector: invalid identifier")
 var errSelectorNoAppend = errors.New("Selector: no append")
 
@@ -50,7 +49,7 @@ type ColumnSelector struct {
 	Column Identifier
 }
 
-func (ColumnSelector) name() Identifier {
+func (*ColumnSelector) name() Identifier {
 	return "column"
 }
 
@@ -76,7 +75,7 @@ type JoinSelector struct {
 	TheirKey Identifier
 }
 
-func (JoinSelector) name() Identifier {
+func (*JoinSelector) name() Identifier {
 	return "join"
 }
 
@@ -115,4 +114,50 @@ func (j JoinSelector) appendStatement(table Identifier, temp IdentifierFactory) 
 	}
 
 	return fmt.Sprintf("LEFT JOIN %s AS %s ON %s.%s = %s.%s", theirTable, tempTable, ourTable, ourKey, tempTable, theirKey), nil
+}
+
+// Many2ManySelector selects ()
+type Many2ManySelector struct {
+	Column Identifier
+	Table  Identifier
+
+	Through Identifier
+
+	TheirKey        Identifier
+	TheirThroughKey Identifier
+	OurThroughKey   Identifier
+	OurKey          Identifier
+}
+
+func (*Many2ManySelector) name() Identifier {
+	return "many2many"
+}
+
+func (*Many2ManySelector) fields() []string {
+	return []string{"$Column", "from", "$Table", "through", "$Through", "on", "$TheirKey", "$TheirThroughKey", "$OurThroughKey", "$OurKey"}
+}
+
+func (m Many2ManySelector) selectExpression(table Identifier, temp IdentifierFactory) (string, error) {
+	through := temp.Get("through")
+	throughValue := temp.Get("through_value")
+
+	return fmt.Sprintf("%q.%q", through, throughValue), nil
+}
+
+func (m Many2ManySelector) appendStatement(table Identifier, temp IdentifierFactory) (string, error) {
+	through := temp.Get("through")
+	throughID := temp.Get("through_id")
+	throughValue := temp.Get("through_value")
+
+	throughSubquery := fmt.Sprintf(
+		"SELECT %q.%q AS %q, GROUP_CONCAT(%q.%q SEPARATOR \"%s\") AS %q FROM %q LEFT JOIN %q ON %q.%q = %q.%q GROUP BY %q.%q",
+		m.Through, m.OurThroughKey, throughID,
+		m.Table, m.Column, ";", throughValue,
+		m.Through, m.Table,
+		m.Through, m.TheirThroughKey,
+		m.Table, m.TheirKey,
+		m.Table, m.OurKey,
+	)
+
+	return fmt.Sprintf("LEFT JOIN (%s) AS %q ON %q.%q = %q.%q", throughSubquery, through, through, throughID, table, m.OurKey), nil
 }

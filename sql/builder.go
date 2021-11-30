@@ -9,19 +9,6 @@ import (
 	"github.com/tkw1536/FAU-CDI/drincw"
 )
 
-const MARSHAL_COMMENT_PREFIX = `
-/*
-	This file contains mappings from bundles and fields to sql columns.
-	The JSON syntax is self-explanatory; it supports comments using js syntax.
-
-	Supported Fields:
-
-	'column $Column'
-
-	'join $Column from $Table on $OurKey $TheirKey'
-*/
-`
-
 // Builder maps bundle ids to BundleBuilders
 type Builder map[string]BundleBuilder
 

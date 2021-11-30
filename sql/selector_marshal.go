@@ -23,25 +23,67 @@ func UnmarshalSelector(line string) (selector Selector, err error) {
 	return selector, unmarshalSelectorFields(selector, fields[1:])
 }
 
-// allSelectors contains a list of all selector types
-var allSelectors = []withName{
-	JoinSelector{},
-	ColumnSelector{},
+var selectorTypes map[Identifier]reflect.Type
+
+// prefix to add to marshal comment, this is modified by init()
+var MARSHAL_COMMENT_PREFIX = `
+/*
+	This file contains mappings from bundles and fields to sql columns.
+	The JSON syntax is self-explanatory; it supports comments using js syntax.
+
+	Supported Fields:
+
+{{examples}}
+*/
+`
+
+func init() {
+	// all known types of selectors, in a sensible order
+	selectors := []Selector{
+		(*ColumnSelector)(nil),
+		(*JoinSelector)(nil),
+		(*Many2ManySelector)(nil),
+	}
+
+	//
+	//
+
+	examples := make([]string, 0, len(selectors))
+
+	selectorTypes = make(map[Identifier]reflect.Type, len(selectors))
+
+	for _, selector := range selectors {
+		name := selector.name()
+		fields := selector.fields()
+
+		// store the type of the selector in the types map
+		selectorTypes[name] = reflect.TypeOf(selector).Elem()
+
+		// generate an example string (by using fields())
+		fields = append(fields, "")
+		copy(fields[1:], fields[0:])
+		fields[0] = string(name)
+
+		for i, f := range fields {
+			fields[i] = Identifier(f).Escaped()
+		}
+
+		// add the prefix from the string
+		examples = append(examples, "\t"+strings.Join(fields, " "))
+	}
+
+	MARSHAL_COMMENT_PREFIX = strings.Replace(MARSHAL_COMMENT_PREFIX, "{{examples}}", strings.Join(examples, "\n"), 1)
+	MARSHAL_COMMENT_PREFIX = strings.ReplaceAll(MARSHAL_COMMENT_PREFIX, "\t", "    ")
 }
 
 // newSelector creates a new selector of the provided name
 func newSelector(typ Identifier) (Selector, error) {
-	var theSelector withName
-	for _, s := range allSelectors {
-		if s.name() == typ {
-			theSelector = s
-		}
-	}
-	if theSelector == nil {
+	rTyp, ok := selectorTypes[typ]
+	if !ok {
 		return nil, fmt.Errorf("unknown selector type %q", typ)
 	}
 
-	selector := reflect.New(reflect.TypeOf(theSelector)).Interface()
+	selector := reflect.New(rTyp).Interface()
 	return selector.(Selector), nil
 }
 

@@ -3,6 +3,9 @@
 Drincw (pronounced like `drink`) stands for "Drink Really Is Not Copying WissKI".
 It's a quick tool to help with importing data into [WissKI](http://wiss-ki.eu/) using odbc.
 
+#### Why the name?
+Cause this project really isn't copying WissKI, it's a tool on top. 
+
 *Work in progress*
 
 *Documentation may be oudated and incomplete*

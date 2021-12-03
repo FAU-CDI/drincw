@@ -5,7 +5,13 @@ import (
 	"fmt"
 )
 
-// Selector provides means of selecting a value from an sql table
+// Selector provides means of selecting a value from an sql table.
+//
+//
+// Selectors are intentionally intransparent to the caller; they should only be accessed using the
+// MarshalSelector and UnmarshalSelector methods.
+//
+// Internally any selector type takes a pointer receiver.
 type Selector interface {
 	// name must return the name of this selector
 	//
@@ -44,7 +50,7 @@ type Selector interface {
 var errSelectorInvalidIdentifier = errors.New("Selector: invalid identifier")
 var errSelectorNoAppend = errors.New("Selector: no append")
 
-// ColumnSelector selects a single Column from the main table
+// ColumnSelector is a selector that selects a single column from the main sql table
 type ColumnSelector struct {
 	Column Identifier
 }
@@ -65,7 +71,7 @@ func (c ColumnSelector) appendStatement(table Identifier, temp IdentifierFactory
 	return "", errSelectorNoAppend
 }
 
-// JoinSelector selects Column from Table using a (left) join on OurKey, TheirKey
+// JoinSelector selects Column from a secondary Table using a (left) join on equality of OurKey and TheirKey
 type JoinSelector struct {
 	Column Identifier
 
@@ -116,7 +122,7 @@ func (j JoinSelector) appendStatement(table Identifier, temp IdentifierFactory) 
 	return fmt.Sprintf("LEFT JOIN %s AS %s ON %s.%s = %s.%s", theirTable, tempTable, ourTable, ourKey, tempTable, theirKey), nil
 }
 
-// Many2ManySelector selects ()
+// Many2ManySelector selects a many2many relation.
 type Many2ManySelector struct {
 	Column Identifier
 	Table  Identifier

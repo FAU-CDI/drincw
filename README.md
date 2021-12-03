@@ -16,7 +16,7 @@ It's a quick tool to help with importing data into [WissKI](http://wiss-ki.eu/) 
 3. Fetch dependencies using standard go tools:
 
 ```bash
-go get ./...
+go get ./cmd/makeodb ./cmd/pbfmt
 ```
 
 4. Build the executables from the `cmd` subdirectory:

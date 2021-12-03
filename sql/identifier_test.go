@@ -18,6 +18,8 @@ func Test_Identifier_check(t *testing.T) {
 		{"hello world", true, true, 0}, // space needs quoting
 		{"hello`world", true, true, 1}, // ` needs quoting
 
+		{"join", true, true, 0}, // keyword needs quoting
+
 		{"10e12", true, true, 0}, // things confused with a literal need quoting
 
 		{"0000", true, true, 0},  // only numerals

@@ -1,7 +1,6 @@
 package sql
 
 import (
-	"encoding/json"
 	"fmt"
 	"sort"
 	"strings"
@@ -9,22 +8,31 @@ import (
 	"github.com/tkw1536/FAU-CDI/drincw"
 )
 
-// Builder maps bundle ids to BundleBuilders
-type Builder map[string]BundleBuilder
+// Builder provides a correspondance between bundle ids and TableBuilder.
+//
+// New values should be created using make().
+// The zero value does not cause panic(), but can not hold and correspondences
+type Builder map[string]TableBuilder
 
+// NewBuilder creates a new builder from a pathbuilder.
+//
+// Each bundle in the pathbuilder will correspond to a new TableBuilder.
+// See BundleBuilder for details.
 func NewBuilder(pb drincw.Pathbuilder) Builder {
 	bundles := pb.Bundles()
-	builder := make(map[string]BundleBuilder, len(bundles))
+	b := make(map[string]TableBuilder, len(bundles))
 	for _, bundle := range bundles {
-		builder[bundle.Group.ID] = NewBundleBuilder(bundle)
+		b[bundle.Group.ID] = NewTableBuilder(*bundle)
 	}
-	return builder
+	return b
 }
 
-func (builder Builder) Apply(server *drincw.ODBCServer) error {
+// Apply updates the provided ODBC instance tables with correspondences provided within this Builder.
+// Tables that do not have any correspondance will be removed from server.
+func (b Builder) Apply(server *drincw.ODBCServer) error {
 	tables := make([]drincw.ODBCTable, 0, len(server.Tables))
 	for _, table := range server.Tables {
-		bb, ok := builder[table.Name]
+		bb, ok := b[table.Name]
 		if !ok {
 			continue
 		}
@@ -37,8 +45,8 @@ func (builder Builder) Apply(server *drincw.ODBCServer) error {
 	return nil
 }
 
-// BundleBuilder builds a mapping from an sql table to a set of fields
-type BundleBuilder struct {
+// TableBuilder provides facitilies to create sql statements for ODBC tables.
+type TableBuilder struct {
 	TableName string // name of the table to use
 	ID        string // name of the column for ID
 	Disinct   bool   // should we select distinct fields?
@@ -46,77 +54,39 @@ type BundleBuilder struct {
 	Fields map[string]Selector // Selectors for each bundle
 }
 
-func NewBundleBuilder(bundle *drincw.Bundle) BundleBuilder {
-	builder := BundleBuilder{}
-	builder.TableName = bundle.Group.ID
-	builder.ID = "id"
+// NewTableBuilder creates a new default TableBuilder for the given bundle.
+//
+// Each enabled field in the bundle will have a corresponding selector.
+// Any further details are an implementation detail, and should not be relied upon by the caller.
+func NewTableBuilder(bundle drincw.Bundle) TableBuilder {
+	tb := TableBuilder{}
+	tb.TableName = bundle.Group.ID
+	tb.ID = "id"
 
 	fields := bundle.AllFields()
-	builder.Fields = make(map[string]Selector, len(fields))
+	tb.Fields = make(map[string]Selector, len(fields))
 	for _, field := range fields {
-		builder.Fields[field.Path.ID] = &ColumnSelector{Identifier(field.Path.ID)}
-	}
-
-	return builder
-}
-
-type bundleBuilderJSON struct {
-	TableName string            `json:"table"`
-	ID        string            `json:"id"`
-	Distinct  bool              `json:"distinct"`
-	Fields    map[string]string `json:"fields"`
-}
-
-func (bb BundleBuilder) MarshalJSON() ([]byte, error) {
-	jb := bundleBuilderJSON{
-		TableName: bb.TableName,
-		ID:        bb.ID,
-		Distinct:  bb.Disinct,
-		Fields:    make(map[string]string, len(bb.Fields)),
-	}
-
-	var err error
-	for field, selector := range bb.Fields {
-		jb.Fields[field], err = MarshalSelector(selector)
-		if err != nil {
-			return nil, err
+		if !field.Enabled {
+			continue
 		}
+		tb.Fields[field.Path.ID] = &ColumnSelector{Identifier(field.Path.ID)}
 	}
 
-	return json.Marshal(jb)
+	return tb
 }
 
-func (bb *BundleBuilder) UnmarshalJSON(data []byte) error {
-	jb := bundleBuilderJSON{}
-	if err := json.Unmarshal(data, &jb); err != nil {
-		return err
-	}
-
-	bb.TableName = jb.TableName
-	bb.ID = jb.ID
-	bb.Disinct = jb.Distinct
-	bb.Fields = make(map[string]Selector, len(jb.Fields))
-
-	var err error
-	for field, selector := range jb.Fields {
-		bb.Fields[field], err = UnmarshalSelector(selector)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (bb BundleBuilder) Apply(table *drincw.ODBCTable) error {
-	table.Name = bb.TableName
+// Apply updates the provided ODBC table with correspondences provided within this Builder.
+//
+// Bundles inside a table that do not have a corresponding sql in this TableBuilder will be removed.
+func (tb TableBuilder) Apply(table *drincw.ODBCTable) error {
+	table.Name = tb.TableName
 
 	selectors := make(map[string]Selector)
 	names := make(map[string]string)
 
 	bundles := make([]drincw.ODBCBundle, 0, len(table.Row.Bundles))
 	for _, bundle := range table.Row.Bundles {
-		if !bb.ApplyBundle(&bundle, selectors, names) {
+		if !tb.applyBundle(&bundle, selectors, names) {
 			continue
 		}
 		bundles = append(bundles, bundle)
@@ -125,7 +95,7 @@ func (bb BundleBuilder) Apply(table *drincw.ODBCTable) error {
 
 	fields := make([]drincw.ODBCField, 0, len(table.Row.Fields))
 	for _, field := range table.Row.Fields {
-		if !bb.ApplyField(&field, selectors, names) {
+		if !tb.applyField(&field, selectors, names) {
 			continue
 		}
 		fields = append(fields, field)
@@ -133,7 +103,7 @@ func (bb BundleBuilder) Apply(table *drincw.ODBCTable) error {
 	table.Row.Fields = fields
 
 	var err error
-	table.Select, table.Append, err = bb.build(selectors, names)
+	table.Select, table.Append, err = tb.build(selectors, names)
 	if err != nil {
 		return err
 	}
@@ -141,10 +111,10 @@ func (bb BundleBuilder) Apply(table *drincw.ODBCTable) error {
 	return nil
 }
 
-func (bb BundleBuilder) ApplyBundle(bundle *drincw.ODBCBundle, selectors map[string]Selector, names map[string]string) (ok bool) {
+func (tb TableBuilder) applyBundle(bundle *drincw.ODBCBundle, selectors map[string]Selector, names map[string]string) (ok bool) {
 	fields := make([]drincw.ODBCField, 0, len(bundle.Fields))
 	for _, field := range bundle.Fields {
-		if !bb.ApplyField(&field, selectors, names) {
+		if !tb.applyField(&field, selectors, names) {
 			continue
 		}
 		fields = append(fields, field)
@@ -154,7 +124,7 @@ func (bb BundleBuilder) ApplyBundle(bundle *drincw.ODBCBundle, selectors map[str
 
 	bundles := make([]drincw.ODBCBundle, 0, len(bundle.Bundles))
 	for _, bundle := range bundle.Bundles {
-		if !bb.ApplyBundle(&bundle, selectors, names) {
+		if !tb.applyBundle(&bundle, selectors, names) {
 			continue
 		}
 		bundles = append(bundles, bundle)
@@ -165,8 +135,8 @@ func (bb BundleBuilder) ApplyBundle(bundle *drincw.ODBCBundle, selectors map[str
 	return
 }
 
-func (bb BundleBuilder) ApplyField(field *drincw.ODBCField, selectors map[string]Selector, names map[string]string) (ok bool) {
-	selector, ok := bb.Fields[field.FieldName]
+func (tb TableBuilder) applyField(field *drincw.ODBCField, selectors map[string]Selector, names map[string]string) (ok bool) {
+	selector, ok := tb.Fields[field.FieldName]
 	if !ok { // field doesn't exist
 		return false
 	}
@@ -183,11 +153,17 @@ func (bb BundleBuilder) ApplyField(field *drincw.ODBCField, selectors map[string
 	return true
 }
 
-func (bb BundleBuilder) Build() (selects, appends string, err error) {
-	return bb.build(bb.Fields, nil)
+// Build builds two sql strings for usage within the odbc importer for this table.
+//
+// The select statement contains a list of fields to be selected.
+// The appen statement represents an abitrary sql statement that should be appened to the sql statement as a whole.
+//
+// Either SQL statement is escaped and can be safely inserted inside an sql statement.
+func (tb TableBuilder) Build() (selectS, appendS string, err error) {
+	return tb.build(tb.Fields, nil)
 }
 
-func (bb BundleBuilder) build(fields map[string]Selector, names map[string]string) (selects, appends string, err error) {
+func (tb TableBuilder) build(fields map[string]Selector, names map[string]string) (selects, appends string, err error) {
 	var selectorS, appendS []string
 
 	// generate a consistent ordering for the fields
@@ -197,7 +173,7 @@ func (bb BundleBuilder) build(fields map[string]Selector, names map[string]strin
 	}
 	sort.Strings(keys)
 
-	bbTable := Identifier(bb.TableName)
+	bbTable := Identifier(tb.TableName)
 
 	// iterate over them
 	for _, key := range keys {
@@ -227,26 +203,9 @@ func (bb BundleBuilder) build(fields map[string]Selector, names map[string]strin
 	}
 
 	selectPrefix := ""
-	if bb.Disinct {
+	if tb.Disinct {
 		selectPrefix = "DISTINCT "
 	}
 
 	return selectPrefix + strings.Join(selectorS, ", "), strings.Join(appendS, " "), nil
-}
-
-// ForTable returns the SQL Statement corresponding to a specific table
-func ForTable(table drincw.ODBCTable) string {
-	id := Identifier(table.ID)
-	sSelect := ""
-	if table.Select != "" {
-		sSelect = ", " + table.Select
-	}
-
-	name := Identifier(table.Name)
-
-	suffix := ""
-	if table.Append != "" {
-		suffix = " " + table.Append
-	}
-	return fmt.Sprintf("SELECT %q.%q as %q%s FROM %q%s", name, id, Identifier("id"), sSelect, name, suffix)
 }

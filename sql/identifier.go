@@ -12,9 +12,11 @@ import (
 // An identifier can be quoted or escaped, see the Quote() and Escape() methods.
 // Both operations make the identifier safe to use directly in SQL strings.
 //
-// Identifier implements fmt.Formatter, and the '%s' verb escapes the identifier, whereas '%q' quotes it.
+// Identifier implements fmt.Formatter, see Format.
 type Identifier string
 
+// Format implements the fmt.Formatter interface
+// The 's' verb escapes the identifier, the 'q' verb quotes the identifier.
 func (identifier Identifier) Format(f fmt.State, verb rune) {
 	switch verb {
 	case 's':
@@ -96,6 +98,11 @@ func (identifier Identifier) quote(guess int) string {
 	return builder.String()
 }
 
+// restrictedKeywords contains a list of sql keywords
+var restrictedKeywords = map[string]struct{}{
+	"add": {}, "all": {}, "alter": {}, "and": {}, "any": {}, "as": {}, "asc": {}, "avg": {}, "backup": {}, "between": {}, "by": {}, "case": {}, "check": {}, "column": {}, "constraint": {}, "count": {}, "create": {}, "database": {}, "default": {}, "delete": {}, "desc": {}, "distinct": {}, "drop": {}, "exec": {}, "exists": {}, "foreign": {}, "from": {}, "full": {}, "group": {}, "having": {}, "in": {}, "index": {}, "inner": {}, "insert": {}, "into": {}, "is": {}, "join": {}, "key": {}, "left": {}, "like": {}, "limit": {}, "max": {}, "min": {}, "not": {}, "null": {}, "or": {}, "order": {}, "outer": {}, "primary": {}, "procedure": {}, "replace": {}, "right": {}, "rownum": {}, "select": {}, "set": {}, "sql": {}, "sum": {}, "table": {}, "top": {}, "truncate": {}, "union": {}, "unique": {}, "update": {}, "values": {}, "view": {}, "where": {},
+}
+
 // check checks if an identifier is valid
 // valid indicates if the identifier is valid at all.
 // needsQuote indicates if the identifier needs to be quoted.
@@ -148,6 +155,14 @@ func (identifier Identifier) check() (valid bool, needsQuote bool, quoteCharCoun
 	// an identifier may not end with a space character
 	if unicode.IsSpace(lastRune) {
 		return false, false, 0
+	}
+
+	// check for restricted keywords (which aren't already cloned)
+	if !needsQuote {
+		_, ok := restrictedKeywords[strings.ToLower(string(identifier))]
+		if ok {
+			needsQuote = true
+		}
 	}
 
 	return true, needsQuote, quoteCharCount

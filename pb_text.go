@@ -1,6 +1,7 @@
 package drincw
 
 import (
+	"fmt"
 	"strings"
 )
 
@@ -35,6 +36,7 @@ func (path Path) textIndent(builder *strings.Builder, kind string, prefix, inden
 		builder.WriteString(" ")
 	}
 	builder.WriteString(path.ID)
+	builder.WriteString(fmt.Sprintf(" %q", path.Name))
 	builder.WriteString(")")
 	builder.WriteString("\n")
 }

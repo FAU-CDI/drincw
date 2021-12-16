@@ -90,36 +90,16 @@ func (*JoinSelector) fields() []string {
 }
 
 func (j JoinSelector) selectExpression(table Identifier, temp IdentifierFactory) (string, error) {
-	return fmt.Sprintf("%q.%q", temp, j.Column), nil
+	return fmt.Sprintf("%q.%q", temp.Get(""), j.Column), nil
 }
 
 func (j JoinSelector) appendStatement(table Identifier, temp IdentifierFactory) (string, error) {
-	theirTable, ok := Identifier(j.Table).Escape()
-	if !ok {
-		return "", errSelectorInvalidIdentifier
-	}
-
-	theirKey, ok := Identifier(j.TheirKey).Escape()
-	if !ok {
-		return "", errSelectorInvalidIdentifier
-	}
-
-	tempTable, ok := Identifier(temp).Escape()
-	if !ok {
-		return "", errSelectorInvalidIdentifier
-	}
-
-	ourTable, ok := Identifier(table).Escape()
-	if !ok {
-		return "", errSelectorInvalidIdentifier
-	}
-
-	ourKey, ok := Identifier(j.OurKey).Escape()
-	if !ok {
-		return "", errSelectorInvalidIdentifier
-	}
-
-	return fmt.Sprintf("LEFT JOIN %s AS %s ON %s.%s = %s.%s", theirTable, tempTable, ourTable, ourKey, tempTable, theirKey), nil
+	theirTable := Identifier(j.Table)
+	theirKey := Identifier(j.TheirKey)
+	tempTable := temp.Get("")
+	ourTable := Identifier(table)
+	ourKey := Identifier(j.OurKey)
+	return fmt.Sprintf("LEFT JOIN %q AS %q ON %q.%q = %q.%q", theirTable, tempTable, ourTable, ourKey, tempTable, theirKey), nil
 }
 
 // Many2ManySelector selects a many2many relation.

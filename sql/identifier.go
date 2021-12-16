@@ -243,5 +243,8 @@ type IdentifierFactory Identifier
 
 // Get gets an identifier from this factory
 func (idf IdentifierFactory) Get(value string) Identifier {
+	if value == "" {
+		return Identifier(string(idf))
+	}
 	return Identifier(string(idf) + "_" + value)
 }

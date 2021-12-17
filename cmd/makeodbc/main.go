@@ -27,7 +27,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("Unable to load Pathbuilder: %s", err)
 	}
-	odbcs := odbc.MakeServer(pb)
 
 	var builder sql.Builder
 	if flagLoadSelectors != "" {
@@ -42,6 +41,7 @@ func main() {
 		builder = sql.NewBuilder(pb)
 	}
 
+	odbcs := odbc.MakeServer(pb)
 	if err := builder.Apply(&odbcs); err != nil {
 		log.Fatalf("Unable to apply builder: %s", err)
 	}

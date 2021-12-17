@@ -104,6 +104,10 @@ makeodbc -sql my_bundle_name path/to/pathbuilder.xml
 makeodbc -sql my_bundle_name -load-selectors path/to/selectors.json  path/to/pathbuilder.xml
 ```
 
+### addict - gui for makeodbc
+
+An experimental gui for makeodbc.
+
 ## License
 
 Licensed under the terms of [AGPL 3.0](https://github.com/FAU-CDI/drincw/blob/main/LICENSE) for everyone.

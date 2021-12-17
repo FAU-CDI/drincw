@@ -4,11 +4,11 @@ package sql
 import (
 	"fmt"
 
-	"github.com/tkw1536/FAU-CDI/drincw"
+	"github.com/tkw1536/FAU-CDI/drincw/odbc"
 )
 
 // ForTable generates an sql statement used by the importer with the given table
-func ForTable(table drincw.ODBCTable) string {
+func ForTable(table odbc.Table) string {
 	id := Identifier(table.ID)
 	name := Identifier(table.Name)
 

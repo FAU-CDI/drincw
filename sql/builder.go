@@ -5,7 +5,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/tkw1536/FAU-CDI/drincw"
+	"github.com/tkw1536/FAU-CDI/drincw/odbc"
+	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder"
 )
 
 // Builder provides a correspondance between bundle ids and TableBuilder.
@@ -18,7 +19,7 @@ type Builder map[string]TableBuilder
 //
 // Each bundle in the pathbuilder will correspond to a new TableBuilder.
 // See BundleBuilder for details.
-func NewBuilder(pb drincw.Pathbuilder) Builder {
+func NewBuilder(pb pathbuilder.Pathbuilder) Builder {
 	bundles := pb.Bundles()
 	b := make(map[string]TableBuilder, len(bundles))
 	for _, bundle := range bundles {
@@ -29,8 +30,8 @@ func NewBuilder(pb drincw.Pathbuilder) Builder {
 
 // Apply updates the provided ODBC instance tables with correspondences provided within this Builder.
 // Tables that do not have any correspondance will be removed from server.
-func (b Builder) Apply(server *drincw.ODBCServer) error {
-	tables := make([]drincw.ODBCTable, 0, len(server.Tables))
+func (b Builder) Apply(server *odbc.Server) error {
+	tables := make([]odbc.Table, 0, len(server.Tables))
 	for _, table := range server.Tables {
 		bb, ok := b[table.Name]
 		if !ok {
@@ -58,7 +59,7 @@ type TableBuilder struct {
 //
 // Each enabled field in the bundle will have a corresponding selector.
 // Any further details are an implementation detail, and should not be relied upon by the caller.
-func NewTableBuilder(bundle drincw.Bundle) TableBuilder {
+func NewTableBuilder(bundle pathbuilder.Bundle) TableBuilder {
 	tb := TableBuilder{}
 	tb.TableName = bundle.Group.ID
 	tb.ID = "id"
@@ -78,13 +79,13 @@ func NewTableBuilder(bundle drincw.Bundle) TableBuilder {
 // Apply updates the provided ODBC table with correspondences provided within this Builder.
 //
 // Bundles inside a table that do not have a corresponding sql in this TableBuilder will be removed.
-func (tb TableBuilder) Apply(table *drincw.ODBCTable) error {
+func (tb TableBuilder) Apply(table *odbc.Table) error {
 	table.Name = tb.TableName
 
 	selectors := make(map[string]Selector)
 	names := make(map[string]string)
 
-	bundles := make([]drincw.ODBCBundle, 0, len(table.Row.Bundles))
+	bundles := make([]odbc.Bundle, 0, len(table.Row.Bundles))
 	for _, bundle := range table.Row.Bundles {
 		if !tb.applyBundle(&bundle, selectors, names) {
 			continue
@@ -93,7 +94,7 @@ func (tb TableBuilder) Apply(table *drincw.ODBCTable) error {
 	}
 	table.Row.Bundles = bundles
 
-	fields := make([]drincw.ODBCField, 0, len(table.Row.Fields))
+	fields := make([]odbc.Field, 0, len(table.Row.Fields))
 	for _, field := range table.Row.Fields {
 		if !tb.applyField(&field, selectors, names) {
 			continue
@@ -111,8 +112,8 @@ func (tb TableBuilder) Apply(table *drincw.ODBCTable) error {
 	return nil
 }
 
-func (tb TableBuilder) applyBundle(bundle *drincw.ODBCBundle, selectors map[string]Selector, names map[string]string) (ok bool) {
-	fields := make([]drincw.ODBCField, 0, len(bundle.Fields))
+func (tb TableBuilder) applyBundle(bundle *odbc.Bundle, selectors map[string]Selector, names map[string]string) (ok bool) {
+	fields := make([]odbc.Field, 0, len(bundle.Fields))
 	for _, field := range bundle.Fields {
 		if !tb.applyField(&field, selectors, names) {
 			continue
@@ -122,7 +123,7 @@ func (tb TableBuilder) applyBundle(bundle *drincw.ODBCBundle, selectors map[stri
 	}
 	bundle.Fields = fields
 
-	bundles := make([]drincw.ODBCBundle, 0, len(bundle.Bundles))
+	bundles := make([]odbc.Bundle, 0, len(bundle.Bundles))
 	for _, bundle := range bundle.Bundles {
 		if !tb.applyBundle(&bundle, selectors, names) {
 			continue
@@ -135,7 +136,7 @@ func (tb TableBuilder) applyBundle(bundle *drincw.ODBCBundle, selectors map[stri
 	return
 }
 
-func (tb TableBuilder) applyField(field *drincw.ODBCField, selectors map[string]Selector, names map[string]string) (ok bool) {
+func (tb TableBuilder) applyField(field *odbc.Field, selectors map[string]Selector, names map[string]string) (ok bool) {
 	selector, ok := tb.Fields[field.FieldName]
 	if !ok { // field doesn't exist
 		return false

@@ -9,7 +9,9 @@ import (
 	"log"
 	"os"
 
-	"github.com/tkw1536/FAU-CDI/drincw"
+	"github.com/tkw1536/FAU-CDI/drincw/odbc"
+	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder"
+	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder/pbxml"
 	"github.com/tkw1536/FAU-CDI/drincw/sql"
 	"muzzammil.xyz/jsonc"
 )
@@ -21,12 +23,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	pbx, err := drincw.LoadPathbuilderXML(nArgs[0])
+	pb, err := pbxml.Load(nArgs[0])
 	if err != nil {
 		log.Fatalf("Unable to load Pathbuilder: %s", err)
 	}
-	pb := pbx.Pathbuilder()
-	odbc := pb.ODBC()
+	odbcs := odbc.MakeServer(pb)
 
 	var builder sql.Builder
 	if flagLoadSelectors != "" {
@@ -41,17 +42,17 @@ func main() {
 		builder = sql.NewBuilder(pb)
 	}
 
-	if err := builder.Apply(&odbc); err != nil {
+	if err := builder.Apply(&odbcs); err != nil {
 		log.Fatalf("Unable to apply builder: %s", err)
 	}
 
 	switch {
 	case flagDumpSQL != "":
-		writeSQL(flagDumpSQL, pb, odbc)
+		writeSQL(flagDumpSQL, pb, odbcs)
 	case flagDumpSelectors:
 		writeSelectors(builder)
 	default:
-		writeXML(odbc)
+		writeXML(odbcs)
 	}
 }
 
@@ -64,7 +65,7 @@ func writeSelectors(builder sql.Builder) {
 	fmt.Println(string(bytes))
 }
 
-func writeXML(odbc drincw.ODBCServer) {
+func writeXML(odbc odbc.Server) {
 	bytes, err := xml.MarshalIndent(odbc, "", "    ")
 	if err != nil {
 		log.Fatalf("Unable to Marshal Pathbuilder: %s", err)
@@ -72,7 +73,7 @@ func writeXML(odbc drincw.ODBCServer) {
 	fmt.Println(string(bytes))
 }
 
-func writeSQL(name string, pb drincw.Pathbuilder, odbc drincw.ODBCServer) {
+func writeSQL(name string, pb pathbuilder.Pathbuilder, odbc odbc.Server) {
 	bundle := pb[name]
 	if bundle == nil {
 		log.Fatalf("no such bundle: %s", name)

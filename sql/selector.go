@@ -47,7 +47,6 @@ type Selector interface {
 	appendStatement(table Identifier, temp IdentifierFactory) (string, error)
 }
 
-var errSelectorInvalidIdentifier = errors.New("Selector: invalid identifier")
 var errSelectorNoAppend = errors.New("Selector: no append")
 
 // ColumnSelector is a selector that selects a single column from the main sql table

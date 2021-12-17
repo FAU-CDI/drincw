@@ -8,7 +8,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/tkw1536/FAU-CDI/drincw"
+	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder/pbtxt"
+	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder/pbxml"
 )
 
 func main() {
@@ -18,23 +19,22 @@ func main() {
 		os.Exit(1)
 	}
 
-	pbx, err := drincw.LoadPathbuilderXML(nArgs[0])
+	pb, err := pbxml.Load(nArgs[0])
 	if err != nil {
 		log.Fatalf("Unable to load Pathbuilder: %s", err)
 	}
-	pb := pbx.Pathbuilder()
 
 	switch {
 	case flagAscii: // format as text
-		fmt.Println(pb.Text())
+		fmt.Println(pbtxt.Marshal(pb))
 	case flagPretty: // format as pretty xml
-		bytes, err := xml.MarshalIndent(pb.XML(), "", "    ")
+		bytes, err := xml.MarshalIndent(pbxml.New(pb), "", "    ")
 		if err != nil {
 			log.Fatalf("Unable to Marshal Pathbuilder: %s", err)
 		}
 		fmt.Println(string(bytes))
 	default: // format as unpretty xml
-		bytes, err := xml.Marshal(pb.XML())
+		bytes, err := xml.Marshal(pbxml.New(pb))
 		if err != nil {
 			log.Fatalf("Unable to Marshal Pathbuilder: %s", err)
 		}

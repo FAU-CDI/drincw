@@ -1,0 +1,42 @@
+body {
+    padding-top: 1rem;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    text-align: justify;
+}
+
+a, a:visited {
+    color: blue;
+}
+
+main, footer {
+    width: 100%;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 0 20px;
+    box-sizing: border-box;
+}
+
+footer {
+    border-top: 1px solid black;
+    padding: 2px;
+    font-size: small;
+}
+
+textarea {
+    display: block;
+    width: 100%;
+    min-height: 50%;
+    margin-bottom: 1em;
+}
+
+input[type="submit"] {
+    float: right;
+}
+
+.ok {
+    color: green;
+}
+
+.fail {
+    color: red;
+}

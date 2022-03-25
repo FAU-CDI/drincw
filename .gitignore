@@ -1,3 +1,10 @@
 *.xml
 *.json
 *.jsonc
+
+# frontend
+!cmd/odbcd/package.json
+cmd/odbcd/.parcel-cache
+cmd/odbcd/dist
+cmd/odbcd/node_modules
+cmd/odbcd/yarn-error.log

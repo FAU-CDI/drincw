@@ -111,11 +111,18 @@ An experimental gui for makeodbc.
 ### odbcd - web interface for generating odbc via the browser
 
 ```bash
-go run ./cmd/odbcd -listen localhost:8080
+# build 
+cd cmd/odbcd && yarn install && yarn dist
+# run the executable
+go run . -listen localhost:8080
 ```
 
 For debugging (with live reloading)
 ```bash
+# start the development server for the frontend
+cd cmd/odbcd && yarn install && yarn dev
+
+# start the debugging server
 go run -tags debug ./cmd/odbcd
 ```
 

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+    <title>WissKI odbc generator</title>
+    <link rel="stylesheet" href="./style.css">
+
+    <main>
+        <h1>WissKI odbc generator</h1>
+
+        <noscript>
+            <p>
+                This page needs JavaScript to function and will not work without it.
+            </p>
+        </noscript>
+
+        <p>
+            This page provides a free service for anyone to quickly generate an <code>.odbc</code> file from a <a href="https://wiss-ki.eu/documentation/data-modeling/pathbuilder" rel="noreferrer noopener">WissKI Pathbuilder</a> <a href="https://wiss-ki.eu/documentation/pathbuilder/export-import-pathbuilder" rel="noreferrer noopener">XML export</a>.
+            To use it, first paste the pathbuilder xml below, or
+                <input type="file" id="uploadfile" style="display:none;"/>
+                <label for="img"><button id="fakebutton">load one from a file</button></label>
+            </span>. 
+            Then click on the <code>Generate ODBC</code> button below.
+            <span id="filestatus"></span>
+        </p>
+        <p>
+            When you generate an <code>.odbc</code> file, the contents of the <code>pathbuilder</code> are sent to the server for processing.
+            Any contents you send to the server are discarded as soon as the <code>.odbc</code> file has been generated.
+            No logs of any kind are stored.
+        </p>
+        <p>
+            This service may only be used using a web browser.
+            This source code of this service is available on <a href="https://github.com/FAU-CDI/drincw" rel="noreferrer noopener">GitHub</a>.
+            For extended use either the command line utility or host your own instance. 
+        </p>
+        <form id="form">
+            <textarea id="pathbuilder" rows="10"></textarea>
+            
+            <input type="submit" value="Generate ODBC"/>
+        </form>
+    
+        <h2>Result</h2>
+        <p>
+            Click the result to select it or <a target="_blank" id="openresult" download="import.odbc">click to download</a>.
+        </p>
+        <textarea rows="10" id="result" readonly="readonly"></textarea>
+        <span id="resultstatus"></span>
+    </main>
+    
+    <script type="module" src="script.ts"></script>
+</html>

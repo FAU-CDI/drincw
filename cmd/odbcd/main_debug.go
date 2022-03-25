@@ -17,11 +17,11 @@ func init() {
 }
 
 //
-// STATIC FILES
+// DIST FILES
 //
 
 func init() {
 	_, mainGoPath, _, _ := runtime.Caller(0)
-	staticPath := filepath.Join(filepath.Dir(mainGoPath), "static")
-	staticFS = os.DirFS(staticPath)
+	distPath := filepath.Join(filepath.Dir(mainGoPath), "dist")
+	distFS = os.DirFS(distPath)
 }

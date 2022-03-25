@@ -15,7 +15,7 @@ import (
 
 func main() {
 
-	http.Handle("/", http.FileServer(http.FS(staticFS)))
+	http.Handle("/", http.FileServer(http.FS(distFS)))
 
 	http.HandleFunc("/api/v1/makeodbc", func(w http.ResponseWriter, r *http.Request) {
 		if isNotPost(w, r) {
@@ -85,7 +85,7 @@ func isError(err error, w http.ResponseWriter, userMessage string) bool {
 // STATIC FILES
 //
 
-var staticFS fs.FS // holds all static files
+var distFS fs.FS // holds all static files
 
 //
 // COMMAND LINE FLAGS

@@ -14,12 +14,12 @@ const debugEnabled = false
 // STATIC FILES
 //
 
-//go:embed static/*
-var embedStaticDir embed.FS
+//go:embed dist/*
+var embedDistDir embed.FS
 
 func init() {
 	var err error
-	staticFS, err = fs.Sub(embedStaticDir, "static")
+	distFS, err = fs.Sub(embedDistDir, "dist")
 	if err != nil {
 		panic(err)
 	}

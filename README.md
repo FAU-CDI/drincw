@@ -108,6 +108,17 @@ makeodbc -sql my_bundle_name -load-selectors path/to/selectors.json  path/to/pat
 
 An experimental gui for makeodbc.
 
+### odbcd - web interface for generating odbc via the browser
+
+```bash
+go run ./cmd/odbcd -listen localhost:8080
+```
+
+For debugging (with live reloading)
+```bash
+go run -tags debug ./cmd/odbcd
+```
+
 ## License
 
 Licensed under the terms of [AGPL 3.0](https://github.com/FAU-CDI/drincw/blob/main/LICENSE) for everyone.

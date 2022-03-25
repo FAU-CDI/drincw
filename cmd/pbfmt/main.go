@@ -1,4 +1,4 @@
-// Command pbfmt formats a pathbuilder
+// Command pbfmt formats a pathbuilder and prints it again
 package main
 
 import (

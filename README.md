@@ -14,7 +14,7 @@ Cause this project really isn't copying WissKI, it's a tool on top.
 
 ### from source
 
-1. Install [Go](https://go.dev/), Version 1.17 or newer
+1. Install [Go](https://go.dev/), Version 1.18 or newer
 2. Clone this repository somewhere.
 3. Fetch dependencies using standard go tools:
 
@@ -126,6 +126,16 @@ cd cmd/odbcd && yarn install && yarn dev
 go run -tags debug ./cmd/odbcd
 ```
 
+## Deployment
+
+[![Publish Docker Image](https://github.com/FAU-CDI/drincw/actions/workflows/docker.yml/badge.svg)](https://github.com/FAU-CDI/drincw/actions/workflows/docker.yml)
+
+Available as a Docker Image on [GitHub Packages](https://github.com/FAU-CDI/drincw/pkgs/container/odbcd).
+Automatically built on every commit.
+
+```bash
+ docker run -ti -p 8080:8080 ghcr.io/fau-cdi/odbcd
+```
 ## License
 
 Licensed under the terms of [AGPL 3.0](https://github.com/FAU-CDI/drincw/blob/main/LICENSE) for everyone.

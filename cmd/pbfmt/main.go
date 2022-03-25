@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/tkw1536/FAU-CDI/drincw"
 	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder/pbtxt"
 	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder/pbxml"
 )
@@ -48,6 +49,15 @@ var flagAscii bool = false
 var flagPretty bool = false
 
 func init() {
+	var legalFlag bool = false
+	flag.BoolVar(&legalFlag, "legal", legalFlag, "Display legal notices and exit")
+	defer func() {
+		if legalFlag {
+			fmt.Print(drincw.LegalText())
+			os.Exit(0)
+		}
+	}()
+
 	flag.BoolVar(&flagAscii, "ascii", flagAscii, "format as text instead of xml")
 	flag.BoolVar(&flagPretty, "pretty", flagPretty, "format as prettified xml")
 

@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/tkw1536/FAU-CDI/drincw"
 	"github.com/tkw1536/FAU-CDI/drincw/odbc"
 	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder"
 	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder/pbxml"
@@ -92,6 +93,15 @@ var flagDumpSelectors bool
 var flagDumpSQL string
 
 func init() {
+	var legalFlag bool = false
+	flag.BoolVar(&legalFlag, "legal", legalFlag, "Display legal notices and exit")
+	defer func() {
+		if legalFlag {
+			fmt.Print(drincw.LegalText())
+			os.Exit(0)
+		}
+	}()
+
 	flag.StringVar(&flagLoadSelectors, "load-selectors", flagLoadSelectors, "load selector file")
 	flag.BoolVar(&flagDumpSelectors, "dump-selectors", flagDumpSelectors, "generate a selectors template to generate sql statements")
 	flag.StringVar(&flagDumpSQL, "sql", flagDumpSQL, "generate sql that the importer would run for the given bundle name")

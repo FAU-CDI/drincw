@@ -3,11 +3,14 @@ package main
 import (
 	"encoding/xml"
 	"flag"
+	"fmt"
 	"io"
 	"io/fs"
 	"log"
 	"net/http"
+	"os"
 
+	"github.com/tkw1536/FAU-CDI/drincw"
 	"github.com/tkw1536/FAU-CDI/drincw/odbc"
 	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder/pbxml"
 	"github.com/tkw1536/FAU-CDI/drincw/sql"
@@ -94,6 +97,15 @@ var distFS fs.FS // holds all static files
 var flagListen string = "localhost:8080"
 
 func init() {
+	var legalFlag bool = false
+	flag.BoolVar(&legalFlag, "legal", legalFlag, "Display legal notices and exit")
+	defer func() {
+		if legalFlag {
+			fmt.Print(drincw.LegalText())
+			os.Exit(0)
+		}
+	}()
+
 	flag.StringVar(&flagListen, "listen", flagListen, "address to listen on")
 
 	flag.Parse()

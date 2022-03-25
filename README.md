@@ -136,6 +136,17 @@ Automatically built on every commit.
 ```bash
  docker run -ti -p 8080:8080 ghcr.io/fau-cdi/odbcd
 ```
+
+## Development
+
+During development standard go tools are used.
+In addition, legal notices should be re-generated before every release using:
+
+```bash
+go install github.com/tkw1536/gogenlicense/cmd/gogenlicense@latest
+go generate ./...
+```
+
 ## License
 
 Licensed under the terms of [AGPL 3.0](https://github.com/FAU-CDI/drincw/blob/main/LICENSE) for everyone.

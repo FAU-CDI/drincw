@@ -4,11 +4,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"encoding/xml"
+	"flag"
 	"fmt"
 	"log"
 	"os"
 
 	"github.com/ncruces/zenity"
+	"github.com/tkw1536/FAU-CDI/drincw"
 	"github.com/tkw1536/FAU-CDI/drincw/odbc"
 	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder"
 	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder/pbxml"
@@ -190,4 +192,17 @@ func saveSelectors(builder sql.Builder) bool {
 	}
 
 	return true
+}
+
+func init() {
+	var legalFlag bool = false
+	flag.BoolVar(&legalFlag, "legal", legalFlag, "Display legal notices and exit")
+	defer func() {
+		if legalFlag {
+			fmt.Print(drincw.LegalText())
+			os.Exit(0)
+		}
+	}()
+
+	flag.Parse()
 }

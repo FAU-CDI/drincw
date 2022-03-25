@@ -1,7 +1,9 @@
 // Package pathbuilder contains the pathbuilder
 package pathbuilder
 
-import "sort"
+import (
+	"sort"
+)
 
 type Pathbuilder map[string]*Bundle
 
@@ -15,7 +17,18 @@ func (pb Pathbuilder) Bundles() []*Bundle {
 		bundles = append(bundles, bundle)
 	}
 	sort.SliceStable(bundles, func(i, j int) bool {
-		return bundles[i].Group.Weight < bundles[j].Group.Weight
+		iBundle := bundles[i]
+		jBundle := bundles[j]
+
+		if iBundle.Group.Weight < jBundle.Group.Weight {
+			return true
+		}
+
+		if iBundle.Group.Weight == jBundle.Group.Weight {
+			return iBundle.importOrder < jBundle.importOrder
+		}
+
+		return false
 	})
 	return bundles
 }
@@ -30,6 +43,8 @@ func (pb Pathbuilder) Get(BundleID string) *Bundle {
 	}
 	return bundle
 }
+
+// GetOrCreate creates a new bundle with the given id
 func (pb Pathbuilder) GetOrCreate(BundleID string) *Bundle {
 	if BundleID == "" {
 		return nil
@@ -37,6 +52,7 @@ func (pb Pathbuilder) GetOrCreate(BundleID string) *Bundle {
 	bundle, ok := pb[BundleID]
 	if !ok {
 		bundle = new(Bundle)
+		bundle.importOrder = len(pb)
 		pb[BundleID] = bundle
 	}
 	return bundle

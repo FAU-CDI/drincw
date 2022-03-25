@@ -8,6 +8,9 @@ type Bundle struct {
 	Parent       *Bundle   // Parent Bundle (if any)
 	ChildBundles []*Bundle // Children of this Bundle
 	ChildFields  []Field   // Fields in this Bundle
+
+	// tracks the order this bundle was imported in (if any)
+	importOrder int
 }
 
 // TopLevel checks if a bundle is toplevel

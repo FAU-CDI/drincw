@@ -14,6 +14,11 @@ RUN apt-get update && apt-get -y install build-essential python3
 ADD cmd/odbcd/ /app/cmd/odbcd/
 WORKDIR /app/cmd/odbcd/
 RUN yarn install --frozen-lockfile
+
+# setup legal urls (when kwarc-legal is set)
+ARG KWARCLEGAL
+ENV LEGAL_JS_TEXT=${KWARCLEGAL:+"For legal reasons we must link"}
+ENV LEGAL_JS_SOURCE=${KWARCLEGAL:+"https://privacy.kwarc.info/legal.js"}
 RUN yarn dist
 
 # build the backend

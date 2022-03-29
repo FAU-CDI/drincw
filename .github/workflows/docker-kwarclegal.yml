@@ -1,4 +1,4 @@
-name: Publish 'latest' Docker Image
+name: Publish 'kwarclegal' Docker Image
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: fau-cdi/odbcd:latest
+  IMAGE_NAME: fau-cdi/odbcd:withkwarclegal
   PLATFORMS: linux/amd64,linux/arm64,linux/arm/v7
 
 jobs:
@@ -24,6 +24,7 @@ jobs:
       - uses: docker/build-push-action@v2
         with:
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          build-args: KWARCLEGAL=1
           platforms: ${{ env.PLATFORMS }}
           pull: true
           push: true

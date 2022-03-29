@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "dist": "NODE_ENV=production parcel build",
-    "dev": "NODE_ENV=development parcel watch"
+    "dev": "NODE_ENV=development parcel serve --hmr-port 8081"
   },
   "source": "./src/index.html",
   "targets": {

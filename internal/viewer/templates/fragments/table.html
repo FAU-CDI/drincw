@@ -1,0 +1,12 @@
+<table>
+    {{ range $id, $value := .Fields }}
+    <tr>
+        <td>
+            <code>{{ $id }}</code>
+        </td>
+        <td>
+            <code>{{ $value }}</code>
+        </td>
+    </tr>
+    {{ end }}
+</table>

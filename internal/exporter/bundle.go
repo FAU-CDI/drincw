@@ -1,4 +1,4 @@
-// Package exporter provides facilities for exporting data form a pathbuilder
+// Package exporter provides facilities for converting data from nquads into relational-like structures
 package exporter
 
 import (
@@ -87,7 +87,7 @@ func entities(bundle *pathbuilder.Bundle, parentIndex int, index *Index) []Entit
 
 	// setup all the fields
 	for i, fieldPath := range fieldPaths {
-		field := fields[i].Name
+		field := fields[i].ID
 		for _, fPath := range fieldPath {
 			uri := fPath.Node(entityURIIndex)
 
@@ -97,7 +97,7 @@ func entities(bundle *pathbuilder.Bundle, parentIndex int, index *Index) []Entit
 
 	// iterate through all of the child paths
 	for i, child := range cPaths {
-		bundle := cBundles[i].Group.Name
+		bundle := cBundles[i].Group.ID
 		for _, entity := range child {
 			index, ok := lookup[entity.parentURI]
 			if !ok {

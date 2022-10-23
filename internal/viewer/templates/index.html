@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>WissKI Viewer</title>
+{{ template "head.html" . }}
+
+<h1>Bundles</h1>
+<p>
+    <b>Bundles</b>
+</p>
+<ul>
+    {{ range . }}
+        <li>
+            <a href="/bundle/{{ .Group.ID }}">
+                {{ .Group.Name }}
+            </a>
+        </li>
+    {{ end }}
+</ul>
+

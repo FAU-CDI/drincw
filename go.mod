@@ -4,6 +4,7 @@ go 1.18
 
 require (
 	github.com/cayleygraph/quad v1.2.4
+	github.com/gorilla/mux v1.8.0
 	github.com/ncruces/zenity v0.7.12
 	golang.org/x/exp v0.0.0-20221019170559-20944726eadf
 	muzzammil.xyz/jsonc v0.0.0-20201229145248-615b0916ca38

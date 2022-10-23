@@ -6,12 +6,14 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"time"
 
 	"github.com/tkw1536/FAU-CDI/drincw"
 	"github.com/tkw1536/FAU-CDI/drincw/internal/exporter"
 	"github.com/tkw1536/FAU-CDI/drincw/internal/sparkl"
+	"github.com/tkw1536/FAU-CDI/drincw/internal/viewer"
 	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder"
 	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder/pbxml"
 )
@@ -60,16 +62,23 @@ func main() {
 		log.Printf("extracted bundles, took %s", bundleT)
 	}
 
-	// and
-	encoder := json.NewEncoder(os.Stdout)
-	encoder.Encode(bundles)
-	if err != nil {
-		panic(err)
+	if listenFlag == "" {
+		json.NewEncoder(os.Stdout).Encode(bundles)
+		return
 	}
 
+	handler := viewer.Viewer{
+		Pathbuilder: &pb,
+		Data:        bundles,
+	}
+
+	log.Println("listening on", listenFlag)
+	http.ListenAndServe(listenFlag, &handler)
 }
 
 var nArgs []string
+
+var listenFlag string
 
 func init() {
 	var legalFlag bool = false
@@ -80,6 +89,8 @@ func init() {
 			os.Exit(0)
 		}
 	}()
+
+	flag.StringVar(&listenFlag, "listen", listenFlag, "Instead of dumping data as json, start up a server at the given address")
 
 	flag.Parse()
 	nArgs = flag.Args()

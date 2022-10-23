@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>WissKI Viewer - Bundle "{{ .Bundle.Group.Name }}"</title>
+{{ template "head.html" . }}
+
+<h1>{{ .Bundle.Group.Name }}</h1>
+<p>
+    <a href="/">Bundles</a> &gt;
+    <b>{{ .Bundle.Group.Name }}</b>
+</p>
+<ul>
+    {{ $bundle := .Bundle.Group.ID }}
+    {{ range .URIS }}
+        <li>
+            <a href="/entity/{{ $bundle }}?uri={{ . }}">
+                {{ . }}
+            </a>
+        </li>
+    {{ end }}
+</ul>
+

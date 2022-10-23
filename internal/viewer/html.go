@@ -2,7 +2,9 @@ package viewer
 
 import (
 	"embed"
+	"errors"
 	"html/template"
+	"log"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -13,7 +15,26 @@ import (
 //go:embed templates/*
 var templates embed.FS
 
-var parsedTemplates = template.Must(template.ParseFS(templates, "templates/*.html", "templates/fragments/*.html"))
+var parsedTemplates = (func() *template.Template {
+	return template.Must(
+		template.New("").Funcs(template.FuncMap{
+			"combine": func(pairs ...any) (map[string]any, error) {
+				if len(pairs)%2 != 0 {
+					return nil, errors.New("pairs must be of even length")
+				}
+				result := make(map[string]any, len(pairs)/2)
+				for i, v := range pairs {
+					if i%2 == 1 {
+						result[pairs[(i-1)].(string)] = v
+					}
+				}
+				return result, nil
+			},
+		}).ParseFS(
+			templates, "templates/*.html", "templates/fragments/*.html",
+		),
+	)
+})()
 
 func (viewer *Viewer) htmlIndex(w http.ResponseWriter, r *http.Request) {
 	bundles, ok := viewer.getBundles()
@@ -76,6 +97,6 @@ func (viewer *Viewer) htmlEntity(w http.ResponseWriter, r *http.Request) {
 		Entity: entity,
 	})
 	if err != nil {
-		panic(err)
+		log.Println(err)
 	}
 }

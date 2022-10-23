@@ -1,18 +1,24 @@
-<!DOCTYPE html>
-<title>WissKI Viewer</title>
 {{ template "head.html" . }}
+<title>TasteD</title>
 
-<h1>Bundles</h1>
-<p>
+<header>
+    <h1>Bundles</h1>
+</header>
+
+<nav>
     <b>Bundles</b>
-</p>
-<ul>
-    {{ range . }}
-        <li>
-            <a href="/bundle/{{ .Group.ID }}">
-                {{ .Group.Name }}
-            </a>
-        </li>
-    {{ end }}
-</ul>
+</nav>
 
+<main>
+    <ul>
+        {{ range . }}
+            <li>
+                <a href="/bundle/{{ .Group.ID }}">
+                    {{ .Group.Name }}
+                </a>
+            </li>
+        {{ end }}
+    </ul>
+</main>
+
+{{ template "foot.html" . }}

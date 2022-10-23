@@ -1,7 +1,7 @@
 # Drincw
 
 Drincw (pronounced like `drink`) stands for "Drink Really Is Not Copying WissKI".
-It's a quick tool to help with importing data into [WissKI](http://wiss-ki.eu/) using odbc.
+It's a quick tool to help with importing and displaying data to and from a [WissKI](http://wiss-ki.eu/) instance. 
 
 #### Why the name?
 Cause this project really isn't copying WissKI, it's a tool on top. 
@@ -19,7 +19,7 @@ Cause this project really isn't copying WissKI, it's a tool on top.
 3. Fetch dependencies using standard go tools:
 
 ```bash
-go get ./cmd/makeodb ./cmd/pbfmt
+go get ./...
 ```
 
 4. Build the executables from the `cmd` subdirectory:

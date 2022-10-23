@@ -1,6 +1,7 @@
 package viewer
 
 import (
+	"embed"
 	"net/http"
 	"sync"
 
@@ -9,7 +10,7 @@ import (
 	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder"
 )
 
-// Viewer implements a Viewer for entities
+// Viewer implements an [http.Handler] that displays WissKI Entities.
 type Viewer struct {
 	// Pathbuilder and Data to server
 	// Should not be changed once a single request has been served.
@@ -23,8 +24,12 @@ type Viewer struct {
 	biIndex map[string]map[string]int
 }
 
+//go:embed static
+var staticEmbed embed.FS
+
 func (viewer *Viewer) prepare() {
 	viewer.init.Do(func() {
+		viewer.mux.PathPrefix("/static/").Handler(http.FileServer(http.FS(staticEmbed)))
 		viewer.mux.HandleFunc("/", viewer.htmlIndex)
 		viewer.mux.HandleFunc("/bundle/{bundle}", viewer.htmlBundle)
 		viewer.mux.HandleFunc("/entity/{bundle}", viewer.htmlEntity).Queries("uri", "{uri:.+}")

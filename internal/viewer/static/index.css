@@ -1,0 +1,71 @@
+body {
+    font-family: system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+}
+
+a:visited {
+    color: blue;
+}
+
+nav a::before,
+nav a::after,
+nav b::before,
+nav b::after {
+    color: black;
+}
+
+nav a::before,
+nav b::before {
+    content: "["
+}
+
+nav a::after,
+nav b::after {
+    content: "]"
+}
+
+nav {
+    border-bottom: 1px solid gray;
+    border-top: 1px solid gray;
+    padding-bottom: 1em;
+    padding-top: 1em;
+    margin-bottom: 1em;
+    margin-top: 1em;
+}
+
+footer {
+    border-top: 1px solid gray;
+    padding-top: 1em;
+    margin-top: 1em;
+
+    color: gray;
+    font-size: small;
+}
+
+.pathpart:not(:last-child)::after {
+    content: " -> ";
+}
+
+.entity_table {
+    width: 100%;
+}
+
+.entity_table,
+.entity_table td {
+    border-collapse: collapse;
+    border: 1px solid black;
+}
+
+.entity_table td,
+.entity_table th {
+    padding: .5em;
+    vertical-align: top;
+}
+
+.entity_table td.collapse
+ {
+    white-space:nowrap;
+    width: 1px;
+}
+.entity_table td.break {
+    width: 1px;
+}

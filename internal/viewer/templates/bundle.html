@@ -1,20 +1,29 @@
-<!DOCTYPE html>
-<title>WissKI Viewer - Bundle "{{ .Bundle.Group.Name }}"</title>
 {{ template "head.html" . }}
+<title>TasteD - Bundle "{{ .Bundle.Group.Name }}"</title>
 
-<h1>{{ .Bundle.Group.Name }}</h1>
-<p>
+
+<header>
+    <h1>{{ .Bundle.Group.Name }}</h1>
+</header>
+
+<nav>
     <a href="/">Bundles</a> &gt;
-    <b>{{ .Bundle.Group.Name }}</b>
-</p>
-<ul>
-    {{ $bundle := .Bundle.Group.ID }}
-    {{ range .URIS }}
-        <li>
-            <a href="/entity/{{ $bundle }}?uri={{ . }}">
-                {{ . }}
-            </a>
-        </li>
-    {{ end }}
-</ul>
+    <b>Bundle {{ .Bundle.Group.Name }}</b>
+</nav>
 
+<main>
+    {{ $l := len .URIS }}
+    <p>{{ $l }} {{ if eq $l 1 }}Entity{{ else }}Entities{{ end }}</p>
+    <ul>
+        {{ $bundle := .Bundle.Group.ID }}
+        {{ range .URIS }}
+            <li>
+                <a href="/entity/{{ $bundle }}?uri={{ . }}">
+                    {{ . }}
+                </a>
+            </li>
+        {{ end }}
+    </ul>
+</main>
+
+{{ template "foot.html" . }}

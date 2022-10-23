@@ -1,23 +1,29 @@
-<!DOCTYPE html>
-<title>WissKI Viewer - Entity {{ .Entity.URI }}</title>
 {{ template "head.html" . }}
+<title>TasteD - Entity {{ .Entity.URI }}</title>
 
-<h1>{{ .Entity.URI }}</h1>
-<p>
+<header>
+    <h1>{{ .Entity.URI }}</h1>
+</header>
+
+<nav>
     <a href="/">Bundles</a> &gt;
-    <a href="/bundle/{{ .Bundle.Group.ID }}">{{ .Bundle.Group.Name }}</a> &gt;
-    <b>{{ .Entity.URI }}</b>
-</p>
+    <a href="/bundle/{{ .Bundle.Group.ID }}">Bundle {{ .Bundle.Group.Name }}</a> &gt;
+    <b>Entity {{ .Entity.URI }}</b>
+</nav>
 
-<h2>Fields</h2>
-{{ template "table.html" .Entity }}
-
-<h2>Sub Bundles</h2>
-    {{ range $name, $values := .Entity.Children }}
-    <h3>{{ $name }}</h3>
-    {{ range $values }}
-        {{ template "table.html" . }}
+<main>
+    <h2>Fields</h2>
+    {{ $bundle := .Bundle }}
+    {{ template "render_entity.html" combine "Entity" .Entity "Bundle" $bundle }}
+    
+    <h2>Sub Bundles</h2>
+        {{ range $name, $values := .Entity.Children }}
+        {{ $cbundle := $bundle.Bundle $name }}
+        <h3>{{ $name }}</h3>
+        {{ range $values }}
+            {{ template "render_entity.html" combine "Entity" . "Bundle" $cbundle }}
+        {{ end }}
     {{ end }}
-{{ end }}
+</main>
 
-<h3></h3>
+{{ template "foot.html" . }}

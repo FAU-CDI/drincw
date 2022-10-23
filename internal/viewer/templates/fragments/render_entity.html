@@ -1,0 +1,51 @@
+<table class="entity_table">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Card</th>
+            <th>Value(s)</th>
+            <th>Triples</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{ $bundle := .Bundle }}
+        
+        {{ range $name, $values := .Entity.Fields }}
+        {{ $field := $bundle.Field $name }}
+        
+        {{ $l := len $values }}
+        <tr>
+            <td class="collapse" {{ if ne $l 0 }}rowspan="{{ $l }}" {{end}}>
+                {{ $name }}
+            </td>
+            <td class="collapse" {{ if ne $l 0 }}rowspan="{{ $l }}" {{end}}>
+                {{ $field.FieldType }}
+            </td>
+            <td class="collapse" {{ if ne $l 0 }}rowspan="{{ $l }}" {{end}}>
+                {{ $field.Cardinality }}
+            </td>
+
+        {{ if eq $l 0 }}
+            <td colspan="3"></td>
+        </tr>
+        {{ end }}
+
+        {{ range $i, $value := $values }}
+        {{ if ne $i 0 }}
+        <tr>
+        {{ end }}
+            <td class="collapse">
+                <code>{{ $value.Value }}</code>
+            </td>
+            <td class="break">
+
+                {{ range $value.Triples $field }}
+                {{ . }}<br />
+                {{ end }}
+            </td>
+        </tr>
+        {{ end }}
+        {{ end }}
+    </tbody>
+</table>

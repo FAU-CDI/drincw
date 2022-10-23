@@ -1,6 +1,8 @@
 package pathbuilder
 
-import "sort"
+import (
+	"sort"
+)
 
 type Bundle struct {
 	Group Path
@@ -11,6 +13,26 @@ type Bundle struct {
 
 	// tracks the order this bundle was imported in (if any)
 	importOrder int
+}
+
+// Field returns the field with the given id
+func (bundle Bundle) Field(id string) Field {
+	for _, f := range bundle.ChildFields {
+		if f.ID == id {
+			return f
+		}
+	}
+	return Field{}
+}
+
+// Bundle returns the child bundle with the given id
+func (bundle Bundle) Bundle(id string) *Bundle {
+	for _, b := range bundle.ChildBundles {
+		if b.Group.ID == id {
+			return b
+		}
+	}
+	return nil
 }
 
 // TopLevel checks if a bundle is toplevel

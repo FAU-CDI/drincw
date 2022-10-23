@@ -1,30 +1,36 @@
-// Command n2r turns an nquads file into a json file
+// Command tasted implements a very simple WissKI Viewer
 package main
 
 import (
 	_ "embed"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
+	"net"
+	"net/http"
 	"os"
 	"time"
 
 	"github.com/tkw1536/FAU-CDI/drincw"
 	"github.com/tkw1536/FAU-CDI/drincw/internal/exporter"
 	"github.com/tkw1536/FAU-CDI/drincw/internal/sparkl"
+	"github.com/tkw1536/FAU-CDI/drincw/internal/viewer"
 	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder"
 	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder/pbxml"
 )
 
 func main() {
 	if len(nArgs) != 2 {
-		log.Print("Usage: n2r [-help] [...flags] /path/to/pathbuilder /path/to/nquads")
+		log.Print("Usage: tasted [-help] [...flags] /path/to/pathbuilder /path/to/nquads")
 		flag.PrintDefaults()
 		os.Exit(1)
 	}
 
-	var err error
+	listener, err := net.Listen("tcp", addr)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Println("listening on", addr)
 
 	// read the pathbuilder
 	var pb pathbuilder.Pathbuilder
@@ -61,11 +67,17 @@ func main() {
 		log.Printf("extracted bundles, took %s", bundleT)
 	}
 
-	// dump as json
-	json.NewEncoder(os.Stdout).Encode(bundles)
+	handler := viewer.Viewer{
+		Pathbuilder: &pb,
+		Data:        bundles,
+	}
+
+	http.Serve(listener, &handler)
 }
 
 var nArgs []string
+
+var addr string = ":3000"
 
 func init() {
 	var legalFlag bool = false
@@ -76,6 +88,8 @@ func init() {
 			os.Exit(0)
 		}
 	}()
+
+	flag.StringVar(&addr, "addr", addr, "Instead of dumping data as json, start up a server at the given address")
 
 	flag.Parse()
 	nArgs = flag.Args()

@@ -1,6 +1,10 @@
 package imap
 
-import "fmt"
+import (
+	"fmt"
+	"strconv"
+	"testing"
+)
 
 func ExampleIMap() {
 
@@ -50,4 +54,25 @@ func ExampleIMap() {
 	// add<again> 1
 	// add<again> 3
 	// add<again> 3
+}
+
+var testIDs [10000]string
+
+func init() {
+	for i := 0; i < 10000; i++ {
+		testIDs[i] = strconv.Itoa(i)
+	}
+}
+
+func BenchmarkIMap(b *testing.B) {
+	var mp IMap[string]
+	for i := 0; i < b.N; i++ {
+		mp.Reset()
+		for _, t := range testIDs {
+			mp.Add(t)
+		}
+		for _, t := range testIDs {
+			mp.Add(t)
+		}
+	}
 }

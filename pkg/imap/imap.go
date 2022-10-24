@@ -27,18 +27,22 @@ func (mp *IMap[Label]) Next() ID {
 // Add inserts label into this IMap and returns the corresponding ID.
 //
 // When label (or any object marked identical to ID) already exists in this IMap, returns the corresponding ID.
-func (mp *IMap[Label]) Add(label Label) ID {
-	if index, ok := mp.forward[label]; ok {
-		return index
+func (mp *IMap[Label]) Add(label Label) (id ID) {
+	var ok bool
+	id, ok = mp.forward[label]
+	if ok {
+		return
 	}
 
+	// fetch the new id
+	id = mp.id.Inc()
+
 	// fetch a new id, and return backward and forward value
-	id := mp.Next()
 	mp.forward[label] = id
 	mp.reverse[id] = label
 
 	// return the id
-	return id
+	return
 }
 
 // Identify marks the two objects as being identical.

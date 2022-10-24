@@ -8,9 +8,8 @@ import (
 
 // Entity represents a WissKI Entity that holds information about a specific entity
 type Entity struct {
-	URI       string   // URI of this entity
-	Path      []string // the path of this entity
-	parentURI string   // if applicable, the id of the parent entity
+	URI  string   // URI of this entity
+	Path []string // the path of this entity
 
 	Fields   map[string][]FieldValue // values for specific fields
 	Children map[string][]Entity     // child paths for specific entities
@@ -45,12 +44,6 @@ func (value FieldValue) Triples(field pathbuilder.Field) [][3]string {
 
 // Entities loads all entities for a specific bundle from the given index
 func Entities(bundle *pathbuilder.Bundle, index *Index) []Entity {
-	return entities(bundle, -1, index)
-}
-
-// entities implements Entities.
-// parentIndex is the index of the parentURI (for nested entities)
-func entities(bundle *pathbuilder.Bundle, parentIndex int, index *Index) []Entity {
 	// determine the index of the URI within the paths describing this bundle
 	// this is the length of the parent path, or zero (if it does not exist).
 	var entityURIIndex int
@@ -91,7 +84,7 @@ func entities(bundle *pathbuilder.Bundle, parentIndex int, index *Index) []Entit
 			defer wg.Done()
 
 			// store the URI of the parent in the entity URI index!
-			cPaths[i] = entities(cBundles[i], entityURIIndex, index)
+			cPaths[i] = Entities(cBundles[i], index)
 		}()
 	}
 
@@ -109,9 +102,6 @@ func entities(bundle *pathbuilder.Bundle, parentIndex int, index *Index) []Entit
 		// store the entity URI
 		// and optionally the parentURI
 		entities[i].URI = uri
-		if parentIndex >= 0 {
-			entities[i].parentURI = entities[i].Path[parentIndex]
-		}
 
 		// prepare maps for children and fields
 		entities[i].Fields = make(map[string][]FieldValue, len(fields))
@@ -158,7 +148,7 @@ func entities(bundle *pathbuilder.Bundle, parentIndex int, index *Index) []Entit
 	for i, child := range cPaths {
 		bundleID := cBundles[i].Group.ID
 		for _, entity := range child {
-			index, ok := lookup[entity.parentURI]
+			index, ok := lookup[entity.Path[entityURIIndex]]
 			if !ok {
 				// if there isn't a parent with this ID stuff went wrong
 				// so we don't deal with it for now

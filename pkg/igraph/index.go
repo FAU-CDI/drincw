@@ -91,9 +91,15 @@ func (index *IGraph[Label, Datum]) insert(subject, predicate, object imap.ID) {
 }
 
 // Identify identifies the left and right labels.
-// The identify function must run before any Add calls are made.
+// See [imap.IMap.Identifity].
 func (index *IGraph[Label, Datum]) Identify(left, right Label) {
 	index.labels.Identify(left, right)
+}
+
+// ApplyIdentifications applies all pending identifications.
+// See [imap.IMap.ApplyIdentifcations].
+func (index *IGraph[Label, Datum]) ApplyIdentifications() {
+	index.labels.ApplyIdentifications()
 }
 
 // IdentifyMap returns the canonical names of labels

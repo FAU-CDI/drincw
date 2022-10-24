@@ -28,16 +28,22 @@ func (mp *IMap[Label]) Next() ID {
 //
 // When label (or any object marked identical to ID) already exists in this IMap, returns the corresponding ID.
 func (mp *IMap[Label]) Add(label Label) (id ID) {
-	var ok bool
-	id, ok = mp.forward[label]
-	if ok {
+	id, _ = mp.AddNew(label)
+	return
+}
+
+// AddNew behaves like Add, except additionally returns a boolean indiciating if the returned id existed previously.
+func (mp *IMap[Label]) AddNew(label Label) (id ID, old bool) {
+	// fetch the mapping (if any)
+	id, old = mp.forward[label]
+	if old {
 		return
 	}
 
 	// fetch the new id
 	id = mp.id.Inc()
 
-	// fetch a new id, and return backward and forward value
+	// store mappings in both directions
 	mp.forward[label] = id
 	mp.reverse[id] = label
 
@@ -48,22 +54,31 @@ func (mp *IMap[Label]) Add(label Label) (id ID) {
 // Identify marks the two objects as being identical.
 // It returns the ID corresponding to the label new.
 //
-// All future calls to [Forward] or [Add] with old will act as if being called by new.
+// Identifications are only valid after a call to [ApplyIdentifications].
+//
+// Once applied, all future calls to [Forward] or [Add] with old will act as if being called by new.
 // A previous ID corresponding to old (if any) is no longer valid.
 //
 // NOTE(twiesing): Each call to Identify requires iterating over all calls that were previously added to this map.
 // This is a potentially slow operation and should be avoided.
-func (mp *IMap[Label]) Identify(new, old Label) ID {
+func (mp *IMap[Label]) Identify(new, old Label) {
 	// left and right are the same object
 	canonical := mp.Add(new)
-	alias := mp.Add(old)
+	alias, aliasIsOld := mp.AddNew(old)
 
-	// already identified, so don't do anything!
+	// the canonical
 	if canonical == alias {
-		return canonical
+		return
 	}
 
-	// iterate over all the elements and store the new canonical id
+	// optimization: if the alias was new
+	if !aliasIsOld {
+		mp.forward[old] = canonical
+		delete(mp.reverse, alias)
+		return
+	}
+
+	// iterate
 	for label, id := range mp.forward {
 		if id != alias || label == new {
 			continue
@@ -75,7 +90,11 @@ func (mp *IMap[Label]) Identify(new, old Label) ID {
 		// because it cannot ever be returned
 		delete(mp.reverse, id)
 	}
-	return canonical
+}
+
+// ApplyIdentifications applies all pending identifications.
+func (mp *IMap[Label]) ApplyIdentifications() {
+	// NOTE(twiesing): This is currently a no-op.
 }
 
 // Forward returns the id corresponding to the given label.

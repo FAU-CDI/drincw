@@ -23,6 +23,8 @@ func ReadNQuads(r io.ReadSeeker, SameAsPredicates []string) (*Index, error) {
 		return nil, err
 	}
 
+	index.ApplyIdentifications()
+
 	// and then read all the other data
 	if err := readData(r, &index); err != nil {
 		return nil, err

@@ -37,13 +37,7 @@
         <tr>
         {{ end }}
             <td class="collapse">
-                {{ if eq $field.FieldType "entity_reference" }}
-                <a href="/entity?uri={{ $value.Value }}">
-                    <code>{{ $value.Value }}</code>
-                </a>
-                {{ else }}
-                <code>{{ $value.Value }}</code>
-                {{ end }}
+                {{ template "render_value.html" combine "Field" $field "Value" $value }}
             </td>
             <td class="break">
 

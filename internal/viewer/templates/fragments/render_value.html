@@ -1,0 +1,7 @@
+{{ if eq .Field.FieldType "entity_reference" }}
+<a href="/entity?uri={{ .Value.Value }}">
+    <code>{{ .Value.Value }}</code>
+</a>
+{{ else }}
+<code>{{ .Value.Value }}</code>
+{{ end }}

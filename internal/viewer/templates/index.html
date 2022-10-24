@@ -10,6 +10,8 @@
 </nav>
 
 <main>
+    {{ $l := len . }}
+    <p>{{ $l }} {{ if eq $l 1 }}Bundle{{ else }}Bundles{{ end }}</p>
     <ul>
         {{ range . }}
             <li>

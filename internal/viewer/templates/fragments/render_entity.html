@@ -9,10 +9,11 @@
         </tr>
     </thead>
     <tbody>
-        {{ $bundle := .Bundle }}
-        
-        {{ range $name, $values := .Entity.Fields }}
-        {{ $field := $bundle.Field $name }}
+        {{ $entity := .Entity }}
+
+        {{ range $field := .Bundle.Fields }}
+        {{ $name := $field.ID }}
+        {{ $values := index $entity.Fields $name }}
         
         {{ $l := len $values }}
         <tr>

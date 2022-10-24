@@ -1,6 +1,7 @@
 package sparkl
 
 import (
+	"github.com/tkw1536/FAU-CDI/drincw/pkg/imap"
 	"golang.org/x/exp/slices"
 )
 
@@ -18,17 +19,18 @@ import (
 //
 // GraphIndex may not be modified concurrently, however it is possible to run several queries concurrently.
 type GraphIndex[Label comparable, Datum any] struct {
-	labels LabelMap[Label]
+	labels imap.IMap[Label]
 
 	// data holds mappings between internal IDs and data
-	data map[indexID]Datum
+	data map[imap.ID]Datum
 
 	// the triple indexes, forward and backward
-	psoIndex map[indexID]map[indexID][]indexID
-	posIndex map[indexID]map[indexID]map[indexID]struct{}
+	psoIndex map[imap.ID]map[imap.ID][]imap.ID
+	posIndex map[imap.ID]map[imap.ID]map[imap.ID]struct{}
 }
 
-// TripleCount returns the total number of (distinct) triples in the index
+// TripleCount returns the total number of (distinct) triples in the index.
+// Triples whichh have been identified will only count once.
 func (index *GraphIndex[Label, Datum]) TripleCount() (count int64) {
 	if index == nil {
 		return 0
@@ -45,9 +47,9 @@ func (index *GraphIndex[Label, Datum]) TripleCount() (count int64) {
 func (index *GraphIndex[Label, Datum]) Reset() {
 	index.labels.Reset()
 
-	index.data = make(map[indexID]Datum)
-	index.psoIndex = make(map[indexID]map[indexID][]indexID)
-	index.posIndex = make(map[indexID]map[indexID]map[indexID]struct{})
+	index.data = make(map[imap.ID]Datum)
+	index.psoIndex = make(map[imap.ID]map[imap.ID][]imap.ID)
+	index.posIndex = make(map[imap.ID]map[imap.ID]map[imap.ID]struct{})
 }
 
 // AddTriple inserts a subject-predicate-object triple into the index.
@@ -71,19 +73,19 @@ func (index *GraphIndex[Label, Datum]) AddData(subject, predicate Label, object 
 }
 
 // insert inserts the provided (subject, predicate, object) ids into the graph
-func (index *GraphIndex[Label, Datum]) insert(subject, predicate, object indexID) {
+func (index *GraphIndex[Label, Datum]) insert(subject, predicate, object imap.ID) {
 	// setup the predicate-subject-object index
 	if index.psoIndex[predicate] == nil {
-		index.psoIndex[predicate] = make(map[indexID][]indexID, 1)
+		index.psoIndex[predicate] = make(map[imap.ID][]imap.ID, 1)
 	}
 	index.psoIndex[predicate][subject] = append(index.psoIndex[predicate][subject], object)
 
 	// setup the predicate-object-subject index
 	if index.posIndex[predicate] == nil {
-		index.posIndex[predicate] = make(map[indexID]map[indexID]struct{}, 1)
+		index.posIndex[predicate] = make(map[imap.ID]map[imap.ID]struct{}, 1)
 	}
 	if index.posIndex[predicate][object] == nil {
-		index.posIndex[predicate][object] = make(map[indexID]struct{}, 1)
+		index.posIndex[predicate][object] = make(map[imap.ID]struct{}, 1)
 	}
 	index.posIndex[predicate][object][subject] = struct{}{}
 }
@@ -96,7 +98,7 @@ func (index *GraphIndex[Label, Datum]) Identify(left, right Label) {
 
 // IdentifyMap returns the canonical names of labels
 func (index *GraphIndex[Label, Datum]) IdentityMap() map[Label]Label {
-	return index.labels.IdentityMap()
+	return index.labels.IdentifyMap()
 }
 
 // Finalize finalizes any adding operations into this graph.
@@ -107,6 +109,7 @@ func (index *GraphIndex[Label, Datum]) IdentityMap() map[Label]Label {
 func (index *GraphIndex[Label, Datum]) Finalize() {
 	for pred := range index.psoIndex {
 		for sub := range index.psoIndex[pred] {
+			slices.SortFunc(index.psoIndex[pred][sub], func(a, b imap.ID) bool { return a.Less(b) })
 			index.psoIndex[pred][sub] = slices.Compact(index.psoIndex[pred][sub])
 		}
 	}

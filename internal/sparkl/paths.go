@@ -5,6 +5,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/tkw1536/FAU-CDI/drincw/pkg/imap"
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
 )
@@ -17,7 +18,7 @@ import (
 // It can be further refined using the [Connected] and [Ending] methods.
 type Paths[Label comparable, Datum any] struct {
 	index      *GraphIndex[Label, Datum]
-	predicates []indexID
+	predicates []imap.ID
 
 	// current elements of this pathSet
 	elements []element
@@ -46,7 +47,7 @@ func (index *GraphIndex[Label, Datum]) PathsStarting(predicate, object Label) *P
 }
 
 // newQuery creates a new Query object that contains nodes with the given ids
-func (index *GraphIndex[URI, Datum]) newQuery(ids []indexID) (q *Paths[URI, Datum]) {
+func (index *GraphIndex[URI, Datum]) newQuery(ids []imap.ID) (q *Paths[URI, Datum]) {
 	q = &Paths[URI, Datum]{
 		index: index,
 	}
@@ -73,7 +74,7 @@ func (set *Paths[Label, Datum]) Connected(predicate Label) {
 }
 
 // expand expands the nodes in this query by adding a link to each element found in the index
-func (set *Paths[URI, Datum]) expand(soIndex map[indexID][]indexID) {
+func (set *Paths[URI, Datum]) expand(soIndex map[imap.ID][]imap.ID) {
 	nodes := make([]element, 0)
 	for _, subject := range set.elements {
 		subject := subject
@@ -97,7 +98,7 @@ func (set *Paths[URI, Datum]) Ending(predicate URI, object URI) {
 }
 
 // restrict restricts the set of nodes by those mapped in the index
-func (set *Paths[URI, Datum]) restrict(osIndex map[indexID]struct{}) {
+func (set *Paths[URI, Datum]) restrict(osIndex map[imap.ID]struct{}) {
 	nodes := set.elements[:0]
 	for _, subject := range set.elements {
 		if _, ok := osIndex[subject.Node]; ok {
@@ -132,16 +133,16 @@ func (set *Paths[Label, Datum]) Paths() []Path[Label, Datum] {
 // element represents an element of a path
 type element struct {
 	// node this path ends at
-	Node indexID
+	Node imap.ID
 
 	// previous element of this path (if any)
 	Parent *element
 }
 
 // nodes returns the nodes contained in this path
-func (elem *element) nodes() []indexID {
+func (elem *element) nodes() []imap.ID {
 	// create a new slice for the nodes
-	slice := []indexID{}
+	slice := []imap.ID{}
 	for {
 		slice = append(slice, elem.Node)
 		elem = elem.Parent
@@ -165,13 +166,13 @@ type Path[Label comparable, Datum any] struct {
 	// index is the index this Path belonges to
 	index *GraphIndex[Label, Datum]
 
-	nodeIDs   []indexID
+	nodeIDs   []imap.ID
 	nodesOnce sync.Once
 	nodes     []Label
 	hasDatum  bool
 	datum     Datum
 
-	edgeIDs   []indexID
+	edgeIDs   []imap.ID
 	edgesOnce sync.Once
 	edges     []Label
 }

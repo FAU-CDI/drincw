@@ -11,8 +11,8 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/tkw1536/FAU-CDI/drincw/internal/exporter"
-	"github.com/tkw1536/FAU-CDI/drincw/internal/htmlx"
 	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder"
+	"github.com/tkw1536/FAU-CDI/drincw/pkg/htmlx"
 )
 
 //go:embed templates/*

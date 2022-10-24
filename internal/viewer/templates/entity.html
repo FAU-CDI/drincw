@@ -18,13 +18,20 @@
     {{ template "render_entity.html" combine "Globals" $globals "Entity" .Entity "Bundle" $bundle }}
     
     <h2>Sub Bundles</h2>
-        {{ range $name, $values := .Entity.Children }}
+    {{ range $name, $values := .Entity.Children }}
         {{ $cbundle := $bundle.Bundle $name }}
         <h3>{{ $name }}</h3>
         {{ range $values }}
             {{ template "render_entity.html" combine "Globals" $globals "Entity" . "Bundle" $cbundle }}
         {{ end }}
     {{ end }}
+
+    <h2>Aliases</h2>
+    <ul>
+        {{ range .Aliases }}
+        <li><code>{{ . }}</code></li>
+        {{ end }}
+    </ul>
 </main>
 
 {{ template "foot.html" . }}

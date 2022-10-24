@@ -125,6 +125,7 @@ func (viewer *Viewer) htmlBundle(w http.ResponseWriter, r *http.Request) {
 
 func (viewer *Viewer) htmlEntityResolve(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
+	uri := vars["uri"]
 
 	bundle, ok := viewer.uri2bundle(vars["uri"])
 	if !ok {
@@ -133,15 +134,16 @@ func (viewer *Viewer) htmlEntityResolve(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// redirect to the entity
-	target := "/entity/" + bundle + "?uri=" + url.PathEscape(vars["uri"])
+	target := "/entity/" + bundle + "?uri=" + url.PathEscape(viewer.canon(uri))
 	http.Redirect(w, r, target, http.StatusTemporaryRedirect)
 }
 
 type htmlEntityContext struct {
 	Globals contextGlobal
 
-	Bundle *pathbuilder.Bundle
-	Entity *exporter.Entity
+	Bundle  *pathbuilder.Bundle
+	Entity  *exporter.Entity
+	Aliases []string
 }
 
 func (viewer *Viewer) htmlEntity(w http.ResponseWriter, r *http.Request) {
@@ -158,8 +160,9 @@ func (viewer *Viewer) htmlEntity(w http.ResponseWriter, r *http.Request) {
 	err := parsedTemplates.ExecuteTemplate(w, "entity.html", htmlEntityContext{
 		Globals: viewer.contextGlobal(),
 
-		Bundle: bundle,
-		Entity: entity,
+		Bundle:  bundle,
+		Entity:  entity,
+		Aliases: viewer.aliases(entity.URI),
 	})
 	if err != nil {
 		log.Println(err)

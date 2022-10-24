@@ -7,6 +7,35 @@ import (
 	"golang.org/x/exp/slices"
 )
 
+// canon returns the canonical uri for the given object
+func (viewer *Viewer) canon(uri string) string {
+	if canon, ok := viewer.SameAs[uri]; ok {
+		return canon
+	}
+	return uri
+}
+
+func (viewer *Viewer) aliases(uri string) (aliases []string) {
+	viewer.alLock.Lock()
+	defer viewer.alLock.Unlock()
+
+	if viewer.alias == nil {
+		viewer.alias = make(map[string][]string)
+	}
+
+	aliases, ok := viewer.alias[uri]
+	if !ok {
+		base := viewer.canon(uri)
+		for alias, canon := range viewer.SameAs {
+			if canon == base {
+				aliases = append(aliases, alias)
+			}
+		}
+		viewer.alias[uri] = aliases
+	}
+	return aliases
+}
+
 // uri2bundle attempts to resolve a uri into a bundle
 func (viewer *Viewer) uri2bundle(uri string) (bundle string, ok bool) {
 	viewer.ebLock.Lock()
@@ -21,7 +50,7 @@ func (viewer *Viewer) uri2bundle(uri string) (bundle string, ok bool) {
 		}
 	}
 
-	bundle, ok = viewer.ebIndex[uri]
+	bundle, ok = viewer.ebIndex[viewer.canon(uri)]
 	return
 }
 
@@ -64,7 +93,7 @@ func (viewer *Viewer) findEntity(bundleid, uri string) (bundle *pathbuilder.Bund
 	defer viewer.biLock.RUnlock()
 
 	// find the index of the given URI
-	idx, ok := viewer.biIndex[bundle.Group.ID][uri]
+	idx, ok := viewer.biIndex[bundle.Group.ID][viewer.canon(uri)]
 	if !ok {
 		return nil, nil, false
 	}

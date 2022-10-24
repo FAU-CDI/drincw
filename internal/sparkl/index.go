@@ -88,6 +88,17 @@ func (index *GraphIndex[Label, Datum]) insert(subject, predicate, object indexID
 	index.posIndex[predicate][object][subject] = struct{}{}
 }
 
+// Identify identifies the left and right labels.
+// The identify function must run before any Add calls are made.
+func (index *GraphIndex[Label, Datum]) Identify(left, right Label) {
+	index.labels.Identify(left, right)
+}
+
+// IdentifyMap returns the canonical names of labels
+func (index *GraphIndex[Label, Datum]) IdentityMap() map[Label]Label {
+	return index.labels.IdentityMap()
+}
+
 // Finalize finalizes any adding operations into this graph.
 //
 // Finalize must be called before any query is performed,

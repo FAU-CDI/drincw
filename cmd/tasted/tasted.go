@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/tkw1536/FAU-CDI/drincw"
@@ -45,11 +46,15 @@ func main() {
 		log.Printf("loaded pathbuilder, took %s", pbT)
 	}
 
+	if sameAs != "" {
+		flags.SameAsPredicates = strings.Split(sameAs, ",")
+	}
+
 	// build an index
 	var index *exporter.Index
 	{
 		start := time.Now()
-		index, err = sparkl.LoadIndex(nArgs[1])
+		index, err = sparkl.LoadIndex(nArgs[1], flags.SameAsPredicates)
 		indexT := time.Since(start)
 
 		if err != nil {
@@ -70,7 +75,7 @@ func main() {
 	handler := viewer.Viewer{
 		Pathbuilder: &pb,
 		Data:        bundles,
-
+		SameAs:      index.IdentityMap(),
 		RenderFlags: flags,
 	}
 
@@ -82,6 +87,7 @@ var nArgs []string
 var addr string = ":3000"
 
 var flags viewer.RenderFlags
+var sameAs string = sparkl.SameAs
 
 func init() {
 	var legalFlag bool = false
@@ -97,6 +103,7 @@ func init() {
 	flag.BoolVar(&flags.ImageRender, "images", flags.ImageRender, "Enable rendering of images")
 	flag.BoolVar(&flags.HTMLRender, "html", flags.HTMLRender, "Enable rendering of html")
 	flag.StringVar(&flags.PublicURL, "public", flags.PublicURL, "Public URL of the wisski the data comes from")
+	flag.StringVar(&sameAs, "sameas", sameAs, "SameAs Properties")
 
 	flag.Parse()
 	nArgs = flag.Args()

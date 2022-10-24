@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/tkw1536/FAU-CDI/drincw"
@@ -39,11 +40,17 @@ func main() {
 		log.Printf("loaded pathbuilder, took %s", pbT)
 	}
 
+	// read SameAsPredicates
+	var sameAsFlags []string
+	if sameAs != "" {
+		sameAsFlags = strings.Split(sameAs, ",")
+	}
+
 	// build an index
 	var index *exporter.Index
 	{
 		start := time.Now()
-		index, err = sparkl.LoadIndex(nArgs[1])
+		index, err = sparkl.LoadIndex(nArgs[1], sameAsFlags)
 		indexT := time.Since(start)
 
 		if err != nil {
@@ -66,10 +73,12 @@ func main() {
 }
 
 var nArgs []string
+var sameAs string = sparkl.SameAs
 
 func init() {
 	var legalFlag bool = false
 	flag.BoolVar(&legalFlag, "legal", legalFlag, "Display legal notices and exit")
+	flag.StringVar(&sameAs, "sameas", sameAs, "SameAs Properties")
 	defer func() {
 		if legalFlag {
 			fmt.Print(drincw.LegalText())

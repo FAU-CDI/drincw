@@ -1,6 +1,11 @@
 <footer>
-    powered by TasteD 
-    <small>
-        (HTML Render: {{ .Globals.HTMLRender }}, Image Render: {{ .Globals.ImageRender }}, Public URL: {{ .Globals.PublicURL}})
-    </small>
+    powered by TasteD
+    <p>
+        <small>
+            HTML Render: {{ .Globals.HTMLRender }}<br />
+            Image Render: {{ .Globals.ImageRender }}<br />
+            Public URL: {{ .Globals.PublicURL}}<br />
+            SameAs Predicates: {{ .Globals.SameAsPredicates }}<br />
+        </small>
+    </p>
 </footer>

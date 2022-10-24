@@ -17,6 +17,12 @@ type Viewer struct {
 	Pathbuilder *pathbuilder.Pathbuilder
 	Data        map[string][]exporter.Entity
 
+	// SameAs database for URIs
+	SameAs map[string]string
+
+	alLock sync.Mutex
+	alias  map[string][]string
+
 	RenderFlags RenderFlags
 
 	init sync.Once
@@ -33,6 +39,8 @@ type RenderFlags struct {
 	HTMLRender  bool   // should we render "text_long" as actual html?
 	ImageRender bool   // should we render "image" as actual images
 	PublicURL   string // should we replace links from the provided wisski?
+
+	SameAsPredicates []string // SameAsPredicates displayed
 }
 
 //go:embed static

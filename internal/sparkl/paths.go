@@ -26,7 +26,7 @@ type Paths[Label comparable, Datum any] struct {
 // PathsWithPredicate creates a [PathSet] that represents all two-element paths
 // connected by an edge with the given predicate.
 func (index *GraphIndex[Label, Datum]) PathsWithPredicate(predicate Label) *Paths[Label, Datum] {
-	p := index.forward[predicate]
+	p := index.labels.Forward(predicate)
 	soIndex := index.psoIndex[p]
 
 	query := index.newQuery(maps.Keys(soIndex))
@@ -37,8 +37,8 @@ func (index *GraphIndex[Label, Datum]) PathsWithPredicate(predicate Label) *Path
 // PathsStarting creates a new [PathSet] that represents all one-element paths
 // starting at a vertex which is connected to object with the given predicate
 func (index *GraphIndex[Label, Datum]) PathsStarting(predicate, object Label) *Paths[Label, Datum] {
-	p := index.forward[predicate]
-	o := index.forward[object]
+	p := index.labels.Forward(predicate)
+	o := index.labels.Forward(object)
 	osIndex := index.posIndex[p][o]
 
 	query := index.newQuery(maps.Keys(osIndex))
@@ -67,7 +67,7 @@ func (index *GraphIndex[URI, Datum]) newQuery(ids []indexID) (q *Paths[URI, Datu
 // Connected extends the sets of in this PathSet by those which
 // continue the existing paths using an edge labeled with predicate.
 func (set *Paths[Label, Datum]) Connected(predicate Label) {
-	p := set.index.forward[predicate]
+	p := set.index.labels.Forward(predicate)
 	set.predicates = append(set.predicates, p)
 	set.expand(set.index.psoIndex[p])
 }
@@ -91,8 +91,8 @@ func (set *Paths[URI, Datum]) expand(soIndex map[indexID][]indexID) {
 // Ending restricts this set of paths to those that end in a node
 // which is connected to object via predicate.
 func (set *Paths[URI, Datum]) Ending(predicate URI, object URI) {
-	p := set.index.forward[predicate]
-	o := set.index.forward[object]
+	p := set.index.labels.Forward(predicate)
+	o := set.index.labels.Forward(object)
 	set.restrict(set.index.posIndex[p][o])
 }
 
@@ -202,7 +202,7 @@ func (path *Path[Label, Datum]) Node(index int) Label {
 		fallthrough
 	default:
 		// return the index
-		return path.index.reverse[path.nodeIDs[index]]
+		return path.index.labels.Reverse(path.nodeIDs[index])
 	}
 }
 
@@ -227,7 +227,7 @@ func (path *Path[Label, Datum]) processNodes() {
 		// turn the nodes into a set of labels
 		path.nodes = make([]Label, len(path.nodeIDs))
 		for j, label := range path.nodeIDs {
-			path.nodes[j] = path.index.reverse[label]
+			path.nodes[j] = path.index.labels.Reverse(label)
 		}
 	})
 }
@@ -242,7 +242,7 @@ func (path *Path[Label, Datum]) processEdges() {
 	path.edgesOnce.Do(func() {
 		path.edges = make([]Label, len(path.edgeIDs))
 		for j, label := range path.edgeIDs {
-			path.edges[j] = path.index.reverse[label]
+			path.edges[j] = path.index.labels.Reverse(label)
 		}
 	})
 }

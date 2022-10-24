@@ -18,14 +18,10 @@ import (
 //
 // GraphIndex may not be modified concurrently, however it is possible to run several queries concurrently.
 type GraphIndex[Label comparable, Datum any] struct {
-	// forward and reverse hold mappings between the Labels and indexes.
-	forward map[Label]indexID
-	reverse map[indexID]Label
+	labels LabelMap[Label]
 
 	// data holds mappings between internal IDs and data
 	data map[indexID]Datum
-
-	last indexID // last id inserted
 
 	// the triple indexes, forward and backward
 	psoIndex map[indexID]map[indexID][]indexID
@@ -47,8 +43,8 @@ func (index *GraphIndex[Label, Datum]) TripleCount() (count int64) {
 
 // Reset resets this index and prepares all internal structures for use.
 func (index *GraphIndex[Label, Datum]) Reset() {
-	index.forward = make(map[Label]indexID)
-	index.reverse = make(map[indexID]Label)
+	index.labels.Reset()
+
 	index.data = make(map[indexID]Datum)
 	index.psoIndex = make(map[indexID]map[indexID][]indexID)
 	index.posIndex = make(map[indexID]map[indexID]map[indexID]struct{})
@@ -60,7 +56,7 @@ func (index *GraphIndex[Label, Datum]) Reset() {
 // Reset must have been called, or this function may panic.
 // After all Add operations have finished, Finalize must be called.
 func (index *GraphIndex[Label, Datum]) AddTriple(subject, predicate, object Label) {
-	index.insert(index.add(subject), index.add(predicate), index.add(object))
+	index.insert(index.labels.Add(subject), index.labels.Add(predicate), index.labels.Add(object))
 }
 
 // AddData inserts a subject-predicate-data triple into the index.
@@ -69,22 +65,9 @@ func (index *GraphIndex[Label, Datum]) AddTriple(subject, predicate, object Labe
 // Reset must have been called, or this function may panic.
 // After all Add operations have finished, Finalize must be called.
 func (index *GraphIndex[Label, Datum]) AddData(subject, predicate Label, object Datum) {
-	o := index.last.next()
+	o := index.labels.Next()
 	index.data[o] = object
-	index.insert(index.add(subject), index.add(predicate), o)
-}
-
-// add returns or adds an internal mapping for the provided label
-func (index *GraphIndex[Label, Datum]) add(label Label) indexID {
-	if value, ok := index.forward[label]; ok {
-		return value
-	}
-
-	// create a new mapping by inserting into the forward and reverse
-	value := index.last.next()
-	index.forward[label] = value
-	index.reverse[value] = label
-	return value
+	index.insert(index.labels.Add(subject), index.labels.Add(predicate), o)
 }
 
 // insert inserts the provided (subject, predicate, object) ids into the graph
@@ -116,14 +99,4 @@ func (index *GraphIndex[Label, Datum]) Finalize() {
 			index.psoIndex[pred][sub] = slices.Compact(index.psoIndex[pred][sub])
 		}
 	}
-}
-
-// indexID represents an item in the index
-type indexID int64
-
-// next increments this ID, and then returns a copy of the new value.
-// It is the equivalent of the "++" operator.
-func (i *indexID) next() indexID {
-	(*i)++
-	return *i
 }

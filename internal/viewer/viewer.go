@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	"github.com/gorilla/mux"
-	"github.com/tkw1536/FAU-CDI/drincw/internal/exporter"
+	"github.com/tkw1536/FAU-CDI/drincw/internal/sparkl"
 	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder"
 )
 
@@ -15,7 +15,7 @@ type Viewer struct {
 	// Pathbuilder and Data to server
 	// Should not be changed once a single request has been served.
 	Pathbuilder *pathbuilder.Pathbuilder
-	Data        map[string][]exporter.Entity
+	Data        map[string][]sparkl.Entity
 
 	// SameAs database for URIs
 	SameAs map[string]string

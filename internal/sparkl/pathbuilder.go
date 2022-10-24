@@ -1,4 +1,4 @@
-package exporter
+package sparkl
 
 import (
 	"sync"

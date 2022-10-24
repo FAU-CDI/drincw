@@ -1,4 +1,4 @@
-package sparkl
+package igraph
 
 import (
 	"fmt"
@@ -17,7 +17,7 @@ import (
 // A Paths object should only be created from a GraphIndex; the zero value is invalid.
 // It can be further refined using the [Connected] and [Ending] methods.
 type Paths[Label comparable, Datum any] struct {
-	index      *GraphIndex[Label, Datum]
+	index      *IGraph[Label, Datum]
 	predicates []imap.ID
 
 	// current elements of this pathSet
@@ -26,7 +26,7 @@ type Paths[Label comparable, Datum any] struct {
 
 // PathsWithPredicate creates a [PathSet] that represents all two-element paths
 // connected by an edge with the given predicate.
-func (index *GraphIndex[Label, Datum]) PathsWithPredicate(predicate Label) *Paths[Label, Datum] {
+func (index *IGraph[Label, Datum]) PathsWithPredicate(predicate Label) *Paths[Label, Datum] {
 	p := index.labels.Forward(predicate)
 	soIndex := index.psoIndex[p]
 
@@ -37,7 +37,7 @@ func (index *GraphIndex[Label, Datum]) PathsWithPredicate(predicate Label) *Path
 
 // PathsStarting creates a new [PathSet] that represents all one-element paths
 // starting at a vertex which is connected to object with the given predicate
-func (index *GraphIndex[Label, Datum]) PathsStarting(predicate, object Label) *Paths[Label, Datum] {
+func (index *IGraph[Label, Datum]) PathsStarting(predicate, object Label) *Paths[Label, Datum] {
 	p := index.labels.Forward(predicate)
 	o := index.labels.Forward(object)
 	osIndex := index.posIndex[p][o]
@@ -47,7 +47,7 @@ func (index *GraphIndex[Label, Datum]) PathsStarting(predicate, object Label) *P
 }
 
 // newQuery creates a new Query object that contains nodes with the given ids
-func (index *GraphIndex[URI, Datum]) newQuery(ids []imap.ID) (q *Paths[URI, Datum]) {
+func (index *IGraph[URI, Datum]) newQuery(ids []imap.ID) (q *Paths[URI, Datum]) {
 	q = &Paths[URI, Datum]{
 		index: index,
 	}
@@ -164,7 +164,7 @@ func (elem *element) nodes() []imap.ID {
 // Path represents a path inside a GraphIndex
 type Path[Label comparable, Datum any] struct {
 	// index is the index this Path belonges to
-	index *GraphIndex[Label, Datum]
+	index *IGraph[Label, Datum]
 
 	nodeIDs   []imap.ID
 	nodesOnce sync.Once

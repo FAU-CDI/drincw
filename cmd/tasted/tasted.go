@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/tkw1536/FAU-CDI/drincw"
-	"github.com/tkw1536/FAU-CDI/drincw/internal/exporter"
 	"github.com/tkw1536/FAU-CDI/drincw/internal/sparkl"
 	"github.com/tkw1536/FAU-CDI/drincw/internal/viewer"
 	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder"
@@ -51,7 +50,7 @@ func main() {
 	}
 
 	// build an index
-	var index *exporter.Index
+	var index *sparkl.Index
 	{
 		start := time.Now()
 		index, err = sparkl.LoadIndex(nArgs[1], flags.SameAsPredicates)
@@ -64,10 +63,10 @@ func main() {
 	}
 
 	// generate bundles
-	var bundles map[string][]exporter.Entity
+	var bundles map[string][]sparkl.Entity
 	{
 		start := time.Now()
-		bundles = exporter.LoadPathbuilder(&pb, index)
+		bundles = sparkl.LoadPathbuilder(&pb, index)
 		bundleT := time.Since(start)
 		log.Printf("extracted bundles, took %s", bundleT)
 	}

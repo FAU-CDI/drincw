@@ -1,7 +1,7 @@
 package viewer
 
 import (
-	"github.com/tkw1536/FAU-CDI/drincw/internal/exporter"
+	"github.com/tkw1536/FAU-CDI/drincw/internal/sparkl"
 	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder"
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
@@ -83,7 +83,7 @@ func (viewer *Viewer) findBundle(id string) (bundle *pathbuilder.Bundle, ok bool
 }
 
 // findEntity finds an entity by the given bundle id
-func (viewer *Viewer) findEntity(bundleid, uri string) (bundle *pathbuilder.Bundle, entity *exporter.Entity, ok bool) {
+func (viewer *Viewer) findEntity(bundleid, uri string) (bundle *pathbuilder.Bundle, entity *sparkl.Entity, ok bool) {
 	bundle, ok = viewer.findBundle(bundleid)
 	if !ok {
 		return nil, nil, false
@@ -141,7 +141,7 @@ func (viewer *Viewer) getEntityURIs(id string) (bundle *pathbuilder.Bundle, uris
 
 // getEntityURIs returns the URIs belonging to a single bundle
 // TODO: Make this stream
-func (viewer *Viewer) getEntity(id, uri string) (entity *exporter.Entity, ok bool) {
+func (viewer *Viewer) getEntity(id, uri string) (entity *sparkl.Entity, ok bool) {
 	_, entity, ok = viewer.findEntity(id, uri)
 	return
 }

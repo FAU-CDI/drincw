@@ -1,5 +1,4 @@
-// Package exporter provides facilities for converting data from nquads into relational-like structures
-package exporter
+package sparkl
 
 import (
 	"sync"

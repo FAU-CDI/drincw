@@ -1,13 +1,12 @@
-package exporter
+package sparkl
 
 import (
-	"github.com/tkw1536/FAU-CDI/drincw/internal/sparkl"
 	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder"
+	"github.com/tkw1536/FAU-CDI/drincw/pkg/igraph"
 )
 
-type Index = sparkl.GraphIndex[string, any]
-type Paths = sparkl.Paths[string, any]
-type Path = sparkl.Path[string, any]
+type Paths = igraph.Paths[string, any]
+type Path = igraph.Path[string, any]
 
 const rdfType = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
 const datatypeEmpty = "empty"

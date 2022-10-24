@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/gorilla/mux"
-	"github.com/tkw1536/FAU-CDI/drincw/internal/exporter"
+	"github.com/tkw1536/FAU-CDI/drincw/internal/sparkl"
 	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder"
 	"github.com/tkw1536/FAU-CDI/drincw/pkg/htmlx"
 )
@@ -142,7 +142,7 @@ type htmlEntityContext struct {
 	Globals contextGlobal
 
 	Bundle  *pathbuilder.Bundle
-	Entity  *exporter.Entity
+	Entity  *sparkl.Entity
 	Aliases []string
 }
 

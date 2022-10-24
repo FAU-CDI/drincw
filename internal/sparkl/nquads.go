@@ -5,44 +5,45 @@ import (
 
 	"github.com/cayleygraph/quad"
 	"github.com/cayleygraph/quad/nquads"
+	"github.com/tkw1536/FAU-CDI/drincw/pkg/igraph"
 )
 
-type ReaderSeeker interface {
-	io.Reader
-	io.Seeker
-}
+type Index = igraph.IGraph[string, any]
 
 const SameAs = "http://www.w3.org/2002/07/owl#sameAs"
 
 // ReadNQuads reads NQuads from the given reader
-func ReadNQuads(r ReaderSeeker, SameAsPredicates []string) (*GraphIndex[string, any], error) {
+func ReadNQuads(r io.ReadSeeker, SameAsPredicates []string) (*Index, error) {
 	// create a new index
-	index := &GraphIndex[string, any]{}
+	var index Index
 	index.Reset()
 
-	if err := readSameAs(r, index, SameAsPredicates); err != nil {
+	// read the "same as" triples first
+	if err := readSameAs(r, &index, SameAsPredicates); err != nil {
 		return nil, err
 	}
-	if err := readData(r, index); err != nil {
+
+	// and then read all the other data
+	if err := readData(r, &index); err != nil {
 		return nil, err
 	}
 
 	// and finalize the index
 	index.Finalize()
-	return index, nil
+	return &index, nil
 }
 
-func readSameAs(r ReaderSeeker, index *GraphIndex[string, any], SameAsPredicates []string) error {
-	if len(SameAsPredicates) == 0 {
+func readSameAs(r io.ReadSeeker, index *Index, sameAsPredicates []string) error {
+	if len(sameAsPredicates) == 0 {
 		return nil
 	}
 
 	sameAss := make(map[string]struct{})
-	for _, sameAs := range SameAsPredicates {
+	for _, sameAs := range sameAsPredicates {
 		sameAss[sameAs] = struct{}{}
 	}
 
-	for q := range readQuads(r) {
+	for q := range scanQuads(r) {
 		switch {
 		case q.err != nil:
 			return q.err
@@ -55,8 +56,8 @@ func readSameAs(r ReaderSeeker, index *GraphIndex[string, any], SameAsPredicates
 	return nil
 }
 
-func readData(r ReaderSeeker, index *GraphIndex[string, any]) error {
-	for q := range readQuads(r) {
+func readData(r io.ReadSeeker, index *Index) error {
+	for q := range scanQuads(r) {
 		switch {
 		case q.err != nil:
 			return q.err
@@ -69,7 +70,8 @@ func readData(r ReaderSeeker, index *GraphIndex[string, any]) error {
 	return nil
 }
 
-type scanned struct {
+// q represents a scanned quad
+type q struct {
 	subject   string
 	predicate string
 
@@ -80,40 +82,41 @@ type scanned struct {
 	err error
 }
 
-func readQuads(r ReaderSeeker) <-chan scanned {
+// scanQuads scans quads from the start of the reader
+func scanQuads(r io.ReadSeeker) <-chan q {
 	r.Seek(0, io.SeekStart)
 	reader := nquads.NewReader(r, true)
 
-	results := make(chan scanned)
+	results := make(chan q)
 
 	go func() {
 		defer close(results)
 
 		for {
-			q, err := reader.ReadQuad()
+			value, err := reader.ReadQuad()
 			if err == io.EOF {
 				break
 			}
 			if err != nil {
-				results <- scanned{err: err}
+				results <- q{err: err}
 			}
 
-			sI, sOK := asURILike(q.Subject.Native())
-			pI, pOK := asURILike(q.Predicate.Native())
+			sI, sOK := asURILike(value.Subject.Native())
+			pI, pOK := asURILike(value.Predicate.Native())
 			if !(sOK && pOK) {
 				continue
 			}
 
-			o := q.Object.Native()
+			o := value.Object.Native()
 			oI, oOK := asURILike(o)
 			if oOK {
-				results <- scanned{
+				results <- q{
 					subject:   sI,
 					predicate: pI,
 					object:    oI,
 				}
 			} else {
-				results <- scanned{
+				results <- q{
 					subject:   sI,
 					predicate: pI,
 					hasDatum:  true,

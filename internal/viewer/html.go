@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"net/url"
 
 	"github.com/gorilla/mux"
 	"github.com/tkw1536/FAU-CDI/drincw/internal/exporter"
@@ -74,6 +75,20 @@ func (viewer *Viewer) htmlBundle(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func (viewer *Viewer) htmlEntityResolve(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+
+	bundle, ok := viewer.uri2bundle(vars["uri"])
+	if !ok {
+		http.NotFound(w, r)
+		return
+	}
+
+	// redirect to the entity
+	target := "/entity/" + bundle + "?uri=" + url.PathEscape(vars["uri"])
+	http.Redirect(w, r, target, http.StatusTemporaryRedirect)
 }
 
 type htmlEntityContext struct {

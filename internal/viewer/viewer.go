@@ -22,6 +22,9 @@ type Viewer struct {
 
 	biLock  sync.RWMutex
 	biIndex map[string]map[string]int
+
+	ebLock  sync.Mutex
+	ebIndex map[string]string
 }
 
 //go:embed static
@@ -29,14 +32,16 @@ var staticEmbed embed.FS
 
 func (viewer *Viewer) prepare() {
 	viewer.init.Do(func() {
-		viewer.mux.PathPrefix("/static/").Handler(http.FileServer(http.FS(staticEmbed)))
 		viewer.mux.HandleFunc("/", viewer.htmlIndex)
 		viewer.mux.HandleFunc("/bundle/{bundle}", viewer.htmlBundle)
+		viewer.mux.HandleFunc("/entity", viewer.htmlEntityResolve).Queries("uri", "{uri:.+}")
 		viewer.mux.HandleFunc("/entity/{bundle}", viewer.htmlEntity).Queries("uri", "{uri:.+}")
 
 		viewer.mux.HandleFunc("/api/v1", viewer.jsonIndex)
 		viewer.mux.HandleFunc("/api/v1/bundle/{bundle}", viewer.jsonBundle)
 		viewer.mux.HandleFunc("/api/v1/entity/{bundle}", viewer.jsonEntity).Queries("uri", "{uri:.+}")
+
+		viewer.mux.PathPrefix("/static/").Handler(http.FileServer(http.FS(staticEmbed)))
 	})
 }
 

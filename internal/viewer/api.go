@@ -7,6 +7,24 @@ import (
 	"golang.org/x/exp/slices"
 )
 
+// uri2bundle attempts to resolve a uri into a bundle
+func (viewer *Viewer) uri2bundle(uri string) (bundle string, ok bool) {
+	viewer.ebLock.Lock()
+	defer viewer.ebLock.Unlock()
+
+	if viewer.ebIndex == nil {
+		viewer.ebIndex = make(map[string]string)
+		for name, bundle := range viewer.Data {
+			for _, entity := range bundle {
+				viewer.ebIndex[entity.URI] = name
+			}
+		}
+	}
+
+	bundle, ok = viewer.ebIndex[uri]
+	return
+}
+
 // findBundle returns a bundle by id and makes sure the caches for the given bundle as filled.
 func (viewer *Viewer) findBundle(id string) (bundle *pathbuilder.Bundle, ok bool) {
 	bundle = viewer.Pathbuilder.Get(id)

@@ -10,6 +10,7 @@ type Paths = sparkl.Paths[string, any]
 type Path = sparkl.Path[string, any]
 
 const rdfType = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+const datatypeEmpty = "empty"
 
 // Path returns the path values of a given path
 func FromPath(path pathbuilder.Path, index *Index) []Path {
@@ -19,7 +20,7 @@ func FromPath(path pathbuilder.Path, index *Index) []Path {
 		return nil
 	}
 
-	if !path.IsGroup {
+	if !path.IsGroup && path.DatatypeProperty != "" && path.DatatypeProperty != datatypeEmpty {
 		uris = append(uris, path.DatatypeProperty)
 	}
 

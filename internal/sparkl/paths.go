@@ -193,7 +193,7 @@ func (path *Path[Label, Datum]) Node(index int) Label {
 		var label Label
 		return label
 	case index == len(path.nodeIDs)-1:
-		// check if the last element is a label
+		// check if the last element has data associated with it
 		last := path.nodeIDs[len(path.nodeIDs)-1]
 		if _, ok := path.index.data[last]; ok {
 			var label Label

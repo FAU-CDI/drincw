@@ -138,7 +138,10 @@ func entities(bundle *pathbuilder.Bundle, parentIndex int, index *Index) []Entit
 		// store the actual field values
 		for _, fPath := range fieldPath {
 			nodes := fPath.Nodes()
-			datum, _ := fPath.Datum()
+			datum, hasDatum := fPath.Datum()
+			if !hasDatum && len(nodes) > 0 {
+				datum = nodes[len(nodes)-1]
+			}
 			uri := nodes[entityURIIndex]
 
 			// append the new field value!

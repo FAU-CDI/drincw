@@ -1,4 +1,5 @@
 {{ template "head.html" . }}
+{{ $globals := .Globals }}
 <title>TasteD - Entity {{ .Entity.URI }}</title>
 
 <header>
@@ -14,14 +15,14 @@
 <main>
     <h2>Fields</h2>
     {{ $bundle := .Bundle }}
-    {{ template "render_entity.html" combine "Entity" .Entity "Bundle" $bundle }}
+    {{ template "render_entity.html" combine "Globals" $globals "Entity" .Entity "Bundle" $bundle }}
     
     <h2>Sub Bundles</h2>
         {{ range $name, $values := .Entity.Children }}
         {{ $cbundle := $bundle.Bundle $name }}
         <h3>{{ $name }}</h3>
         {{ range $values }}
-            {{ template "render_entity.html" combine "Entity" . "Bundle" $cbundle }}
+            {{ template "render_entity.html" combine "Globals" $globals "Entity" . "Bundle" $cbundle }}
         {{ end }}
     {{ end }}
 </main>

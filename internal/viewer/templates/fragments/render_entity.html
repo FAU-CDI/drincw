@@ -1,3 +1,5 @@
+{{ $globals := .Globals }}
+
 <table class="entity_table">
     <thead>
         <tr>
@@ -18,7 +20,7 @@
         {{ $l := len $values }}
         <tr>
             <td class="collapse" {{ if ne $l 0 }}rowspan="{{ $l }}" {{end}}>
-                {{ $name }}
+                {{ $field.Name }}
             </td>
             <td class="collapse" {{ if ne $l 0 }}rowspan="{{ $l }}" {{end}}>
                 {{ $field.FieldType }}
@@ -36,11 +38,10 @@
         {{ if ne $i 0 }}
         <tr>
         {{ end }}
-            <td class="collapse">
-                {{ template "render_value.html" combine "Field" $field "Value" $value }}
+            <td>
+                {{ template "render_value.html" combine "Globals" $globals "Field" $field "Value" $value }}
             </td>
             <td class="break">
-
                 {{ range $value.Triples $field }}
                 {{ . }}<br />
                 {{ end }}

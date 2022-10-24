@@ -17,6 +17,8 @@ type Viewer struct {
 	Pathbuilder *pathbuilder.Pathbuilder
 	Data        map[string][]exporter.Entity
 
+	RenderFlags RenderFlags
+
 	init sync.Once
 	mux  mux.Router
 
@@ -27,6 +29,12 @@ type Viewer struct {
 	ebIndex map[string]string
 }
 
+type RenderFlags struct {
+	HTMLRender  bool   // should we render "text_long" as actual html?
+	ImageRender bool   // should we render "image" as actual images
+	PublicURL   string // should we replace links from the provided wisski?
+}
+
 //go:embed static
 var staticEmbed embed.FS
 
@@ -34,8 +42,9 @@ func (viewer *Viewer) prepare() {
 	viewer.init.Do(func() {
 		viewer.mux.HandleFunc("/", viewer.htmlIndex)
 		viewer.mux.HandleFunc("/bundle/{bundle}", viewer.htmlBundle)
-		viewer.mux.HandleFunc("/entity", viewer.htmlEntityResolve).Queries("uri", "{uri:.+}")
 		viewer.mux.HandleFunc("/entity/{bundle}", viewer.htmlEntity).Queries("uri", "{uri:.+}")
+
+		viewer.mux.HandleFunc("/wisski/get", viewer.htmlEntityResolve).Queries("uri", "{uri:.+}")
 
 		viewer.mux.HandleFunc("/api/v1", viewer.jsonIndex)
 		viewer.mux.HandleFunc("/api/v1/bundle/{bundle}", viewer.jsonBundle)

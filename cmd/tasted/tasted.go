@@ -70,6 +70,8 @@ func main() {
 	handler := viewer.Viewer{
 		Pathbuilder: &pb,
 		Data:        bundles,
+
+		RenderFlags: flags,
 	}
 
 	http.Serve(listener, &handler)
@@ -78,6 +80,8 @@ func main() {
 var nArgs []string
 
 var addr string = ":3000"
+
+var flags viewer.RenderFlags
 
 func init() {
 	var legalFlag bool = false
@@ -90,6 +94,9 @@ func init() {
 	}()
 
 	flag.StringVar(&addr, "addr", addr, "Instead of dumping data as json, start up a server at the given address")
+	flag.BoolVar(&flags.ImageRender, "images", flags.ImageRender, "Enable rendering of images")
+	flag.BoolVar(&flags.HTMLRender, "html", flags.HTMLRender, "Enable rendering of html")
+	flag.StringVar(&flags.PublicURL, "public", flags.PublicURL, "Public URL of the wisski the data comes from")
 
 	flag.Parse()
 	nArgs = flag.Args()

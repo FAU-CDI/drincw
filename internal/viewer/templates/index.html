@@ -10,10 +10,10 @@
 </nav>
 
 <main>
-    {{ $l := len . }}
+    {{ $l := len .Bundles }}
     <p>{{ $l }} {{ if eq $l 1 }}Bundle{{ else }}Bundles{{ end }}</p>
     <ul>
-        {{ range . }}
+        {{ range .Bundles }}
             <li>
                 <a href="/bundle/{{ .Group.ID }}">
                     {{ .Group.Name }}

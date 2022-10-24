@@ -7,6 +7,7 @@ require (
 	github.com/gorilla/mux v1.8.0
 	github.com/ncruces/zenity v0.7.12
 	golang.org/x/exp v0.0.0-20221019170559-20944726eadf
+	golang.org/x/net v0.0.0-20210405180319-a5a99cb37ef4
 	muzzammil.xyz/jsonc v0.0.0-20201229145248-615b0916ca38
 )
 

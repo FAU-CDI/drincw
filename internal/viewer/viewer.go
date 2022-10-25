@@ -20,13 +20,16 @@ type Viewer struct {
 	// SameAs database for URIs
 	SameAs map[string]string
 
-	alLock sync.Mutex
-	alias  map[string][]string
-
 	RenderFlags RenderFlags
 
 	init sync.Once
 	mux  mux.Router
+
+	// TODO: All of these should be outsourced to a caching thing
+	// and independently performant that way
+
+	alInit sync.Once
+	alias  map[string][]string
 
 	biInit  sync.Once
 	biIndex map[string]map[string]int
@@ -59,6 +62,7 @@ func (viewer *Viewer) Prepare() {
 
 		viewer.prepareFindEntity()
 		viewer.prepareURI2Bundle()
+		viewer.prepareAliases()
 	})
 }
 

@@ -15,25 +15,18 @@ func (viewer *Viewer) canon(uri string) string {
 	return uri
 }
 
-func (viewer *Viewer) aliases(uri string) (aliases []string) {
-	viewer.alLock.Lock()
-	defer viewer.alLock.Unlock()
-
-	if viewer.alias == nil {
-		viewer.alias = make(map[string][]string)
-	}
-
-	aliases, ok := viewer.alias[uri]
-	if !ok {
-		base := viewer.canon(uri)
+func (viewer *Viewer) prepareAliases() {
+	viewer.alInit.Do(func() {
+		viewer.alias = make(map[string][]string, len(viewer.SameAs))
 		for alias, canon := range viewer.SameAs {
-			if canon == base {
-				aliases = append(aliases, alias)
-			}
+			viewer.alias[canon] = append(viewer.alias[canon], alias)
 		}
-		viewer.alias[uri] = aliases
-	}
-	return aliases
+	})
+}
+
+func (viewer *Viewer) aliases(uri string) (aliases []string) {
+	viewer.prepareAliases()
+	return viewer.alias[uri]
 }
 
 func (viewer *Viewer) prepareURI2Bundle() {

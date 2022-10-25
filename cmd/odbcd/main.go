@@ -5,12 +5,15 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/fs"
 	"log"
 	"net/http"
 	"os"
+	"text/template"
+
+	_ "embed"
 
 	"github.com/tkw1536/FAU-CDI/drincw"
+	"github.com/tkw1536/FAU-CDI/drincw/internal/assets"
 	"github.com/tkw1536/FAU-CDI/drincw/odbc"
 	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder/pbxml"
 	"github.com/tkw1536/FAU-CDI/drincw/sql"
@@ -18,7 +21,13 @@ import (
 
 func main() {
 
-	http.Handle("/", http.FileServer(http.FS(distFS)))
+	http.HandleFunc("/", indexTemplate)
+	http.HandleFunc("/robots.txt", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/plain")
+		w.WriteHeader(http.StatusOK)
+		w.Write(robotsTXT)
+	})
+	http.Handle("/assets/", assets.AssetHandler)
 
 	http.HandleFunc("/api/v1/makeodbc", func(w http.ResponseWriter, r *http.Request) {
 		if isNotPost(w, r) {
@@ -70,9 +79,6 @@ func isError(err error, w http.ResponseWriter, userMessage string) bool {
 	if err == nil {
 		return false
 	}
-	if debugEnabled {
-		log.Printf("Error: %#v\n", err)
-	}
 
 	if userMessage != "" {
 		w.WriteHeader(http.StatusBadRequest)
@@ -88,7 +94,17 @@ func isError(err error, w http.ResponseWriter, userMessage string) bool {
 // STATIC FILES
 //
 
-var distFS fs.FS // holds all static files
+//go:embed robots.txt
+var robotsTXT []byte
+
+//go:embed index.html
+var indexHTML string
+
+var indexTemplate = assets.Assetsodbc.MustMakeFunc(
+	"index.html", indexHTML,
+	template.FuncMap{},
+	nil,
+)
 
 //
 // COMMAND LINE FLAGS

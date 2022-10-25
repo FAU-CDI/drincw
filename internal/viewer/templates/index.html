@@ -1,15 +1,16 @@
-{{ template "head.html" . }}
-<title>TasteD</title>
+{{ template "base.html" . }}
 
-<header>
+{{ define "title" }}TasteD{{ end }}
+
+{{ define "header" }}
     <h1>Bundles</h1>
-</header>
+{{ end }}
 
-<nav>
+{{ define "nav" }}
     <b>Bundles</b>
-</nav>
+{{ end }}
 
-<main>
+{{ define "main" }}
     {{ $l := len .Bundles }}
     <p>{{ $l }} {{ if eq $l 1 }}Bundle{{ else }}Bundles{{ end }}</p>
     <ul>
@@ -21,6 +22,8 @@
             </li>
         {{ end }}
     </ul>
-</main>
+{{ end }}
 
-{{ template "foot.html" . }}
+{{ define "footer" }}
+    {{ template "viewer_foot.html" . }}
+{{ end }}

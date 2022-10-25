@@ -39,7 +39,7 @@
         <tr>
         {{ end }}
             <td>
-                {{ template "render_value.html" combine "Globals" $globals "Field" $field "Value" $value }}
+                {{ template "viewer_render_value.html" combine "Globals" $globals "Field" $field "Value" $value }}
             </td>
             <td class="break">
                 {{ range $value.Triples $field }}

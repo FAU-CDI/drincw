@@ -1,28 +1,30 @@
-{{ template "head.html" . }}
-{{ $globals := .Globals }}
-<title>TasteD - Entity {{ .Entity.URI }}</title>
+{{ template "base.html" . }}
 
-<header>
+
+{{ define "title" }}TasteD - Entity "{{ .Entity.URI }}" {{ end }}
+
+{{ define "header" }}
     <h1>{{ .Entity.URI }}</h1>
-</header>
+{{ end }}
 
-<nav>
+{{ define "nav" }}
     <a href="/">Bundles</a> &gt;
     <a href="/bundle/{{ .Bundle.Group.ID }}">Bundle {{ .Bundle.Group.Name }}</a> &gt;
     <b>Entity {{ .Entity.URI }}</b>
-</nav>
+{{ end }}
 
-<main>
+{{ define "main" }}
+    {{ $globals := .Globals }}
     <h2>Fields</h2>
     {{ $bundle := .Bundle }}
-    {{ template "render_entity.html" combine "Globals" $globals "Entity" .Entity "Bundle" $bundle }}
+    {{ template "viewer_render_entity.html" combine "Globals" $globals "Entity" .Entity "Bundle" $bundle }}
     
     <h2>Sub Bundles</h2>
     {{ range $name, $values := .Entity.Children }}
         {{ $cbundle := $bundle.Bundle $name }}
         <h3>{{ $name }}</h3>
         {{ range $values }}
-            {{ template "render_entity.html" combine "Globals" $globals "Entity" . "Bundle" $cbundle }}
+            {{ template "viewer_render_entity.html" combine "Globals" $globals "Entity" . "Bundle" $cbundle }}
         {{ end }}
     {{ end }}
 
@@ -32,6 +34,8 @@
         <li><code>{{ . }}</code></li>
         {{ end }}
     </ul>
-</main>
+{{ end }}
 
-{{ template "foot.html" . }}
+{{ define "footer" }}
+    {{ template "viewer_foot.html" . }}
+{{ end }}

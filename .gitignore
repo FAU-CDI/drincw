@@ -3,8 +3,8 @@
 *.jsonc
 
 # frontend
-!cmd/odbcd/package.json
-cmd/odbcd/.parcel-cache
-cmd/odbcd/dist
-cmd/odbcd/node_modules
-cmd/odbcd/yarn-error.log
+!internal/assets/package.json
+internal/assets/.parcel-cache
+internal/assets/.entry-cache
+internal/assets/node_modules
+internal/assets/yarn-error.log

@@ -1,11 +1,11 @@
 package viewer
 
 import (
-	"embed"
 	"net/http"
 	"sync"
 
 	"github.com/gorilla/mux"
+	"github.com/tkw1536/FAU-CDI/drincw/internal/assets"
 	"github.com/tkw1536/FAU-CDI/drincw/internal/sparkl"
 	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder"
 )
@@ -28,10 +28,10 @@ type Viewer struct {
 	init sync.Once
 	mux  mux.Router
 
-	biLock  sync.RWMutex
+	biInit  sync.Once
 	biIndex map[string]map[string]int
 
-	ebLock  sync.Mutex
+	ebInit  sync.Once
 	ebIndex map[string]string
 }
 
@@ -42,9 +42,6 @@ type RenderFlags struct {
 
 	SameAsPredicates []string // SameAsPredicates displayed
 }
-
-//go:embed static
-var staticEmbed embed.FS
 
 func (viewer *Viewer) prepare() {
 	viewer.init.Do(func() {
@@ -58,8 +55,11 @@ func (viewer *Viewer) prepare() {
 		viewer.mux.HandleFunc("/api/v1/bundle/{bundle}", viewer.jsonBundle)
 		viewer.mux.HandleFunc("/api/v1/entity/{bundle}", viewer.jsonEntity).Queries("uri", "{uri:.+}")
 
-		viewer.mux.PathPrefix("/static/").Handler(http.FileServer(http.FS(staticEmbed)))
+		viewer.mux.PathPrefix("/assets/").Handler(assets.AssetHandler)
 	})
+
+	viewer.prepareFindEntity()
+	viewer.prepareURI2Bundle()
 }
 
 func (viewer *Viewer) ServeHTTP(w http.ResponseWriter, r *http.Request) {

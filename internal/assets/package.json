@@ -1,0 +1,10 @@
+{
+  "name": "wisski-distillery-frontend",
+  "version": "1.0.0",
+  "license": "AGPL-3.0-only",
+  "private": true,
+  "dependencies": {
+    "node-html-parser": "^6.1.1",
+    "parcel": "^2.7.0"
+  }
+}

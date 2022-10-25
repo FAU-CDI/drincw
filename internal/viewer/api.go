@@ -36,22 +36,35 @@ func (viewer *Viewer) aliases(uri string) (aliases []string) {
 	return aliases
 }
 
-// uri2bundle attempts to resolve a uri into a bundle
-func (viewer *Viewer) uri2bundle(uri string) (bundle string, ok bool) {
-	viewer.ebLock.Lock()
-	defer viewer.ebLock.Unlock()
-
-	if viewer.ebIndex == nil {
+func (viewer *Viewer) prepareURI2Bundle() {
+	viewer.ebInit.Do(func() {
 		viewer.ebIndex = make(map[string]string)
 		for name, bundle := range viewer.Data {
 			for _, entity := range bundle {
 				viewer.ebIndex[entity.URI] = name
 			}
 		}
-	}
+	})
+}
 
+// uri2bundle attempts to resolve a uri into a bundle
+func (viewer *Viewer) uri2bundle(uri string) (bundle string, ok bool) {
+	viewer.prepareURI2Bundle()
 	bundle, ok = viewer.ebIndex[viewer.canon(uri)]
 	return
+}
+
+func (viewer *Viewer) prepareFindEntity() {
+	viewer.biInit.Do(func() {
+		viewer.biIndex = make(map[string]map[string]int, len(viewer.Data))
+		for id, entities := range viewer.Data {
+			viewer.biIndex[id] = make(map[string]int, len(entities))
+			for i, e := range entities {
+				viewer.biIndex[id][e.URI] = i
+			}
+		}
+
+	})
 }
 
 // findBundle returns a bundle by id and makes sure the caches for the given bundle as filled.
@@ -59,24 +72,6 @@ func (viewer *Viewer) findBundle(id string) (bundle *pathbuilder.Bundle, ok bool
 	bundle = viewer.Pathbuilder.Get(id)
 	if bundle == nil {
 		return nil, false
-	}
-
-	viewer.biLock.Lock()
-	defer viewer.biLock.Unlock()
-
-	// fetch the cache for looking up uris for the given bundle
-	// if it doesn't exist, make it!
-	_, ok = viewer.biIndex[bundle.Group.ID]
-	if !ok {
-		entities := viewer.Data[bundle.Group.ID]
-		index := make(map[string]int, len(entities))
-		for i, e := range entities {
-			index[e.URI] = i
-		}
-		if viewer.biIndex == nil {
-			viewer.biIndex = make(map[string]map[string]int, len(viewer.Data))
-		}
-		viewer.biIndex[bundle.Group.ID] = index
 	}
 
 	return bundle, true
@@ -89,8 +84,7 @@ func (viewer *Viewer) findEntity(bundleid, uri string) (bundle *pathbuilder.Bund
 		return nil, nil, false
 	}
 
-	viewer.biLock.RLock()
-	defer viewer.biLock.RUnlock()
+	viewer.prepareFindEntity()
 
 	// find the index of the given URI
 	idx, ok := viewer.biIndex[bundle.Group.ID][viewer.canon(uri)]

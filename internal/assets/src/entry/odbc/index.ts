@@ -21,7 +21,7 @@ fakebutton.addEventListener("click", (evt) => {
 const MB = 1048576;
 uploadfile.addEventListener("change", async (evt) => {
     const files = uploadfile.files;
-    if (files.length !== 1) {
+    if (files === null || files.length !== 1) {
         setUploadStatus("No file(s) selected, nothing loaded. ", false);
         return
     }
@@ -59,7 +59,7 @@ form.addEventListener("submit", (evt) => {
     handleSubmit(sendID);
 });
 
-async function handleSubmit(id) {
+async function handleSubmit(id: number) {
     const [text, ok] = await makeODBC(pathbuilder.value);
     if (id !== sendID) return; // if someone else finished first!
 

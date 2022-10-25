@@ -1,7 +1,6 @@
 package viewer
 
 import (
-	"embed"
 	"errors"
 	"html/template"
 	"log"
@@ -9,38 +8,59 @@ import (
 	"net/url"
 	"strings"
 
+	_ "embed"
+
 	"github.com/gorilla/mux"
+	"github.com/tkw1536/FAU-CDI/drincw/internal/assets"
 	"github.com/tkw1536/FAU-CDI/drincw/internal/sparkl"
 	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder"
 	"github.com/tkw1536/FAU-CDI/drincw/pkg/htmlx"
 )
 
-//go:embed templates/*
-var templates embed.FS
+var contextTemplateFuncs = template.FuncMap{
+	"renderhtml": func(html string, globals contextGlobal) template.HTML {
+		return template.HTML(htmlx.ReplaceLinks(html, globals.ReplaceURL))
+	},
+	"combine": func(pairs ...any) (map[string]any, error) {
+		if len(pairs)%2 != 0 {
+			return nil, errors.New("pairs must be of even length")
+		}
+		result := make(map[string]any, len(pairs)/2)
+		for i, v := range pairs {
+			if i%2 == 1 {
+				result[pairs[(i-1)].(string)] = v
+			}
+		}
+		return result, nil
+	},
+}
 
-var parsedTemplates = (func() *template.Template {
-	return template.Must(
-		template.New("").Funcs(template.FuncMap{
-			"renderhtml": func(html string, globals contextGlobal) template.HTML {
-				return template.HTML(htmlx.ReplaceLinks(html, globals.ReplaceURL))
-			},
-			"combine": func(pairs ...any) (map[string]any, error) {
-				if len(pairs)%2 != 0 {
-					return nil, errors.New("pairs must be of even length")
-				}
-				result := make(map[string]any, len(pairs)/2)
-				for i, v := range pairs {
-					if i%2 == 1 {
-						result[pairs[(i-1)].(string)] = v
-					}
-				}
-				return result, nil
-			},
-		}).ParseFS(
-			templates, "templates/*.html", "templates/fragments/*.html",
-		),
-	)
-})()
+//go:embed templates/bundle.html
+var bundleHTML string
+
+var bundleTemplate = assets.Assetstasted.MustParseShared(
+	"bundle.html",
+	bundleHTML,
+	contextTemplateFuncs,
+)
+
+//go:embed templates/entity.html
+var entityHTML string
+
+var entityTemplate = assets.Assetstasted.MustParseShared(
+	"entity.html",
+	entityHTML,
+	contextTemplateFuncs,
+)
+
+//go:embed templates/index.html
+var indexHTML string
+
+var indexTemplate *template.Template = assets.Assetstasted.MustParseShared(
+	"index.html",
+	indexHTML,
+	contextTemplateFuncs,
+)
 
 type contextGlobal struct {
 	RenderFlags
@@ -86,7 +106,7 @@ func (viewer *Viewer) htmlIndex(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/html")
 	w.WriteHeader(http.StatusOK)
-	err := parsedTemplates.ExecuteTemplate(w, "index.html", htmlIndexContext{
+	err := indexTemplate.Execute(w, htmlIndexContext{
 		Globals: viewer.contextGlobal(),
 		Bundles: bundles,
 	})
@@ -113,7 +133,7 @@ func (viewer *Viewer) htmlBundle(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/html")
 	w.WriteHeader(http.StatusOK)
-	err := parsedTemplates.ExecuteTemplate(w, "bundle.html", htmlBundleContext{
+	err := bundleTemplate.Execute(w, htmlBundleContext{
 		Globals: viewer.contextGlobal(),
 		Bundle:  bundle,
 		URIS:    entities,
@@ -157,7 +177,7 @@ func (viewer *Viewer) htmlEntity(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/html")
 	w.WriteHeader(http.StatusOK)
-	err := parsedTemplates.ExecuteTemplate(w, "entity.html", htmlEntityContext{
+	err := entityTemplate.Execute(w, htmlEntityContext{
 		Globals: viewer.contextGlobal(),
 
 		Bundle:  bundle,

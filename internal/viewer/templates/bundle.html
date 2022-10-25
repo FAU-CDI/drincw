@@ -1,17 +1,18 @@
-{{ template "head.html" . }}
-<title>TasteD - Bundle "{{ .Bundle.Group.Name }}"</title>
+{{ template "base.html" . }}
+
+{{ define "title" }}TasteD - Bundle "{{ .Bundle.Group.Name }}"{{ end }}
 
 
-<header>
+{{ define "header" }}
     <h1>{{ .Bundle.Group.Name }}</h1>
-</header>
+{{ end }}
 
-<nav>
+{{ define "nav" }}
     <a href="/">Bundles</a> &gt;
     <b>Bundle {{ .Bundle.Group.Name }}</b>
-</nav>
-
-<main>
+{{ end }}
+    
+{{ define "main" }}
     {{ $l := len .URIS }}
     <p>{{ $l }} {{ if eq $l 1 }}Entity{{ else }}Entities{{ end }}</p>
     <ul>
@@ -24,6 +25,8 @@
             </li>
         {{ end }}
     </ul>
-</main>
+{{ end }}
 
-{{ template "foot.html" . }}
+{{ define "footer" }}
+    {{ template "viewer_foot.html" . }}
+{{ end }}

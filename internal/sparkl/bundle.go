@@ -147,6 +147,18 @@ func Entities(bundle *pathbuilder.Bundle, index *Index) []Entity {
 	// iterate through all of the child paths
 	for i, child := range cPaths {
 		bundleID := cBundles[i].Group.ID
+
+		// Guess a reasonable cardinality to pre-allocate
+		card := cBundles[i].Group.Cardinality
+		if card < 0 {
+			card = 0
+		}
+
+		// pre-allocate a child path
+		for i := range entities {
+			entities[i].Children[bundleID] = make([]Entity, 0, card)
+		}
+
 		for _, entity := range child {
 			index, ok := lookup[entity.Path[entityURIIndex]]
 			if !ok {

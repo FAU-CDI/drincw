@@ -54,9 +54,9 @@ func Since(start Snapshot) Diff {
 }
 
 const (
-	measureHeapThreshold = float64(10 * 1024)    // number of bytes to be considered stable time
-	measureHeapSleep     = 50 * time.Millisecond // amount of time to sleep between measuring cyles
-	measureMaxCyles      = 100                   // maximal cycles to run
+	measureHeapThreshold = 10 * 1024                           // number of bytes to be considered stable time
+	measureHeapSleep     = 50 * time.Millisecond               // amount of time to sleep between measuring cyles
+	measureMaxCyles      = int(time.Second / measureHeapSleep) // maximal cycles to run
 )
 
 // measureHeapCount measures the current use of the heap
@@ -65,24 +65,24 @@ func measureHeapCount() uint64 {
 
 	var stats runtime.MemStats
 
-	var prevHeapCount, currentHeapCount uint64
+	var prevHeapUse, currentHeapUse uint64
 	var prevGCCount, currentGCCount uint32
 
 	for i := 0; i < measureMaxCyles; i++ {
 		runtime.ReadMemStats(&stats)
 		currentGCCount = stats.NumGC
-		currentHeapCount = stats.HeapInuse
+		currentHeapUse = stats.HeapInuse
 
-		if prevGCCount != 0 && currentGCCount > prevGCCount && math.Abs(float64(currentHeapCount-prevHeapCount)) < measureHeapThreshold {
+		if prevGCCount != 0 && currentGCCount > prevGCCount && math.Abs(float64(currentHeapUse-prevHeapUse)) < measureHeapThreshold {
 			break
 		}
 
-		prevHeapCount = currentHeapCount
+		prevHeapUse = currentHeapUse
 		prevGCCount = currentGCCount
 
 		time.Sleep(measureHeapSleep)
 		runtime.GC()
 	}
 
-	return currentHeapCount
+	return currentHeapUse
 }

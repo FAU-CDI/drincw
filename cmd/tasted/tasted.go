@@ -10,13 +10,13 @@ import (
 	"net/http"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/tkw1536/FAU-CDI/drincw"
 	"github.com/tkw1536/FAU-CDI/drincw/internal/sparkl"
 	"github.com/tkw1536/FAU-CDI/drincw/internal/viewer"
 	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder"
 	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder/pbxml"
+	"github.com/tkw1536/FAU-CDI/drincw/pkg/perf"
 )
 
 func main() {
@@ -26,6 +26,7 @@ func main() {
 		os.Exit(1)
 	}
 
+	// start listening, so that even during loading we are not performing that badly
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
 		log.Fatal(err)
@@ -35,9 +36,9 @@ func main() {
 	// read the pathbuilder
 	var pb pathbuilder.Pathbuilder
 	{
-		start := time.Now()
+		start := perf.Now()
 		pb, err = pbxml.Load(nArgs[0])
-		pbT := time.Since(start)
+		pbT := perf.Since(start)
 
 		if err != nil {
 			log.Fatalf("Unable to load Pathbuilder: %s", err)
@@ -52,9 +53,9 @@ func main() {
 	// build an index
 	var index *sparkl.Index
 	{
-		start := time.Now()
+		start := perf.Now()
 		index, err = sparkl.LoadIndex(nArgs[1], flags.SameAsPredicates)
-		indexT := time.Since(start)
+		indexT := perf.Since(start)
 
 		if err != nil {
 			log.Fatalf("Unable to build index: %s", err)
@@ -65,9 +66,9 @@ func main() {
 	// generate bundles
 	var bundles map[string][]sparkl.Entity
 	{
-		start := time.Now()
+		start := perf.Now()
 		bundles = sparkl.LoadPathbuilder(&pb, index)
-		bundleT := time.Since(start)
+		bundleT := perf.Since(start)
 		log.Printf("extracted bundles, took %s", bundleT)
 	}
 
@@ -77,6 +78,16 @@ func main() {
 		SameAs:      index.IdentityMap(),
 		RenderFlags: flags,
 	}
+
+	// fill all the caches
+	{
+		start := perf.Now()
+		handler.Prepare()
+		handlerT := perf.Since(start)
+		log.Printf("filled caches, took %s", handlerT)
+	}
+
+	log.Println(perf.Now())
 
 	http.Serve(listener, &handler)
 }

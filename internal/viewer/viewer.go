@@ -43,7 +43,7 @@ type RenderFlags struct {
 	SameAsPredicates []string // SameAsPredicates displayed
 }
 
-func (viewer *Viewer) prepare() {
+func (viewer *Viewer) Prepare() {
 	viewer.init.Do(func() {
 		viewer.mux.HandleFunc("/", viewer.htmlIndex)
 		viewer.mux.HandleFunc("/bundle/{bundle}", viewer.htmlBundle)
@@ -56,13 +56,13 @@ func (viewer *Viewer) prepare() {
 		viewer.mux.HandleFunc("/api/v1/entity/{bundle}", viewer.jsonEntity).Queries("uri", "{uri:.+}")
 
 		viewer.mux.PathPrefix("/assets/").Handler(assets.AssetHandler)
-	})
 
-	viewer.prepareFindEntity()
-	viewer.prepareURI2Bundle()
+		viewer.prepareFindEntity()
+		viewer.prepareURI2Bundle()
+	})
 }
 
 func (viewer *Viewer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	viewer.prepare()
+	viewer.Prepare()
 	viewer.mux.ServeHTTP(w, r)
 }

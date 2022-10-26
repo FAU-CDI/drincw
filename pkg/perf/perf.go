@@ -84,5 +84,5 @@ func measureHeapCount() uint64 {
 		runtime.GC()
 	}
 
-	return currentHeapUse
+	return currentHeapUse + stats.StackInuse
 }

@@ -5,13 +5,13 @@ import (
 	"os"
 )
 
-// LoadIndex is like ReadIndex, but reads it from the given path
-func LoadIndex(path string, sameAsPredicates []string, inversePredicates []string) (*Index, error) {
+// LoadIndex is like MakeIndex, but reads nquads from the given path
+func LoadIndex(path string, predicates Predicates) (*Index, error) {
 	reader, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}
 	defer reader.Close()
 
-	return ReadNQuads(reader, sameAsPredicates, inversePredicates)
+	return MakeIndex(&QuadSource{Reader: reader}, predicates)
 }

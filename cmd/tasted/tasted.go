@@ -48,10 +48,10 @@ func main() {
 	}
 
 	if sameAs != "" {
-		flags.SameAsPredicates = strings.Split(sameAs, ",")
+		flags.Predicates.SameAs = strings.Split(sameAs, ",")
 	}
 	if inverseOf != "" {
-		flags.InverseOfPredicates = strings.Split(inverseOf, ",")
+		flags.Predicates.InverseOf = strings.Split(inverseOf, ",")
 	}
 
 	// build an index
@@ -59,7 +59,7 @@ func main() {
 	var indexPerf perf.Diff
 	{
 		start := perf.Now()
-		index, err = sparkl.LoadIndex(nArgs[1], flags.SameAsPredicates, flags.InverseOfPredicates)
+		index, err = sparkl.LoadIndex(nArgs[1], flags.Predicates)
 		indexPerf = perf.Since(start)
 
 		if err != nil {

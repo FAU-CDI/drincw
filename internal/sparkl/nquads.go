@@ -11,26 +11,29 @@ type Index = igraph.IGraph[string, any]
 const SameAs = "http://www.w3.org/2002/07/owl#sameAs"
 const InverseOf = "http://www.w3.org/2002/07/owl#inverseOf"
 
-// ReadNQuads
-func ReadNQuads(r io.ReadSeeker, SameAsPredicates []string, InversePredicates []string) (*Index, error) {
+// Predicates are predicates with special meaning
+type Predicates struct {
+	SameAs    []string
+	InverseOf []string
+}
+
+func MakeIndex(source Source, predicates Predicates) (*Index, error) {
 	// create a new index
 	var index Index
-
-	source := QuadSource{Reader: r}
 	index.Reset()
 
 	// read the "same as" triples first
-	if err := readSameAs(&source, &index, SameAsPredicates); err != nil {
+	if err := indexSameAs(source, &index, predicates.SameAs); err != nil {
 		return nil, err
 	}
 
 	// read the "inverse" triples next
-	if err := readInverses(&source, &index, InversePredicates); err != nil {
+	if err := indexInverseOf(source, &index, predicates.InverseOf); err != nil {
 		return nil, err
 	}
 
 	// and then read all the other data
-	if err := readData(&source, &index); err != nil {
+	if err := indexData(source, &index); err != nil {
 		return nil, err
 	}
 
@@ -39,7 +42,8 @@ func ReadNQuads(r io.ReadSeeker, SameAsPredicates []string, InversePredicates []
 	return &index, nil
 }
 
-func readSameAs(source Source, index *Index, sameAsPredicates []string) error {
+// indexSameAs inserts SameAs pairs into the index
+func indexSameAs(source Source, index *Index, sameAsPredicates []string) error {
 	if len(sameAsPredicates) == 0 {
 		return nil
 	}
@@ -70,7 +74,8 @@ func readSameAs(source Source, index *Index, sameAsPredicates []string) error {
 	}
 }
 
-func readInverses(source Source, index *Index, inversePredicates []string) error {
+// indexInverseOf inserts InverseOf pairs into the index
+func indexInverseOf(source Source, index *Index, inversePredicates []string) error {
 	if len(inversePredicates) == 0 {
 		return nil
 	}
@@ -101,7 +106,8 @@ func readInverses(source Source, index *Index, inversePredicates []string) error
 	}
 }
 
-func readData(source Source, index *Index) error {
+// indexData inserts data into the index
+func indexData(source Source, index *Index) error {
 	err := source.Open()
 	if err != nil {
 		return err

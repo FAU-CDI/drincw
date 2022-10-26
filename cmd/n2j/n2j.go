@@ -39,23 +39,19 @@ func main() {
 		log.Printf("loaded pathbuilder, took %s", pbT)
 	}
 
-	// read SameAsPredicates
-	var sameAsFlags []string
+	var predicates sparkl.Predicates
 	if sameAs != "" {
-		sameAsFlags = strings.Split(sameAs, ",")
+		predicates.SameAs = strings.Split(sameAs, ",")
 	}
-
-	// read InverseOfPredicates
-	var inverseOfFlags []string
 	if sameAs != "" {
-		inverseOfFlags = strings.Split(inverseOf, ",")
+		predicates.InverseOf = strings.Split(inverseOf, ",")
 	}
 
 	// build an index
 	var index *sparkl.Index
 	{
 		start := perf.Now()
-		index, err = sparkl.LoadIndex(nArgs[1], sameAsFlags, inverseOfFlags)
+		index, err = sparkl.LoadIndex(nArgs[1], predicates)
 		indexT := perf.Since(start)
 
 		if err != nil {

@@ -19,18 +19,11 @@ type ThreeStorage interface {
 	// Fetch iterates over all pairs (a, _, _) in undefined order.
 	Fetch(a imap.ID, f func(b imap.ID))
 
-	// Fetch2 iterates over all triples (a, b, c)
+	// Fetch2 iterates over all triples (a, b, c) in insertion order on c.
 	Fetch2(a, b imap.ID, f func(c imap.ID))
 
-	// All is like Fetch, but returns a (potentially huge) list of ids.
-	All(a imap.ID) []imap.ID
-
-	// All2 is like Fetch2, but returns a (potentially huge) list of ids.
-	// The caller may not modify the returned slice.
-	All2(a, b imap.ID) []imap.ID
-
 	// Has checks if the given mapping exists
-	Has(a, b, c imap.ID) bool
+	Has(a, b, c imap.ID) bool // posIndex
 }
 
 // ThreeHash implements ThreeStorage in memory
@@ -81,9 +74,6 @@ func (tlm ThreeHash) Fetch(a imap.ID, f func(b imap.ID)) {
 		f(b)
 	}
 }
-func (tlm ThreeHash) All(a imap.ID) []imap.ID {
-	return maps.Keys(tlm[a])
-}
 
 func (tlm ThreeHash) Fetch2(a, b imap.ID, f func(c imap.ID)) {
 	three := tlm[a][b]
@@ -94,11 +84,12 @@ func (tlm ThreeHash) Fetch2(a, b imap.ID, f func(c imap.ID)) {
 		f(c)
 	}
 }
-func (tlm ThreeHash) All2(a, b imap.ID) []imap.ID {
-	return tlm[a][b].Keys
-}
 
 func (tlm ThreeHash) Has(a, b, c imap.ID) bool {
-	_, ok := tlm[a][b].Data[c]
+	three := tlm[a][b]
+	if three == nil {
+		return false
+	}
+	_, ok := three.Data[c]
 	return ok
 }

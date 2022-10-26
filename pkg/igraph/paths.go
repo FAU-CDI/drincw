@@ -27,7 +27,11 @@ type Paths[Label comparable, Datum any] struct {
 // connected by an edge with the given predicate.
 func (index *IGraph[Label, Datum]) PathsWithPredicate(predicate Label) *Paths[Label, Datum] {
 	p := index.labels.Forward(predicate)
-	soIndex := index.psoIndex.All(p)
+
+	soIndex := make([]imap.ID, 0)
+	index.psoIndex.Fetch(p, func(b imap.ID) {
+		soIndex = append(soIndex, b)
+	})
 
 	query := index.newQuery(soIndex)
 	query.expand(p)
@@ -39,7 +43,11 @@ func (index *IGraph[Label, Datum]) PathsWithPredicate(predicate Label) *Paths[La
 func (index *IGraph[Label, Datum]) PathsStarting(predicate, object Label) *Paths[Label, Datum] {
 	p := index.labels.Forward(predicate)
 	o := index.labels.Forward(object)
-	osIndex := index.posIndex.All2(p, o)
+
+	osIndex := make([]imap.ID, 0)
+	index.posIndex.Fetch2(p, o, func(s imap.ID) {
+		osIndex = append(osIndex, s)
+	})
 
 	query := index.newQuery(osIndex)
 	return query

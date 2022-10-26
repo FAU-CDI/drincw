@@ -1,49 +1,21 @@
 package sparkl
 
 import (
+	"log"
 	"sync"
+	"sync/atomic"
 
 	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder"
 )
 
-// Entity represents a WissKI Entity that holds information about a specific entity
-type Entity struct {
-	URI  string   // URI of this entity
-	Path []string // the path of this entity
+// ExtractEntities loads all entities from the given bundle into a new storage, which is then returned.
+//
+// Storages for any child bundles, and the bundle itself, are created using the makeStorage function.
+// The storage for this bundle is returned.
+func ExtractEntities(bundle *pathbuilder.Bundle, index *Index, makeStorage func(bundle *pathbuilder.Bundle) BundleStorage) BundleStorage {
+	// initialize a new storage for this bundle
+	storage := makeStorage(bundle)
 
-	Fields   map[string][]FieldValue // values for specific fields
-	Children map[string][]Entity     // child paths for specific entities
-}
-
-// FieldValue represents the value of a specific field
-type FieldValue struct {
-	Path  []string
-	Value any
-}
-
-// Triples returns the Triples belonging to this field Value
-func (value FieldValue) Triples(field pathbuilder.Field) [][3]string {
-	triples := make([][3]string, 0)
-	for i, path := range field.PathArray {
-		if i%2 == 0 { // rdf type
-			triples = append(triples, [3]string{
-				value.Path[i/2],
-				rdfType,
-				path,
-			})
-		} else { // connected to next element
-			triples = append(triples, [3]string{
-				value.Path[(i-1)/2],
-				path,
-				value.Path[((i-1)/2)+1],
-			})
-		}
-	}
-	return triples
-}
-
-// Entities loads all entities for a specific bundle from the given index
-func Entities(bundle *pathbuilder.Bundle, index *Index) []Entity {
 	// determine the index of the URI within the paths describing this bundle
 	// this is the length of the parent path, or zero (if it does not exist).
 	var entityURIIndex int
@@ -53,128 +25,113 @@ func Entities(bundle *pathbuilder.Bundle, index *Index) []Entity {
 
 	var wg sync.WaitGroup
 
-	// scan this graph for the main path that describes this bundle
-	var uris []Path
+	// prepare receiving fields and child paths
+	fields := bundle.Fields()
+	cBundles := bundle.ChildBundles
+
+	// receive paths for all the entities
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		uris = FromPath(bundle.Group, index)
+		defer storage.DoneAdding()
+
+		for path := range extractPath(bundle.Group, index) {
+			nodes := path.Nodes()
+			storage.Add(Entity{
+				URI:  nodes[entityURIIndex],
+				Path: nodes,
+
+				Fields:   make(map[string][]FieldValue, len(fields)),
+				Children: make(map[string][]Entity, len(cBundles)),
+			})
+		}
 	}()
 
 	// scan all the paths for all of the fields
-	fields := bundle.Fields()
-	fieldPaths := make([][]Path, len(fields))
 	wg.Add(len(fields))
-	for i := range fields {
-		i := i
-
-		go func() {
+	for _, field := range fields {
+		go func(field pathbuilder.Field) {
 			defer wg.Done()
-			fieldPaths[i] = FromPath(fields[i].Path, index)
-		}()
+
+			for path := range extractPath(field.Path, index) {
+				nodes := path.Nodes()
+				datum, hasDatum := path.Datum()
+				if !hasDatum && len(nodes) > 0 {
+					datum = nodes[len(nodes)-1]
+				}
+				uri := nodes[entityURIIndex]
+
+				storage.AddFieldValue(uri, field.ID, FieldValue{
+					Path:  nodes,
+					Value: datum,
+				})
+			}
+		}(field)
 	}
 
-	// fetch all the child entities
-	cBundles := bundle.ChildBundles
-	cPaths := make([][]Entity, len(bundle.Bundles()))
+	// fetch all the child bundles
 	wg.Add(len(cBundles))
-	for i := range cBundles {
-		i := i
-		go func() {
+	for _, bundle := range cBundles {
+		go func(bundle *pathbuilder.Bundle) {
 			defer wg.Done()
 
-			// store the URI of the parent in the entity URI index!
-			cPaths[i] = Entities(cBundles[i], index)
-		}()
+			// fetch entities
+			for entity := range ExtractEntities(bundle, index, makeStorage).Get() {
+				uri := entity.Path[entityURIIndex]
+				storage.AddChild(uri, bundle.Group.ID, entity)
+			}
+		}(bundle)
 	}
 
 	wg.Wait()
+	storage.DoneStoring()
 
-	// first create all the entities
-	// and store an index of which index they have
-	entities := make([]Entity, len(uris))
-	lookup := make(map[string]int, len(uris))
-	for i, id := range uris {
-		entities[i].Path = id.Nodes()
-		uri := entities[i].Path[entityURIIndex]
-		lookup[uri] = i
+	return storage
+}
 
-		// store the entity URI
-		// and optionally the parentURI
-		entities[i].URI = uri
+const (
+	debugLogAllPaths = false   // turn this on to log all paths being queried
+	datatypeEmpty    = "empty" // a datatype being recalled as "empty"
+)
 
-		// prepare maps for children and fields
-		entities[i].Fields = make(map[string][]FieldValue, len(fields))
-		entities[i].Children = make(map[string][]Entity, len(cPaths))
+var debugLogID int64 // id of the current log id
+
+// extractPath extracts values for a single path from the index
+func extractPath(path pathbuilder.Path, index *Index) <-chan Path {
+	// start with the path array
+	uris := append([]string{}, path.PathArray...)
+	if len(uris) == 0 {
+		return nil
 	}
 
-	// iterate over all of the fields and store the field values
-	for i, fieldPath := range fieldPaths {
-		field := fields[i]
-		fieldID := field.ID
+	// add the datatype property if are not a group
+	// and it is not empty
+	if !path.IsGroup && path.DatatypeProperty != "" && path.DatatypeProperty != datatypeEmpty {
+		uris = append(uris, path.DatatypeProperty)
+	}
 
-		// determine the cardinality of the field
-		cardinality := field.Cardinality
-		if cardinality <= 0 {
-			cardinality = 0
+	// if debugging is enabled, set it up
+	var debugID int64
+	if debugLogAllPaths {
+		debugID = atomic.AddInt64(&debugLogID, 1)
+	}
+
+	set := index.PathsStarting(Type, URI(uris[0]))
+	if debugLogAllPaths {
+		log.Println(debugID, uris[0], set.Size())
+	}
+
+	for i := 1; i < len(uris) && set.Size() > 0; i++ {
+		if i%2 == 0 {
+			set.Ending(Type, URI(uris[i]))
+		} else {
+			set.Connected(URI(uris[i]))
 		}
 
-		// and pre-allocate an array of the given size for it
-		for i := range entities {
-			entities[i].Fields[fieldID] = make([]FieldValue, 0, cardinality)
-		}
-
-		// store the actual field values
-		for _, fPath := range fieldPath {
-			nodes := fPath.Nodes()
-			datum, hasDatum := fPath.Datum()
-			if !hasDatum && len(nodes) > 0 {
-				datum = nodes[len(nodes)-1]
-			}
-			uri := nodes[entityURIIndex]
-			lookup, ok := lookup[uri]
-			if !ok {
-				// TODO: Log this!
-				continue
-			}
-
-			// append the new field value!
-			entities[lookup].Fields[fieldID] = append(
-				entities[lookup].Fields[fieldID],
-				FieldValue{
-					Path:  nodes,
-					Value: datum,
-				},
-			)
+		if debugLogAllPaths {
+			log.Println(debugID, uris[i], set.Size())
 		}
 	}
 
-	// iterate through all of the child paths
-	for i, child := range cPaths {
-		bundleID := cBundles[i].Group.ID
-
-		// Guess a reasonable cardinality to pre-allocate
-		card := cBundles[i].Group.Cardinality
-		if card < 0 {
-			card = 0
-		}
-
-		// pre-allocate a child path
-		for i := range entities {
-			entities[i].Children[bundleID] = make([]Entity, 0, card)
-		}
-
-		for _, entity := range child {
-			index, ok := lookup[entity.Path[entityURIIndex]]
-			if !ok {
-				// if there isn't a parent with this ID stuff went wrong
-				// so we don't deal with it for now
-				continue
-			}
-			entities[index].Children[bundleID] = append(entities[index].Children[bundleID], entity)
-		}
-	}
-
-	// and return them!
-	return entities
+	return set.Paths()
 }

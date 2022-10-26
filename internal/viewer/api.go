@@ -16,7 +16,7 @@ func (viewer *Viewer) findBundle(id string) (bundle *pathbuilder.Bundle, ok bool
 }
 
 // findEntity finds an entity by the given bundle id
-func (viewer *Viewer) findEntity(bundleid, uri string) (bundle *pathbuilder.Bundle, entity *sparkl.Entity, ok bool) {
+func (viewer *Viewer) findEntity(bundleid string, uri sparkl.URI) (bundle *pathbuilder.Bundle, entity *sparkl.Entity, ok bool) {
 	bundle, ok = viewer.findBundle(bundleid)
 	if !ok {
 		return nil, nil, false
@@ -44,14 +44,14 @@ func (viewer *Viewer) getBundles() (bundles []*pathbuilder.Bundle, ok bool) {
 
 // getEntityURIs returns the URIs belonging to a single bundle
 // TODO: Make this stream
-func (viewer *Viewer) getEntityURIs(id string) (bundle *pathbuilder.Bundle, uris []string, ok bool) {
+func (viewer *Viewer) getEntityURIs(id string) (bundle *pathbuilder.Bundle, uris []sparkl.URI, ok bool) {
 	bundle, ok = viewer.findBundle(id)
 	if !ok {
 		return nil, nil, false
 	}
 
 	entities := viewer.Cache.BEIndex[bundle.Group.ID]
-	uris = make([]string, len(entities))
+	uris = make([]sparkl.URI, len(entities))
 	for i, entity := range entities {
 		uris[i] = entity.URI
 	}
@@ -60,7 +60,7 @@ func (viewer *Viewer) getEntityURIs(id string) (bundle *pathbuilder.Bundle, uris
 
 // getEntityURIs returns the URIs belonging to a single bundle
 // TODO: Make this stream
-func (viewer *Viewer) getEntity(id, uri string) (entity *sparkl.Entity, ok bool) {
+func (viewer *Viewer) getEntity(id string, uri sparkl.URI) (entity *sparkl.Entity, ok bool) {
 	_, entity, ok = viewer.findEntity(id, uri)
 	return
 }

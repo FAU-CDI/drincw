@@ -96,22 +96,30 @@ func (set *Paths[Label, Datum]) Size() int {
 	if set.size != -1 {
 		return set.size
 	}
+
+	// we don't know the size, so we need to fully expand it
 	all := lstream.Drain(set.elements)
 	set.size = len(all)
 	set.elements = lstream.NewConcrete(all)
 	return set.size
 }
 
-// Paths returns the set of paths in this PathSet.
+// Paths returns a channel that returns all paths in this PathSet.
+//
+// The returned channel must be drained by the caller.
 // Paths may only be called once, and invalidates the PathSet.
-func (set *Paths[Label, Datum]) Paths() (paths []Path[Label, Datum]) {
-	for element := range lstream.Channel(set.elements) {
-		paths = append(paths, Path[Label, Datum]{
-			index:   set.index,
-			nodeIDs: element.nodes(),
-			edgeIDs: set.predicates,
-		})
-	}
+func (set *Paths[Label, Datum]) Paths() <-chan Path[Label, Datum] {
+	paths := make(chan Path[Label, Datum])
+	go func() {
+		defer close(paths)
+		for element := range lstream.Channel(set.elements) {
+			paths <- Path[Label, Datum]{
+				index:   set.index,
+				nodeIDs: element.nodes(),
+				edgeIDs: set.predicates,
+			}
+		}
+	}()
 	return paths
 }
 

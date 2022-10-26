@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/tkw1536/FAU-CDI/drincw/internal/sparkl"
 )
 
 func (viewer *Viewer) jsonIndex(w http.ResponseWriter, r *http.Request) {
@@ -30,7 +31,7 @@ func (viewer *Viewer) jsonBundle(w http.ResponseWriter, r *http.Request) {
 func (viewer *Viewer) jsonEntity(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
-	entity, ok := viewer.getEntity(vars["bundle"], vars["uri"])
+	entity, ok := viewer.getEntity(vars["bundle"], sparkl.URI(vars["uri"]))
 	if !ok {
 		http.NotFound(w, r)
 		return

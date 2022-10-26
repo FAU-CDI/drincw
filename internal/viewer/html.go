@@ -119,7 +119,7 @@ type htmlBundleContext struct {
 	Globals contextGlobal
 
 	Bundle *pathbuilder.Bundle
-	URIS   []string
+	URIS   []sparkl.URI
 }
 
 func (viewer *Viewer) htmlBundle(w http.ResponseWriter, r *http.Request) {
@@ -145,7 +145,7 @@ func (viewer *Viewer) htmlBundle(w http.ResponseWriter, r *http.Request) {
 
 func (viewer *Viewer) htmlEntityResolve(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	uri := strings.TrimSpace(vars["uri"])
+	uri := sparkl.URI(strings.TrimSpace(vars["uri"]))
 
 	bundle, ok := viewer.Cache.Bundle(uri)
 	if !ok {
@@ -153,8 +153,10 @@ func (viewer *Viewer) htmlEntityResolve(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	canon := viewer.Cache.Canonical(uri)
+
 	// redirect to the entity
-	target := "/entity/" + bundle + "?uri=" + url.PathEscape(viewer.Cache.Canonical(uri))
+	target := "/entity/" + bundle + "?uri=" + url.PathEscape(string(canon))
 	http.Redirect(w, r, target, http.StatusTemporaryRedirect)
 }
 
@@ -163,13 +165,13 @@ type htmlEntityContext struct {
 
 	Bundle  *pathbuilder.Bundle
 	Entity  *sparkl.Entity
-	Aliases []string
+	Aliases []sparkl.URI
 }
 
 func (viewer *Viewer) htmlEntity(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
-	bundle, entity, ok := viewer.findEntity(vars["bundle"], vars["uri"])
+	bundle, entity, ok := viewer.findEntity(vars["bundle"], sparkl.URI(vars["uri"]))
 	if !ok {
 		http.NotFound(w, r)
 		return

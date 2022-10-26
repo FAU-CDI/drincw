@@ -7,7 +7,7 @@ import (
 	"github.com/cayleygraph/quad/nquads"
 )
 
-// Source represents a source of triple data
+// Source represents a source of triples
 type Source interface {
 	// Open opens this data source.
 	//
@@ -35,9 +35,9 @@ type Source interface {
 // In the case of 2, Error == nil && HasDatum = False
 // In the case of 3, Error == nil && HasDatum = True
 type Token struct {
-	Subject   string
-	Predicate string
-	Object    string
+	Subject   URI
+	Predicate URI
+	Object    URI
 
 	HasDatum bool
 	Datum    any
@@ -76,14 +76,13 @@ func (qs *QuadSource) Next() Token {
 			return Token{Err: err}
 		}
 
-		sI, sOK := asIRILike(value.Subject.Native())
-		pI, pOK := asIRILike(value.Predicate.Native())
+		sI, sOK := asURILike(value.Subject)
+		pI, pOK := asURILike(value.Predicate)
 		if !(sOK && pOK) {
 			continue
 		}
 
-		o := value.Object.Native()
-		oI, oOK := asIRILike(o)
+		oI, oOK := asURILike(value.Object)
 		if oOK {
 			return Token{
 				Subject:   sI,
@@ -95,7 +94,7 @@ func (qs *QuadSource) Next() Token {
 				Subject:   sI,
 				Predicate: pI,
 				HasDatum:  true,
-				Datum:     o,
+				Datum:     value.Object.Native(),
 			}
 		}
 	}
@@ -108,12 +107,12 @@ func (qs *QuadSource) Close() error {
 	return nil
 }
 
-func asIRILike(value any) (uri string, ok bool) {
+func asURILike(value quad.Value) (uri URI, ok bool) {
 	switch datum := value.(type) {
 	case quad.IRI:
-		return string(datum), true
+		return URI(string(datum)), true
 	case quad.BNode:
-		return string(datum), true
+		return URI(string(datum)), true
 	default:
 		return "", false
 	}

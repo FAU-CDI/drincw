@@ -9,7 +9,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"strings"
 
 	"github.com/tkw1536/FAU-CDI/drincw"
 	"github.com/tkw1536/FAU-CDI/drincw/internal/sparkl"
@@ -48,12 +47,8 @@ func main() {
 		log.Printf("loaded pathbuilder, took %s", pbPerf)
 	}
 
-	if sameAs != "" {
-		flags.Predicates.SameAs = strings.Split(sameAs, ",")
-	}
-	if inverseOf != "" {
-		flags.Predicates.InverseOf = strings.Split(inverseOf, ",")
-	}
+	sparkl.ParsePredicateString(&flags.Predicates.SameAs, sameAs)
+	sparkl.ParsePredicateString(&flags.Predicates.InverseOf, inverseOf)
 
 	// build an index
 	var index *sparkl.Index
@@ -85,7 +80,7 @@ func main() {
 	{
 		start := perf.Now()
 
-		identities := make(imap.MapStorage[string, string])
+		identities := make(imap.MapStorage[sparkl.URI, sparkl.URI])
 		index.IdentityMap(identities)
 		cache = sparkl.NewCache(bundles, identities)
 
@@ -120,8 +115,8 @@ var nArgs []string
 var addr string = ":3000"
 
 var flags viewer.RenderFlags
-var sameAs string = sparkl.SameAs
-var inverseOf string = sparkl.InverseOf
+var sameAs string = string(sparkl.SameAs)
+var inverseOf string = string(sparkl.InverseOf)
 
 func init() {
 	var legalFlag bool = false

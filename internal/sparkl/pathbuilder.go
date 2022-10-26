@@ -6,6 +6,7 @@ import (
 	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder"
 )
 
+// LoadPathbuilder loads all paths from the given pathbuilder
 func LoadPathbuilder(pb *pathbuilder.Pathbuilder, index *Index) map[string][]Entity {
 	bundles := pb.Bundles()
 	entities := make([][]Entity, len(bundles))
@@ -18,7 +19,9 @@ func LoadPathbuilder(pb *pathbuilder.Pathbuilder, index *Index) map[string][]Ent
 		go func() {
 			defer wg.Done()
 
-			entities[i] = Entities(bundles[i], index)
+			for entity := range ExtractEntities(bundles[i], index, NewBundleSlice).Get() {
+				entities[i] = append(entities[i], entity)
+			}
 		}()
 	}
 	wg.Wait()

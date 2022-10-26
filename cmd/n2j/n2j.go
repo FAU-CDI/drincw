@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strings"
 
 	"github.com/tkw1536/FAU-CDI/drincw"
 	"github.com/tkw1536/FAU-CDI/drincw/internal/sparkl"
@@ -40,12 +39,8 @@ func main() {
 	}
 
 	var predicates sparkl.Predicates
-	if sameAs != "" {
-		predicates.SameAs = strings.Split(sameAs, ",")
-	}
-	if sameAs != "" {
-		predicates.InverseOf = strings.Split(inverseOf, ",")
-	}
+	sparkl.ParsePredicateString(&predicates.SameAs, sameAs)
+	sparkl.ParsePredicateString(&predicates.InverseOf, inverseOf)
 
 	// build an index
 	var index *sparkl.Index
@@ -74,8 +69,8 @@ func main() {
 }
 
 var nArgs []string
-var sameAs string = sparkl.SameAs
-var inverseOf string = sparkl.InverseOf
+var sameAs = string(sparkl.SameAs)
+var inverseOf = string(sparkl.InverseOf)
 
 func init() {
 	var legalFlag bool = false

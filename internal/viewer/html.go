@@ -147,14 +147,14 @@ func (viewer *Viewer) htmlEntityResolve(w http.ResponseWriter, r *http.Request) 
 	vars := mux.Vars(r)
 	uri := strings.TrimSpace(vars["uri"])
 
-	bundle, ok := viewer.uri2bundle(uri)
+	bundle, ok := viewer.Cache.Bundle(uri)
 	if !ok {
 		http.NotFound(w, r)
 		return
 	}
 
 	// redirect to the entity
-	target := "/entity/" + bundle + "?uri=" + url.PathEscape(viewer.canon(uri))
+	target := "/entity/" + bundle + "?uri=" + url.PathEscape(viewer.Cache.Canonical(uri))
 	http.Redirect(w, r, target, http.StatusTemporaryRedirect)
 }
 
@@ -182,7 +182,7 @@ func (viewer *Viewer) htmlEntity(w http.ResponseWriter, r *http.Request) {
 
 		Bundle:  bundle,
 		Entity:  entity,
-		Aliases: viewer.aliases(entity.URI),
+		Aliases: viewer.Cache.Aliases(entity.URI),
 	})
 	if err != nil {
 		log.Println(err)

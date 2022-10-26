@@ -12,30 +12,13 @@ import (
 
 // Viewer implements an [http.Handler] that displays WissKI Entities.
 type Viewer struct {
-	// Pathbuilder and Data to server
-	// Should not be changed once a single request has been served.
+	Cache       *sparkl.Cache
 	Pathbuilder *pathbuilder.Pathbuilder
-	Data        map[string][]sparkl.Entity
-
-	// SameAs database for URIs
-	SameAs map[string]string
 
 	RenderFlags RenderFlags
 
 	init sync.Once
 	mux  mux.Router
-
-	// TODO: All of these should be outsourced to a caching thing
-	// and independently performant that way
-
-	alInit sync.Once
-	alias  map[string][]string
-
-	biInit  sync.Once
-	biIndex map[string]map[string]int
-
-	ebInit  sync.Once
-	ebIndex map[string]string
 }
 
 type RenderFlags struct {
@@ -59,10 +42,6 @@ func (viewer *Viewer) Prepare() {
 		viewer.mux.HandleFunc("/api/v1/entity/{bundle}", viewer.jsonEntity).Queries("uri", "{uri:.+}")
 
 		viewer.mux.PathPrefix("/assets/").Handler(assets.AssetHandler)
-
-		viewer.prepareFindEntity()
-		viewer.prepareURI2Bundle()
-		viewer.prepareAliases()
 	})
 }
 

@@ -10,7 +10,7 @@ import (
 func (viewer *Viewer) jsonIndex(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(viewer.getBundleNames())
+	json.NewEncoder(w).Encode(viewer.Cache.BundleNames)
 }
 
 func (viewer *Viewer) jsonBundle(w http.ResponseWriter, r *http.Request) {

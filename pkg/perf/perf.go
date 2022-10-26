@@ -13,11 +13,11 @@ import (
 // Snapshot represents metrics at a specific point in time.
 type Snapshot struct {
 	Time  time.Time
-	Bytes uint64
+	Bytes int64
 }
 
 func (snapshot Snapshot) String() string {
-	return fmt.Sprintf("%s used at %s", humanize.Bytes(snapshot.Bytes), snapshot.Time.Format(time.Stamp))
+	return fmt.Sprintf("%s used at %s", humanize.Bytes(uint64(snapshot.Bytes)), snapshot.Time.Format(time.Stamp))
 }
 
 // Sub subtracts the metrics for a difference snapshots
@@ -38,11 +38,18 @@ func Now() Snapshot {
 // Diff represents the difference between two points in time
 type Diff struct {
 	Time  time.Duration
-	Bytes uint64
+	Bytes int64
 }
 
 func (diff Diff) String() string {
-	return fmt.Sprintf("%s, %s", diff.Time, humanize.Bytes(diff.Bytes))
+	return fmt.Sprintf("%s, %s", diff.Time, human(diff.Bytes))
+}
+
+func human(bytes int64) string {
+	if bytes < 0 {
+		return "-" + humanize.Bytes(uint64(-bytes))
+	}
+	return humanize.Bytes(uint64(bytes))
 }
 
 // Since computes the diff between now, and the previous point in time
@@ -60,7 +67,7 @@ const (
 )
 
 // measureHeapCount measures the current use of the heap
-func measureHeapCount() uint64 {
+func measureHeapCount() int64 {
 	// NOTE(twiesing): This has been vaguely adapted from https://dev.to/vearutop/estimating-memory-footprint-of-dynamic-structures-in-go-2apf
 
 	var stats runtime.MemStats
@@ -84,5 +91,5 @@ func measureHeapCount() uint64 {
 		runtime.GC()
 	}
 
-	return currentHeapUse + stats.StackInuse
+	return int64(currentHeapUse + stats.StackInuse)
 }

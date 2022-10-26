@@ -35,15 +35,16 @@ func main() {
 
 	// read the pathbuilder
 	var pb pathbuilder.Pathbuilder
+	var pbPerf perf.Diff
 	{
 		start := perf.Now()
 		pb, err = pbxml.Load(nArgs[0])
-		pbT := perf.Since(start)
+		pbPerf = perf.Since(start)
 
 		if err != nil {
 			log.Fatalf("Unable to load Pathbuilder: %s", err)
 		}
-		log.Printf("loaded pathbuilder, took %s", pbT)
+		log.Printf("loaded pathbuilder, took %s", pbPerf)
 	}
 
 	if sameAs != "" {
@@ -52,39 +53,53 @@ func main() {
 
 	// build an index
 	var index *sparkl.Index
+	var indexPerf perf.Diff
 	{
 		start := perf.Now()
 		index, err = sparkl.LoadIndex(nArgs[1], flags.SameAsPredicates)
-		indexT := perf.Since(start)
+		indexPerf = perf.Since(start)
 
 		if err != nil {
 			log.Fatalf("Unable to build index: %s", err)
 		}
-		log.Printf("built index, size %d, took %s", index.TripleCount(), indexT)
+		log.Printf("built index, size %d, took %s", index.TripleCount(), indexPerf)
 	}
 
 	// generate bundles
 	var bundles map[string][]sparkl.Entity
+	var bundlesPerf perf.Diff
 	{
 		start := perf.Now()
 		bundles = sparkl.LoadPathbuilder(&pb, index)
-		bundleT := perf.Since(start)
-		log.Printf("extracted bundles, took %s", bundleT)
+		bundlesPerf = perf.Since(start)
+		log.Printf("extracted bundles, took %s", bundlesPerf)
 	}
 
-	handler := viewer.Viewer{
-		Pathbuilder: &pb,
-		Data:        bundles,
-		SameAs:      index.IdentityMap(),
-		RenderFlags: flags,
-	}
-
-	// fill all the caches
+	// generate cache
+	var cache sparkl.Cache
+	var cachePerf perf.Diff
 	{
 		start := perf.Now()
+		cache = sparkl.NewCache(bundles, index.IdentityMap())
+		cachePerf = perf.Since(start)
+		cachePerf.Bytes += indexPerf.Bytes // because the index is now deallocated
+		log.Printf("built cache, took %s", cachePerf)
+	}
+
+	// and finally make a viewer handler
+	var handler viewer.Viewer
+	var handlerPerf perf.Diff
+	{
+		start := perf.Now()
+
+		handler = viewer.Viewer{
+			Cache:       &cache,
+			Pathbuilder: &pb,
+			RenderFlags: flags,
+		}
 		handler.Prepare()
-		handlerT := perf.Since(start)
-		log.Printf("filled caches, took %s", handlerT)
+		handlerPerf = perf.Since(start)
+		log.Printf("built handler, took %s", handlerPerf)
 	}
 
 	log.Println(perf.Now())

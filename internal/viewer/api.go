@@ -3,62 +3,7 @@ package viewer
 import (
 	"github.com/tkw1536/FAU-CDI/drincw/internal/sparkl"
 	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder"
-	"golang.org/x/exp/maps"
-	"golang.org/x/exp/slices"
 )
-
-// canon returns the canonical uri for the given object
-func (viewer *Viewer) canon(uri string) string {
-	if canon, ok := viewer.SameAs[uri]; ok {
-		return canon
-	}
-	return uri
-}
-
-func (viewer *Viewer) prepareAliases() {
-	viewer.alInit.Do(func() {
-		viewer.alias = make(map[string][]string, len(viewer.SameAs))
-		for alias, canon := range viewer.SameAs {
-			viewer.alias[canon] = append(viewer.alias[canon], alias)
-		}
-	})
-}
-
-func (viewer *Viewer) aliases(uri string) (aliases []string) {
-	viewer.prepareAliases()
-	return viewer.alias[uri]
-}
-
-func (viewer *Viewer) prepareURI2Bundle() {
-	viewer.ebInit.Do(func() {
-		viewer.ebIndex = make(map[string]string)
-		for name, bundle := range viewer.Data {
-			for _, entity := range bundle {
-				viewer.ebIndex[entity.URI] = name
-			}
-		}
-	})
-}
-
-// uri2bundle attempts to resolve a uri into a bundle
-func (viewer *Viewer) uri2bundle(uri string) (bundle string, ok bool) {
-	viewer.prepareURI2Bundle()
-	bundle, ok = viewer.ebIndex[viewer.canon(uri)]
-	return
-}
-
-func (viewer *Viewer) prepareFindEntity() {
-	viewer.biInit.Do(func() {
-		viewer.biIndex = make(map[string]map[string]int, len(viewer.Data))
-		for id, entities := range viewer.Data {
-			viewer.biIndex[id] = make(map[string]int, len(entities))
-			for i, e := range entities {
-				viewer.biIndex[id][e.URI] = i
-			}
-		}
-
-	})
-}
 
 // findBundle returns a bundle by id and makes sure the caches for the given bundle as filled.
 func (viewer *Viewer) findBundle(id string) (bundle *pathbuilder.Bundle, ok bool) {
@@ -77,29 +22,16 @@ func (viewer *Viewer) findEntity(bundleid, uri string) (bundle *pathbuilder.Bund
 		return nil, nil, false
 	}
 
-	viewer.prepareFindEntity()
-
-	// find the index of the given URI
-	idx, ok := viewer.biIndex[bundle.Group.ID][viewer.canon(uri)]
+	entity, ok = viewer.Cache.Entity(uri, bundle.Group.ID)
 	if !ok {
 		return nil, nil, false
 	}
 
-	// return the entity
-	entity = &viewer.Data[bundle.Group.ID][idx]
-	ok = true
 	return
 }
 
-// getBundleNames returns the list of bundles
-func (viewer *Viewer) getBundleNames() []string {
-	bundles := maps.Keys(viewer.Data)
-	slices.Sort(bundles)
-	return bundles
-}
-
 func (viewer *Viewer) getBundles() (bundles []*pathbuilder.Bundle, ok bool) {
-	names := viewer.getBundleNames()
+	names := viewer.Cache.BundleNames
 	bundles = make([]*pathbuilder.Bundle, len(names))
 	for i, name := range names {
 		bundles[i] = viewer.Pathbuilder.Get(name)
@@ -118,7 +50,7 @@ func (viewer *Viewer) getEntityURIs(id string) (bundle *pathbuilder.Bundle, uris
 		return nil, nil, false
 	}
 
-	entities := viewer.Data[bundle.Group.ID]
+	entities := viewer.Cache.BEIndex[bundle.Group.ID]
 	uris = make([]string, len(entities))
 	for i, entity := range entities {
 		uris[i] = entity.URI

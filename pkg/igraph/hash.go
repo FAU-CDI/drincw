@@ -70,6 +70,7 @@ func (tlm ThreeHash) Finalize() {
 }
 
 func (tlm ThreeHash) Fetch(a imap.ID, f func(b imap.ID)) {
+	// TODO: Fetch is unsorted
 	for b := range tlm[a] {
 		f(b)
 	}

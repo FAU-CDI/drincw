@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	"github.com/tkw1536/FAU-CDI/drincw/pkg/imap"
-	"golang.org/x/exp/slices"
+	"github.com/tkw1536/FAU-CDI/drincw/pkg/lstream"
 )
 
 // Paths represents a set of paths in a related GraphIndex.
@@ -19,10 +19,11 @@ type Paths[Label comparable, Datum any] struct {
 	index      *IGraph[Label, Datum]
 	predicates []imap.ID
 
-	// current elements of this pathSet
-	elements []element
+	elements lstream.Stream[element]
+	size     int
 }
 
+/*
 // PathsWithPredicate creates a [PathSet] that represents all two-element paths
 // connected by an edge with the given predicate.
 func (index *IGraph[Label, Datum]) PathsWithPredicate(predicate Label) *Paths[Label, Datum] {
@@ -37,6 +38,7 @@ func (index *IGraph[Label, Datum]) PathsWithPredicate(predicate Label) *Paths[La
 	query.expand(p)
 	return query
 }
+*/
 
 // PathsStarting creates a new [PathSet] that represents all one-element paths
 // starting at a vertex which is connected to object with the given predicate
@@ -44,31 +46,24 @@ func (index *IGraph[Label, Datum]) PathsStarting(predicate, object Label) *Paths
 	p := index.labels.Forward(predicate)
 	o := index.labels.Forward(object)
 
-	osIndex := make([]imap.ID, 0)
-	index.posIndex.Fetch2(p, o, func(s imap.ID) {
-		osIndex = append(osIndex, s)
+	query := index.newQuery(func(sender chan<- element) {
+		index.posIndex.Fetch2(p, o, func(s imap.ID) {
+			sender <- element{
+				Node:   s,
+				Parent: nil,
+			}
+		})
 	})
-
-	query := index.newQuery(osIndex)
 	return query
 }
 
 // newQuery creates a new Query object that contains nodes with the given ids
-func (index *IGraph[URI, Datum]) newQuery(ids []imap.ID) (q *Paths[URI, Datum]) {
+func (index *IGraph[URI, Datum]) newQuery(source func(sender chan<- element)) (q *Paths[URI, Datum]) {
 	q = &Paths[URI, Datum]{
-		index: index,
+		index:    index,
+		elements: lstream.New(source),
+		size:     -1,
 	}
-
-	q.elements = make([]element, len(ids))
-	count := 0
-	for _, id := range ids {
-		q.elements[count].Node = id
-		count++
-	}
-	slices.SortFunc(q.elements, func(x, y element) bool {
-		return x.Node.Less(y.Node)
-	})
-
 	return q
 }
 
@@ -82,17 +77,15 @@ func (set *Paths[Label, Datum]) Connected(predicate Label) {
 
 // expand expands the nodes in this query by adding a link to each element found in the index
 func (set *Paths[URI, Datum]) expand(p imap.ID) {
-	nodes := make([]element, 0)
-	for _, subject := range set.elements {
-		subject := subject
+	set.elements = lstream.Pipe(set.elements, func(subject element, sender chan<- element) {
 		set.index.psoIndex.Fetch2(p, subject.Node, func(object imap.ID) {
-			nodes = append(nodes, element{
+			sender <- element{
 				Node:   object,
 				Parent: &subject,
-			})
+			}
 		})
-	}
-	set.elements = nodes
+	})
+	set.size = -1
 }
 
 // Ending restricts this set of paths to those that end in a node
@@ -105,33 +98,36 @@ func (set *Paths[URI, Datum]) Ending(predicate URI, object URI) {
 
 // restrict restricts the set of nodes by those mapped in the index
 func (set *Paths[URI, Datum]) restrict(p, o imap.ID) {
-	nodes := set.elements[:0]
-	for _, subject := range set.elements {
+	set.elements = lstream.Pipe(set.elements, func(subject element, sender chan<- element) {
 		if set.index.posIndex.Has(p, o, subject.Node) {
-			nodes = append(nodes, subject)
+			sender <- subject
 		}
-	}
-
-	var zero element
-	for i := len(nodes); i < len(set.elements); i++ {
-		set.elements[i] = zero
-	}
-
-	set.elements = nodes
+	})
+	set.size = -1
 }
 
-// Size returns the count of objects in this Paths
+// Size returns the number of elements in this path.
+//
+// NOTE(twiesing): This potentially takes a lot of memory, because we need to expand the stream.
 func (set *Paths[Label, Datum]) Size() int {
-	return len(set.elements)
+	if set.size != -1 {
+		return set.size
+	}
+	all := lstream.Drain(set.elements)
+	set.size = len(all)
+	set.elements = lstream.NewConcrete(all)
+	return set.size
 }
 
 // Paths returns the set of paths in this PathSet.
-func (set *Paths[Label, Datum]) Paths() []Path[Label, Datum] {
-	paths := make([]Path[Label, Datum], len(set.elements))
-	for i, element := range set.elements {
-		paths[i].index = set.index
-		paths[i].nodeIDs = element.nodes()
-		paths[i].edgeIDs = set.predicates
+// Paths may only be called once, and invalidates the PathSet.
+func (set *Paths[Label, Datum]) Paths() (paths []Path[Label, Datum]) {
+	for element := range lstream.Channel(set.elements) {
+		paths = append(paths, Path[Label, Datum]{
+			index:   set.index,
+			nodeIDs: element.nodes(),
+			edgeIDs: set.predicates,
+		})
 	}
 	return paths
 }

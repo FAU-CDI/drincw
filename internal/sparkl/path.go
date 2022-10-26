@@ -24,10 +24,9 @@ func FromPath(path pathbuilder.Path, index *Index) []Path {
 	}
 
 	set := index.PathsStarting(rdfType, uris[0])
-	for i := 1; i < len(uris); i++ {
+	for i := 1; i < len(uris) && set.Size() > 0; i++ {
 		if i%2 == 0 {
 			set.Ending(rdfType, uris[i])
-			continue
 		} else {
 			set.Connected(uris[i])
 		}

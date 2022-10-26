@@ -51,19 +51,17 @@ func (mp *IMap[Label]) AddNew(label Label) (id ID, old bool) {
 	return
 }
 
-// Identify marks the two objects as being identical.
+// MarkIdentical marks the two labels as being identical.
 // It returns the ID corresponding to the label new.
-//
-// Identifications are only valid after a call to [ApplyIdentifications].
 //
 // Once applied, all future calls to [Forward] or [Add] with old will act as if being called by new.
 // A previous ID corresponding to old (if any) is no longer valid.
 //
-// NOTE(twiesing): Each call to Identify requires iterating over all calls that were previously added to this map.
+// NOTE(twiesing): Each call to MarkIdentical potentially requires iterating over all calls that were previously added to this map.
 // This is a potentially slow operation and should be avoided.
-func (mp *IMap[Label]) Identify(new, old Label) {
+func (mp *IMap[Label]) MarkIdentical(new, old Label) (canonical ID) {
 	// left and right are the same object
-	canonical := mp.Add(new)
+	canonical = mp.Add(new)
 	alias, aliasIsOld := mp.AddNew(old)
 
 	// the canonical
@@ -90,11 +88,8 @@ func (mp *IMap[Label]) Identify(new, old Label) {
 		// because it cannot ever be returned
 		delete(mp.reverse, id)
 	}
-}
 
-// ApplyIdentifications applies all pending identifications.
-func (mp *IMap[Label]) ApplyIdentifications() {
-	// NOTE(twiesing): This is currently a no-op.
+	return
 }
 
 // Forward returns the id corresponding to the given label.

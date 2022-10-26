@@ -27,7 +27,7 @@ func ExampleIMap() {
 	fmt.Println("reverse", mp.Reverse(2))
 	fmt.Println("reverse", mp.Reverse(3))
 
-	mp.Identify("earth", "world")
+	mp.MarkIdentical("earth", "world")
 
 	fmt.Println("reverse<again>", mp.Reverse(1))
 	fmt.Println("reverse<again>", mp.Reverse(3))

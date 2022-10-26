@@ -45,11 +45,17 @@ func main() {
 		sameAsFlags = strings.Split(sameAs, ",")
 	}
 
+	// read InverseOfPredicates
+	var inverseOfFlags []string
+	if sameAs != "" {
+		inverseOfFlags = strings.Split(inverseOf, ",")
+	}
+
 	// build an index
 	var index *sparkl.Index
 	{
 		start := perf.Now()
-		index, err = sparkl.LoadIndex(nArgs[1], sameAsFlags)
+		index, err = sparkl.LoadIndex(nArgs[1], sameAsFlags, inverseOfFlags)
 		indexT := perf.Since(start)
 
 		if err != nil {
@@ -73,11 +79,13 @@ func main() {
 
 var nArgs []string
 var sameAs string = sparkl.SameAs
+var inverseOf string = sparkl.InverseOf
 
 func init() {
 	var legalFlag bool = false
 	flag.BoolVar(&legalFlag, "legal", legalFlag, "Display legal notices and exit")
 	flag.StringVar(&sameAs, "sameas", sameAs, "SameAs Properties")
+	flag.StringVar(&inverseOf, "inverseof", inverseOf, "InverseOf Properties")
 	defer func() {
 		if legalFlag {
 			fmt.Print(drincw.LegalText())

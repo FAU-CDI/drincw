@@ -50,13 +50,16 @@ func main() {
 	if sameAs != "" {
 		flags.SameAsPredicates = strings.Split(sameAs, ",")
 	}
+	if inverseOf != "" {
+		flags.InverseOfPredicates = strings.Split(inverseOf, ",")
+	}
 
 	// build an index
 	var index *sparkl.Index
 	var indexPerf perf.Diff
 	{
 		start := perf.Now()
-		index, err = sparkl.LoadIndex(nArgs[1], flags.SameAsPredicates)
+		index, err = sparkl.LoadIndex(nArgs[1], flags.SameAsPredicates, flags.InverseOfPredicates)
 		indexPerf = perf.Since(start)
 
 		if err != nil {
@@ -113,6 +116,7 @@ var addr string = ":3000"
 
 var flags viewer.RenderFlags
 var sameAs string = sparkl.SameAs
+var inverseOf string = sparkl.InverseOf
 
 func init() {
 	var legalFlag bool = false
@@ -129,6 +133,7 @@ func init() {
 	flag.BoolVar(&flags.HTMLRender, "html", flags.HTMLRender, "Enable rendering of html")
 	flag.StringVar(&flags.PublicURL, "public", flags.PublicURL, "Public URL of the wisski the data comes from")
 	flag.StringVar(&sameAs, "sameas", sameAs, "SameAs Properties")
+	flag.StringVar(&inverseOf, "inverseof", inverseOf, "InverseOf Properties")
 
 	flag.Parse()
 	nArgs = flag.Args()

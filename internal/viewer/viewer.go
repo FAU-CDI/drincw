@@ -26,7 +26,8 @@ type RenderFlags struct {
 	ImageRender bool   // should we render "image" as actual images
 	PublicURL   string // should we replace links from the provided wisski?
 
-	SameAsPredicates []string // SameAsPredicates displayed
+	SameAsPredicates    []string // SameAsPredicates displayed
+	InverseOfPredicates []string // InverseOfPredicates displayed
 }
 
 func (viewer *Viewer) Prepare() {

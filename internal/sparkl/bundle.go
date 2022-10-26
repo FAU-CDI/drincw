@@ -132,10 +132,15 @@ func Entities(bundle *pathbuilder.Bundle, index *Index) []Entity {
 				datum = nodes[len(nodes)-1]
 			}
 			uri := nodes[entityURIIndex]
+			lookup, ok := lookup[uri]
+			if !ok {
+				// TODO: Log this!
+				continue
+			}
 
 			// append the new field value!
-			entities[lookup[uri]].Fields[fieldID] = append(
-				entities[lookup[uri]].Fields[fieldID],
+			entities[lookup].Fields[fieldID] = append(
+				entities[lookup].Fields[fieldID],
 				FieldValue{
 					Path:  nodes,
 					Value: datum,

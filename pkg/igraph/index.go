@@ -24,6 +24,9 @@ type IGraph[Label comparable, Datum any] struct {
 	// data holds mappings between internal IDs and data
 	data map[imap.ID]Datum
 
+	// inverses holds inverse mappings (if any)
+	inverses map[imap.ID]imap.ID
+
 	// the triple indexes, forward and backward
 	psoIndex map[imap.ID]map[imap.ID][]imap.ID
 	posIndex map[imap.ID]map[imap.ID]map[imap.ID]struct{}
@@ -50,6 +53,7 @@ func (index *IGraph[Label, Datum]) Reset() {
 	index.data = make(map[imap.ID]Datum)
 	index.psoIndex = make(map[imap.ID]map[imap.ID][]imap.ID)
 	index.posIndex = make(map[imap.ID]map[imap.ID]map[imap.ID]struct{})
+	index.inverses = make(map[imap.ID]imap.ID)
 }
 
 // AddTriple inserts a subject-predicate-object triple into the index.
@@ -58,7 +62,14 @@ func (index *IGraph[Label, Datum]) Reset() {
 // Reset must have been called, or this function may panic.
 // After all Add operations have finished, Finalize must be called.
 func (index *IGraph[Label, Datum]) AddTriple(subject, predicate, object Label) {
-	index.insert(index.labels.Add(subject), index.labels.Add(predicate), index.labels.Add(object))
+	s := index.labels.Add(subject)
+	p := index.labels.Add(predicate)
+	o := index.labels.Add(object)
+
+	index.insert(s, p, o)
+	if i, ok := index.inverses[p]; ok {
+		index.insert(o, i, s)
+	}
 }
 
 // AddData inserts a subject-predicate-data triple into the index.
@@ -90,16 +101,29 @@ func (index *IGraph[Label, Datum]) insert(subject, predicate, object imap.ID) {
 	index.posIndex[predicate][object][subject] = struct{}{}
 }
 
-// Identify identifies the left and right labels.
+// MarkIdentical identifies the left and right subject and right labels.
 // See [imap.IMap.Identifity].
-func (index *IGraph[Label, Datum]) Identify(left, right Label) {
-	index.labels.Identify(left, right)
+func (index *IGraph[Label, Datum]) MarkIdentical(left, right Label) {
+	index.labels.MarkIdentical(left, right)
 }
 
-// ApplyIdentifications applies all pending identifications.
-// See [imap.IMap.ApplyIdentifcations].
-func (index *IGraph[Label, Datum]) ApplyIdentifications() {
-	index.labels.ApplyIdentifications()
+// MarkInverse marks the left and right Labels as inverse properties of each other.
+// After calls to MarkInverse, no more calls to MarkIdentical should be made.
+//
+// Each label is assumed to have at most one inverse.
+// A label may not be it's own inverse.
+//
+// This means that each call to AddTriple(s, left, o) will also result in a call to AddTriple(o, right, s).
+func (index *IGraph[Label, Datum]) MarkInverse(left, right Label) {
+	l := index.labels.Add(left)
+	r := index.labels.Add(right)
+	if l == r {
+		return
+	}
+
+	// store the inverses of the left and right
+	index.inverses[l] = r
+	index.inverses[r] = l
 }
 
 // IdentifyMap returns the canonical names of labels

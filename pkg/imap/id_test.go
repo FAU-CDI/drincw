@@ -14,7 +14,7 @@ func ExampleID() {
 	fmt.Println(id.Valid())
 
 	// compare it to some other id -- it is no longer valid
-	other := ID(10)
+	other := ID([1]uint64{10})
 	fmt.Println(id.Less(other))
 
 	// Output: 0

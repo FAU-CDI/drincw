@@ -5,17 +5,17 @@ package imap
 //
 // The zero map is not ready for use; it should be initialized using a call to [Reset].
 type IMap[Label comparable] struct {
-	forward map[Label]ID
-	reverse map[ID]Label
+	forward Storage[Label, ID]
+	reverse Storage[ID, Label]
 
 	id ID // last id inserted
 }
 
 // Reset resets this IMap to be empty.
 func (mp *IMap[Label]) Reset() {
-	mp.forward = make(map[Label]ID)
-	mp.reverse = make(map[ID]Label)
-	mp.id = ID(0)
+	mp.forward = make(MapStorage[Label, ID])
+	mp.reverse = make(MapStorage[ID, Label])
+	mp.id.Reset()
 }
 
 // Next returns a new unused id within this map
@@ -35,7 +35,7 @@ func (mp *IMap[Label]) Add(label Label) (id ID) {
 // AddNew behaves like Add, except additionally returns a boolean indiciating if the returned id existed previously.
 func (mp *IMap[Label]) AddNew(label Label) (id ID, old bool) {
 	// fetch the mapping (if any)
-	id, old = mp.forward[label]
+	id, old = mp.forward.Get(label)
 	if old {
 		return
 	}
@@ -44,8 +44,8 @@ func (mp *IMap[Label]) AddNew(label Label) (id ID, old bool) {
 	id = mp.id.Inc()
 
 	// store mappings in both directions
-	mp.forward[label] = id
-	mp.reverse[id] = label
+	mp.forward.Set(label, id)
+	mp.reverse.Set(id, label)
 
 	// return the id
 	return
@@ -71,23 +71,23 @@ func (mp *IMap[Label]) MarkIdentical(new, old Label) (canonical ID) {
 
 	// optimization: if the alias was new
 	if !aliasIsOld {
-		mp.forward[old] = canonical
-		delete(mp.reverse, alias)
+		mp.forward.Set(old, canonical)
+		mp.reverse.Delete(alias)
 		return
 	}
 
-	// iterate
-	for label, id := range mp.forward {
+	// iterate over all the items
+	mp.forward.Iterate(func(label Label, id ID) {
 		if id != alias || label == new {
-			continue
+			return
 		}
 
-		mp.forward[label] = canonical
+		mp.forward.Set(label, canonical)
 
 		// delete the reverse mapping of the alias
 		// because it cannot ever be returned
-		delete(mp.reverse, id)
-	}
+		mp.reverse.Delete(id)
+	})
 
 	return
 }
@@ -97,32 +97,24 @@ func (mp *IMap[Label]) MarkIdentical(new, old Label) (canonical ID) {
 // If the label is not contained in this map, the zero ID is returned.
 // The zero ID is never returned for a valid id.
 func (mp *IMap[Label]) Forward(label Label) ID {
-	return mp.forward[label]
+	return mp.forward.GetZero(label)
 }
 
 // Reverse returns the label corresponding to the given id.
 // When id is not contained in this map, the zero value of the label type is contained.
 func (mp *IMap[Label]) Reverse(id ID) Label {
-	return mp.reverse[id]
+	return mp.reverse.GetZero(id)
 }
 
-// IdentifyMap returns a map containing canonical label mappings in this map.
+// IdentityMap writes canonical label mappings to the given storage.
 //
-// Concretely it is true that
-//
-//	canon[L1] = L2
-//
-// if and only if
+// Concretely a pair (L1, L2) is written to storage iff
 //
 //	mp.Reverse(mp.Forward(L1)) == L2 && L1 != L2
-func (mp *IMap[Label]) IdentifyMap() (canon map[Label]Label) {
-	canonmap := make(map[Label]Label)
-
-	for label, id := range mp.forward {
-		if mp.reverse[id] != label {
-			canonmap[label] = mp.reverse[id]
+func (mp *IMap[Label]) IdentityMap(storage Storage[Label, Label]) {
+	mp.forward.Iterate(func(label Label, id ID) {
+		if value := mp.reverse.GetZero(id); value != label {
+			storage.Set(label, value)
 		}
-	}
-
-	return canonmap
+	})
 }

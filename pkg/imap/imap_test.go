@@ -23,14 +23,14 @@ func ExampleIMap() {
 	fmt.Println("get", mp.Forward("world"))
 	fmt.Println("get", mp.Forward("earth"))
 
-	fmt.Println("reverse", mp.Reverse(1))
-	fmt.Println("reverse", mp.Reverse(2))
-	fmt.Println("reverse", mp.Reverse(3))
+	fmt.Println("reverse", mp.Reverse([1]uint64{1}))
+	fmt.Println("reverse", mp.Reverse([1]uint64{2}))
+	fmt.Println("reverse", mp.Reverse([1]uint64{3}))
 
 	mp.MarkIdentical("earth", "world")
 
-	fmt.Println("reverse<again>", mp.Reverse(1))
-	fmt.Println("reverse<again>", mp.Reverse(3))
+	fmt.Println("reverse<again>", mp.Reverse([1]uint64{1}))
+	fmt.Println("reverse<again>", mp.Reverse([1]uint64{3}))
 
 	fmt.Println("add<again>", mp.Add("hello"))
 	fmt.Println("add<again>", mp.Add("world"))

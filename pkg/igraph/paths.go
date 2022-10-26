@@ -6,7 +6,6 @@ import (
 	"sync"
 
 	"github.com/tkw1536/FAU-CDI/drincw/pkg/imap"
-	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
 )
 
@@ -28,10 +27,10 @@ type Paths[Label comparable, Datum any] struct {
 // connected by an edge with the given predicate.
 func (index *IGraph[Label, Datum]) PathsWithPredicate(predicate Label) *Paths[Label, Datum] {
 	p := index.labels.Forward(predicate)
-	soIndex := index.psoIndex[p]
+	soIndex := index.psoIndex.All(p)
 
-	query := index.newQuery(maps.Keys(soIndex))
-	query.expand(soIndex)
+	query := index.newQuery(soIndex)
+	query.expand(p)
 	return query
 }
 
@@ -40,9 +39,9 @@ func (index *IGraph[Label, Datum]) PathsWithPredicate(predicate Label) *Paths[La
 func (index *IGraph[Label, Datum]) PathsStarting(predicate, object Label) *Paths[Label, Datum] {
 	p := index.labels.Forward(predicate)
 	o := index.labels.Forward(object)
-	osIndex := index.posIndex[p][o]
+	osIndex := index.posIndex.All2(p, o)
 
-	query := index.newQuery(maps.Keys(osIndex))
+	query := index.newQuery(osIndex)
 	return query
 }
 
@@ -59,7 +58,7 @@ func (index *IGraph[URI, Datum]) newQuery(ids []imap.ID) (q *Paths[URI, Datum]) 
 		count++
 	}
 	slices.SortFunc(q.elements, func(x, y element) bool {
-		return x.Node < y.Node
+		return x.Node.Less(y.Node)
 	})
 
 	return q
@@ -70,21 +69,20 @@ func (index *IGraph[URI, Datum]) newQuery(ids []imap.ID) (q *Paths[URI, Datum]) 
 func (set *Paths[Label, Datum]) Connected(predicate Label) {
 	p := set.index.labels.Forward(predicate)
 	set.predicates = append(set.predicates, p)
-	set.expand(set.index.psoIndex[p])
+	set.expand(p)
 }
 
 // expand expands the nodes in this query by adding a link to each element found in the index
-func (set *Paths[URI, Datum]) expand(soIndex map[imap.ID][]imap.ID) {
+func (set *Paths[URI, Datum]) expand(p imap.ID) {
 	nodes := make([]element, 0)
 	for _, subject := range set.elements {
 		subject := subject
-		for _, object := range soIndex[subject.Node] {
-			object := object
+		set.index.psoIndex.Fetch2(p, subject.Node, func(object imap.ID) {
 			nodes = append(nodes, element{
 				Node:   object,
 				Parent: &subject,
 			})
-		}
+		})
 	}
 	set.elements = nodes
 }
@@ -94,14 +92,14 @@ func (set *Paths[URI, Datum]) expand(soIndex map[imap.ID][]imap.ID) {
 func (set *Paths[URI, Datum]) Ending(predicate URI, object URI) {
 	p := set.index.labels.Forward(predicate)
 	o := set.index.labels.Forward(object)
-	set.restrict(set.index.posIndex[p][o])
+	set.restrict(p, o)
 }
 
 // restrict restricts the set of nodes by those mapped in the index
-func (set *Paths[URI, Datum]) restrict(osIndex map[imap.ID]struct{}) {
+func (set *Paths[URI, Datum]) restrict(p, o imap.ID) {
 	nodes := set.elements[:0]
 	for _, subject := range set.elements {
-		if _, ok := osIndex[subject.Node]; ok {
+		if set.index.posIndex.Has(p, o, subject.Node) {
 			nodes = append(nodes, subject)
 		}
 	}
@@ -196,7 +194,7 @@ func (path *Path[Label, Datum]) Node(index int) Label {
 	case index == len(path.nodeIDs)-1:
 		// check if the last element has data associated with it
 		last := path.nodeIDs[len(path.nodeIDs)-1]
-		if _, ok := path.index.data[last]; ok {
+		if path.index.data.Has(last) {
 			var label Label
 			return label
 		}
@@ -220,7 +218,7 @@ func (path *Path[Label, Datum]) processNodes() {
 		}
 		// split off the last value as a datum (if any)
 		last := path.nodeIDs[len(path.nodeIDs)-1]
-		path.datum, path.hasDatum = path.index.data[last]
+		path.datum, path.hasDatum = path.index.data.Get(last)
 		if path.hasDatum {
 			path.nodeIDs = path.nodeIDs[:len(path.nodeIDs)-1]
 		}

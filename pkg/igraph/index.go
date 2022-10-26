@@ -2,7 +2,6 @@ package igraph
 
 import (
 	"github.com/tkw1536/FAU-CDI/drincw/pkg/imap"
-	"golang.org/x/exp/slices"
 )
 
 // IGraph represents a searchable index of a directed labeled graph with optionally attached Data.
@@ -22,14 +21,14 @@ type IGraph[Label comparable, Datum any] struct {
 	labels imap.IMap[Label]
 
 	// data holds mappings between internal IDs and data
-	data map[imap.ID]Datum
+	data imap.Storage[imap.ID, Datum]
 
 	// inverses holds inverse mappings (if any)
-	inverses map[imap.ID]imap.ID
+	inverses imap.Storage[imap.ID, imap.ID]
 
 	// the triple indexes, forward and backward
-	psoIndex map[imap.ID]map[imap.ID][]imap.ID
-	posIndex map[imap.ID]map[imap.ID]map[imap.ID]struct{}
+	psoIndex ThreeStorage
+	posIndex ThreeStorage
 }
 
 // TripleCount returns the total number of (distinct) triples in this graph.
@@ -38,22 +37,18 @@ func (index *IGraph[Label, Datum]) TripleCount() (count int64) {
 	if index == nil {
 		return 0
 	}
-	for _, soIndex := range index.psoIndex {
-		for _, oList := range soIndex {
-			count += int64(len(oList))
-		}
-	}
-	return
+	return index.psoIndex.Count()
 }
 
 // Reset resets this index and prepares all internal structures for use.
 func (index *IGraph[Label, Datum]) Reset() {
 	index.labels.Reset()
 
-	index.data = make(map[imap.ID]Datum)
-	index.psoIndex = make(map[imap.ID]map[imap.ID][]imap.ID)
-	index.posIndex = make(map[imap.ID]map[imap.ID]map[imap.ID]struct{})
-	index.inverses = make(map[imap.ID]imap.ID)
+	index.data = make(imap.MapStorage[imap.ID, Datum])
+	index.inverses = make(imap.MapStorage[imap.ID, imap.ID])
+	index.psoIndex = make(ThreeHash)
+	index.posIndex = make(ThreeHash)
+
 }
 
 // AddTriple inserts a subject-predicate-object triple into the index.
@@ -67,7 +62,7 @@ func (index *IGraph[Label, Datum]) AddTriple(subject, predicate, object Label) {
 	o := index.labels.Add(object)
 
 	index.insert(s, p, o)
-	if i, ok := index.inverses[p]; ok {
+	if i, ok := index.inverses.Get(p); ok {
 		index.insert(o, i, s)
 	}
 }
@@ -79,26 +74,14 @@ func (index *IGraph[Label, Datum]) AddTriple(subject, predicate, object Label) {
 // After all Add operations have finished, Finalize must be called.
 func (index *IGraph[Label, Datum]) AddData(subject, predicate Label, object Datum) {
 	o := index.labels.Next()
-	index.data[o] = object
+	index.data.Set(o, object)
 	index.insert(index.labels.Add(subject), index.labels.Add(predicate), o)
 }
 
 // insert inserts the provided (subject, predicate, object) ids into the graph
 func (index *IGraph[Label, Datum]) insert(subject, predicate, object imap.ID) {
-	// setup the predicate-subject-object index
-	if index.psoIndex[predicate] == nil {
-		index.psoIndex[predicate] = make(map[imap.ID][]imap.ID, 1)
-	}
-	index.psoIndex[predicate][subject] = append(index.psoIndex[predicate][subject], object)
-
-	// setup the predicate-object-subject index
-	if index.posIndex[predicate] == nil {
-		index.posIndex[predicate] = make(map[imap.ID]map[imap.ID]struct{}, 1)
-	}
-	if index.posIndex[predicate][object] == nil {
-		index.posIndex[predicate][object] = make(map[imap.ID]struct{}, 1)
-	}
-	index.posIndex[predicate][object][subject] = struct{}{}
+	index.psoIndex.Add(predicate, subject, object)
+	index.posIndex.Add(predicate, object, subject)
 }
 
 // MarkIdentical identifies the left and right subject and right labels.
@@ -122,13 +105,14 @@ func (index *IGraph[Label, Datum]) MarkInverse(left, right Label) {
 	}
 
 	// store the inverses of the left and right
-	index.inverses[l] = r
-	index.inverses[r] = l
+	index.inverses.Set(l, r)
+	index.inverses.Set(r, l)
 }
 
-// IdentifyMap returns the canonical names of labels
-func (index *IGraph[Label, Datum]) IdentityMap() map[Label]Label {
-	return index.labels.IdentifyMap()
+// IdentityMap writes all Labels for which has a semantically equivalent label.
+// See [imap.Storage.IdentityMap].
+func (index *IGraph[Label, Datum]) IdentityMap(storage imap.Storage[Label, Label]) {
+	index.labels.IdentityMap(storage)
 }
 
 // Finalize finalizes any adding operations into this graph.
@@ -137,10 +121,6 @@ func (index *IGraph[Label, Datum]) IdentityMap() map[Label]Label {
 // but after any calls to the Add* methods.
 // Calling finalize multiple times is valid.
 func (index *IGraph[Label, Datum]) Finalize() {
-	for pred := range index.psoIndex {
-		for sub := range index.psoIndex[pred] {
-			slices.SortFunc(index.psoIndex[pred][sub], func(a, b imap.ID) bool { return a.Less(b) })
-			index.psoIndex[pred][sub] = slices.Compact(index.psoIndex[pred][sub])
-		}
-	}
+	index.posIndex.Finalize()
+	index.psoIndex.Finalize()
 }

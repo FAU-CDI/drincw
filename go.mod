@@ -4,6 +4,7 @@ go 1.18
 
 require (
 	github.com/cayleygraph/quad v1.2.4
+	github.com/dustin/go-humanize v1.0.0
 	github.com/gorilla/mux v1.8.0
 	github.com/ncruces/zenity v0.7.12
 	golang.org/x/exp v0.0.0-20221019170559-20944726eadf
@@ -14,7 +15,6 @@ require (
 require (
 	github.com/akavel/rsrc v0.10.2 // indirect
 	github.com/dchest/jsmin v0.0.0-20160823214000-faeced883947 // indirect
-	github.com/dustin/go-humanize v1.0.0 // indirect
 	github.com/josephspurrier/goversioninfo v1.3.0 // indirect
 	github.com/randall77/makefat v0.0.0-20210315173500-7ddd0e42c844 // indirect
 	golang.org/x/image v0.0.0-20210628002857-a66eb6448b8d // indirect

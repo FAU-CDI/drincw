@@ -16,6 +16,7 @@ import (
 	"github.com/tkw1536/FAU-CDI/drincw/internal/viewer"
 	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder"
 	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder/pbxml"
+	"github.com/tkw1536/FAU-CDI/drincw/pkg/imap"
 	"github.com/tkw1536/FAU-CDI/drincw/pkg/perf"
 )
 
@@ -83,7 +84,11 @@ func main() {
 	var cachePerf perf.Diff
 	{
 		start := perf.Now()
-		cache = sparkl.NewCache(bundles, index.IdentityMap())
+
+		identities := make(imap.MapStorage[string, string])
+		index.IdentityMap(identities)
+		cache = sparkl.NewCache(bundles, identities)
+
 		cachePerf = perf.Since(start)
 		cachePerf.Bytes += indexPerf.Bytes // because the index is now deallocated
 		log.Printf("built cache, took %s", cachePerf)

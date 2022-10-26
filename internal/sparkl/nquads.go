@@ -15,7 +15,7 @@ func ReadNQuads(r io.ReadSeeker, SameAsPredicates []string) (*Index, error) {
 	// create a new index
 	var index Index
 
-	source := QuadReadSeeker{Reader: r}
+	source := QuadSource{Reader: r}
 	index.Reset()
 
 	// read the "same as" triples first

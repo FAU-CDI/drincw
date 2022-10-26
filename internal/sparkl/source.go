@@ -45,14 +45,19 @@ type Token struct {
 	Err error
 }
 
-// QuadReadSeeker reads data in NQuads format
-type QuadReadSeeker struct {
+// QuadSource reads triples from a quad file
+type QuadSource struct {
 	Reader io.ReadSeeker
 	reader *nquads.Reader
 }
 
-func (qs *QuadReadSeeker) Open() error {
+func (qs *QuadSource) Open() error {
+	// if we previously had a reader
+	// then we need to reset the state
 	if qs.reader != nil {
+		if err := qs.reader.Close(); err != nil {
+			return err
+		}
 		_, err := qs.Reader.Seek(0, io.SeekStart)
 		if err != nil {
 			return err
@@ -63,7 +68,8 @@ func (qs *QuadReadSeeker) Open() error {
 	return nil
 }
 
-func (qs *QuadReadSeeker) Next() Token {
+// Next reads the next token from the QuadSource
+func (qs *QuadSource) Next() Token {
 	for {
 		value, err := qs.reader.ReadQuad()
 		if err != nil {
@@ -95,7 +101,10 @@ func (qs *QuadReadSeeker) Next() Token {
 	}
 }
 
-func (qs *QuadReadSeeker) Close() error {
+func (qs *QuadSource) Close() error {
+	if qs.reader != nil {
+		return qs.reader.Close()
+	}
 	return nil
 }
 

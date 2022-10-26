@@ -145,9 +145,9 @@ func (viewer *Viewer) htmlBundle(w http.ResponseWriter, r *http.Request) {
 
 func (viewer *Viewer) htmlEntityResolve(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	uri := vars["uri"]
+	uri := strings.TrimSpace(vars["uri"])
 
-	bundle, ok := viewer.uri2bundle(vars["uri"])
+	bundle, ok := viewer.uri2bundle(uri)
 	if !ok {
 		http.NotFound(w, r)
 		return

@@ -41,6 +41,13 @@ footer {
     font-size: small;
 }
 
+hr {
+    border: 0;
+    border-top: 1px solid gray;
+    margin: 1em 0;
+    padding: 0;
+}
+
 .pathpart:not(:last-child)::after {
     content: " -> ";
 }
@@ -61,11 +68,11 @@ footer {
     vertical-align: top;
 }
 
-.entity_table td.collapse
- {
-    white-space:nowrap;
+.entity_table td.collapse {
+    white-space: nowrap;
     width: 1px;
 }
+
 .entity_table td.break {
     width: 1px;
 }

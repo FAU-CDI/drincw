@@ -23,23 +23,6 @@ type Paths[Label comparable, Datum any] struct {
 	size     int
 }
 
-/*
-// PathsWithPredicate creates a [PathSet] that represents all two-element paths
-// connected by an edge with the given predicate.
-func (index *IGraph[Label, Datum]) PathsWithPredicate(predicate Label) *Paths[Label, Datum] {
-	p := index.labels.Forward(predicate)
-
-	soIndex := make([]imap.ID, 0)
-	index.psoIndex.Fetch(p, func(b imap.ID) {
-		soIndex = append(soIndex, b)
-	})
-
-	query := index.newQuery(soIndex)
-	query.expand(p)
-	return query
-}
-*/
-
 // PathsStarting creates a new [PathSet] that represents all one-element paths
 // starting at a vertex which is connected to object with the given predicate
 func (index *IGraph[Label, Datum]) PathsStarting(predicate, object Label) *Paths[Label, Datum] {
@@ -47,7 +30,7 @@ func (index *IGraph[Label, Datum]) PathsStarting(predicate, object Label) *Paths
 	o := index.labels.Forward(object)
 
 	query := index.newQuery(func(sender chan<- element) {
-		index.posIndex.Fetch2(p, o, func(s imap.ID) {
+		index.posIndex.Fetch(p, o, func(s imap.ID) {
 			sender <- element{
 				Node:   s,
 				Parent: nil,
@@ -78,7 +61,7 @@ func (set *Paths[Label, Datum]) Connected(predicate Label) {
 // expand expands the nodes in this query by adding a link to each element found in the index
 func (set *Paths[URI, Datum]) expand(p imap.ID) {
 	set.elements = lstream.Pipe(set.elements, func(subject element, sender chan<- element) {
-		set.index.psoIndex.Fetch2(p, subject.Node, func(object imap.ID) {
+		set.index.psoIndex.Fetch(p, subject.Node, func(object imap.ID) {
 			sender <- element{
 				Node:   object,
 				Parent: &subject,

@@ -16,11 +16,8 @@ type ThreeStorage interface {
 	// Finalize informs the storage that no more mappings will be made
 	Finalize()
 
-	// Fetch iterates over all pairs (a, _, _) in undefined order.
-	Fetch(a imap.ID, f func(b imap.ID))
-
-	// Fetch2 iterates over all triples (a, b, c) in insertion order on c.
-	Fetch2(a, b imap.ID, f func(c imap.ID))
+	// Fetch iterates over all triples (a, b, c) in insertion order on c.
+	Fetch(a, b imap.ID, f func(c imap.ID))
 
 	// Has checks if the given mapping exists
 	Has(a, b, c imap.ID) bool // posIndex
@@ -69,14 +66,7 @@ func (tlm ThreeHash) Finalize() {
 	}
 }
 
-func (tlm ThreeHash) Fetch(a imap.ID, f func(b imap.ID)) {
-	// TODO: Fetch is unsorted
-	for b := range tlm[a] {
-		f(b)
-	}
-}
-
-func (tlm ThreeHash) Fetch2(a, b imap.ID, f func(c imap.ID)) {
+func (tlm ThreeHash) Fetch(a, b imap.ID, f func(c imap.ID)) {
 	three := tlm[a][b]
 	if three == nil {
 		return

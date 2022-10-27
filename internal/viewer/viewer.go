@@ -1,7 +1,10 @@
 package viewer
 
 import (
+	"log"
 	"net/http"
+	"net/url"
+	"strings"
 	"sync"
 
 	"github.com/gorilla/mux"
@@ -22,11 +25,30 @@ type Viewer struct {
 }
 
 type RenderFlags struct {
-	HTMLRender  bool   // should we render "text_long" as actual html?
-	ImageRender bool   // should we render "image" as actual images
-	PublicURL   string // should we replace links from the provided wisski?
+	HTMLRender  bool // should we render "text_long" as actual html?
+	ImageRender bool // should we render "image" as actual images
+
+	PublicURL string // should we replace links from the provided wisski?
 
 	Predicates sparkl.Predicates
+}
+
+func (rf RenderFlags) PublicURIS() (public []string) {
+	// add all the public urls
+	for _, raw := range strings.Split(rf.PublicURL, ",") {
+		url, err := url.Parse(raw)
+		if err != nil {
+			log.Printf("Unable to parse url %q: %s", raw, err)
+			continue
+		}
+
+		url.Scheme = "http"
+		public = append(public, url.String())
+
+		url.Scheme = "https"
+		public = append(public, url.String())
+	}
+	return public
 }
 
 func (viewer *Viewer) Prepare() {
@@ -36,6 +58,7 @@ func (viewer *Viewer) Prepare() {
 		viewer.mux.HandleFunc("/entity/{bundle}", viewer.htmlEntity).Queries("uri", "{uri:.+}")
 
 		viewer.mux.HandleFunc("/wisski/get", viewer.htmlEntityResolve).Queries("uri", "{uri:.+}")
+		viewer.mux.HandleFunc("/wisski/navigate/{id}/view", viewer.sendToResolver)
 
 		viewer.mux.HandleFunc("/api/v1", viewer.jsonIndex)
 		viewer.mux.HandleFunc("/api/v1/bundle/{bundle}", viewer.jsonBundle)
@@ -43,6 +66,7 @@ func (viewer *Viewer) Prepare() {
 
 		viewer.mux.PathPrefix("/assets/").Handler(assets.AssetHandler)
 	})
+
 }
 
 func (viewer *Viewer) ServeHTTP(w http.ResponseWriter, r *http.Request) {

@@ -56,7 +56,7 @@ func IterTree(node *html.Node, f func(node *html.Node)) {
 	// iterate over all the children
 	child := node.FirstChild
 	for child != nil {
-		f(child)
+		IterTree(child, f)
 		child = child.NextSibling
 	}
 

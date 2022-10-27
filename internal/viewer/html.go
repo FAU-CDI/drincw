@@ -64,15 +64,25 @@ var indexTemplate *template.Template = assets.Assetstasted.MustParseShared(
 
 type contextGlobal struct {
 	RenderFlags
-	wisskiGetRoute string
+
+	// InterceptedPrefixes are urls that are redirected to this server
+	InterceptedPrefixes []string
 }
 
-func (cg contextGlobal) ReplaceURL(url string) string {
-	if cg.wisskiGetRoute != "" && strings.HasPrefix(url, cg.wisskiGetRoute) {
-		uri := url[len(cg.wisskiGetRoute):]
-		return "/wisski/get?uri=" + uri
+func (cg contextGlobal) ReplaceURL(u string) string {
+	for _, prefix := range cg.InterceptedPrefixes {
+		if strings.HasPrefix(u, prefix) {
+			url, err := url.Parse(u)
+			if err != nil {
+				continue
+			}
+			url.Scheme = ""
+			url.Host = ""
+			url.OmitHost = true
+			return url.String()
+		}
 	}
-	return url
+	return u
 }
 
 func (viewer *Viewer) contextGlobal() (global contextGlobal) {
@@ -82,12 +92,13 @@ func (viewer *Viewer) contextGlobal() (global contextGlobal) {
 		return
 	}
 
-	url, err := url.JoinPath(viewer.RenderFlags.PublicURL, "wisski", "get")
-	if err != nil {
-		return
+	for _, public := range viewer.RenderFlags.PublicURIS() {
+		prefix, err := url.JoinPath(public, "wisski")
+		if err != nil {
+			continue
+		}
+		global.InterceptedPrefixes = append(global.InterceptedPrefixes, prefix)
 	}
-
-	global.wisskiGetRoute = url + "?uri="
 
 	return
 }
@@ -157,6 +168,27 @@ func (viewer *Viewer) htmlEntityResolve(w http.ResponseWriter, r *http.Request) 
 
 	// redirect to the entity
 	target := "/entity/" + bundle + "?uri=" + url.PathEscape(string(canon))
+	http.Redirect(w, r, target, http.StatusTemporaryRedirect)
+}
+
+func (viewer *Viewer) sendToResolver(w http.ResponseWriter, r *http.Request) {
+	publics := viewer.RenderFlags.PublicURIS()
+	uris := make([]sparkl.URI, 0, len(publics))
+	for _, public := range publics {
+		uri, err := url.JoinPath(public, r.URL.Path)
+		if err != nil {
+			continue
+		}
+		uris = append(uris, sparkl.URI(uri))
+	}
+
+	uri, _, ok := viewer.Cache.FirstBundle(uris...)
+	if !ok {
+		http.NotFound(w, r)
+		return
+	}
+
+	target := "/wisski/get?uri=" + url.PathEscape(string(uri))
 	http.Redirect(w, r, target, http.StatusTemporaryRedirect)
 }
 

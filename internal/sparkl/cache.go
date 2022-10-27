@@ -75,6 +75,17 @@ func (c Cache) Bundle(uri URI) (string, bool) {
 	return bundle, ok
 }
 
+// FirstBundle returns the first bundle for which the given URI exists
+func (c Cache) FirstBundle(uris ...URI) (uri URI, bundle string, ok bool) {
+	for _, uri := range uris {
+		bundle, ok = c.Bundle(uri)
+		if ok {
+			return uri, bundle, true
+		}
+	}
+	return
+}
+
 // Entity looks up the given entity
 func (c Cache) Entity(uri URI, bundle string) (*Entity, bool) {
 	index, ok := c.BIIndex[bundle][c.Canonical(uri)]

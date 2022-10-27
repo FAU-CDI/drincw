@@ -13,8 +13,33 @@ import (
 // Storages for any child bundles, and the bundle itself, are created using the makeStorage function.
 // The storage for this bundle is returned.
 func ExtractEntities(bundle *pathbuilder.Bundle, index *Index, makeStorage func(bundle *pathbuilder.Bundle) BundleStorage) BundleStorage {
+	var extractWait, childAddWait sync.WaitGroup
+
+	extractWait.Add(1)
+	storage := extractEntities(bundle, &context{
+		index:       index,
+		makeStorage: makeStorage,
+
+		extractWait:  &extractWait,
+		childAddWait: &childAddWait,
+	})
+	childAddWait.Wait()
+	return storage
+}
+
+type context struct {
+	index       *Index
+	makeStorage func(bundle *pathbuilder.Bundle) BundleStorage
+
+	extractWait  *sync.WaitGroup // waiting on extracting entities in all bundles
+	childAddWait *sync.WaitGroup // loading child entities wait
+}
+
+func extractEntities(bundle *pathbuilder.Bundle, context *context) BundleStorage {
+	defer context.extractWait.Done()
+
 	// initialize a new storage for this bundle
-	storage := makeStorage(bundle)
+	storage := context.makeStorage(bundle)
 
 	// determine the index of the URI within the paths describing this bundle
 	// this is the length of the parent path, or zero (if it does not exist).
@@ -23,22 +48,19 @@ func ExtractEntities(bundle *pathbuilder.Bundle, index *Index, makeStorage func(
 		entityURIIndex = len(bundle.Group.PathArray) / 2
 	}
 
-	var wg sync.WaitGroup
-
-	// add all the elements
-	// adding element is performed concurrently.
-	for path := range extractPath(bundle.Group, index) {
+	// stage 1: load the entities themselves
+	for path := range extractPath(bundle.Group, context.index) {
 		nodes := path.Nodes()
 		storage.Add(nodes[entityURIIndex], nodes)
 	}
 
-	// scan all the paths for all of the fields
+	// stage 2: fill all the fields
 	for _, field := range bundle.Fields() {
-		wg.Add(1)
+		context.extractWait.Add(1)
 		go func(field pathbuilder.Field) {
-			defer wg.Done()
+			defer context.extractWait.Done()
 
-			for path := range extractPath(field.Path, index) {
+			for path := range extractPath(field.Path, context.index) {
 				nodes := path.Nodes()
 				datum, hasDatum := path.Datum()
 				if !hasDatum && len(nodes) > 0 {
@@ -51,23 +73,32 @@ func ExtractEntities(bundle *pathbuilder.Bundle, index *Index, makeStorage func(
 		}(field)
 	}
 
-	// fetch all the child bundles
-	for _, bundle := range bundle.ChildBundles {
-		wg.Add(1)
-		go func(bundle *pathbuilder.Bundle) {
-			defer wg.Done()
+	// stage 3: read child paths
+	storages := make([]BundleStorage, len(bundle.ChildBundles))
+	for i, bundle := range bundle.ChildBundles {
+		context.extractWait.Add(1)
+		context.childAddWait.Add(1)
 
-			cstorage := ExtractEntities(bundle, index, makeStorage)
-			defer cstorage.Close()
-
-			for entity := range cstorage.Get() {
-				uri := entity.Path[entityURIIndex]
-				storage.AddChild(uri, bundle.Group.ID, entity)
-			}
-		}(bundle)
+		go func(i int, bundle *pathbuilder.Bundle) {
+			storages[i] = extractEntities(bundle, context) // does context.extractWait.Done()
+		}(i, bundle)
 	}
 
-	wg.Wait()
+	// stage 4: register all the child entities
+	go func() {
+		context.extractWait.Wait()
+
+		for i, cstorage := range storages {
+			go func(cstorage BundleStorage, bundle *pathbuilder.Bundle) {
+				defer context.childAddWait.Done()
+
+				for child := range cstorage.Get(entityURIIndex) {
+					storage.AddChild(child.Parent, bundle.Group.ID, child.URI, cstorage)
+				}
+				cstorage.Close()
+			}(cstorage, bundle.ChildBundles[i])
+		}
+	}()
 
 	return storage
 }

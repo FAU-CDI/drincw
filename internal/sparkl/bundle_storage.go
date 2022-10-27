@@ -20,17 +20,24 @@ type BundleStorage interface {
 	// AddChild adds a child entity of the given bundle to the given entity.
 	//
 	// Multiple concurrent calls to AddFieldValue may take place.
-	AddChild(uri URI, bundle string, entity Entity)
+	AddChild(parent URI, bundle string, child URI, storage BundleStorage)
 
-	// Get returns a channel that receives each entity that was created.
-	// Once all entities have been returned, the channel is closed.
-	Get() <-chan Entity
+	// Get returns a channel that receives the url of every entity in this bundle, along with their parent URIs.
+	// parentPathIndex returns the index of the parent uri in child paths
+	//
+	// The caller is responsible for draining the channel.
+	Get(parentPathIndex int) <-chan URIWithParent
 
 	// Load loads an entity with the given URI from this storage
 	Load(uri URI) Entity
 
 	// Close closes this BundleStorage
 	Close()
+}
+
+type URIWithParent struct {
+	URI    URI
+	Parent URI
 }
 
 // NewBundleSlice create a new BundleSlice storage.
@@ -96,11 +103,11 @@ func (bs *BundleSlice) AddFieldValue(uri URI, field string, value any, path []UR
 	})
 }
 
-func (bs *BundleSlice) AddChild(uri URI, bundle string, entity Entity) {
+func (bs *BundleSlice) AddChild(parent URI, bundle string, child URI, storage BundleStorage) {
 	bs.addChildLock.Lock()
 	defer bs.addChildLock.Unlock()
 
-	id, ok := bs.lookup[uri]
+	id, ok := bs.lookup[parent]
 	if !ok {
 		return
 	}
@@ -108,15 +115,22 @@ func (bs *BundleSlice) AddChild(uri URI, bundle string, entity Entity) {
 	if bs.Entities[id].Children == nil {
 		bs.Entities[id].Children = make(map[string][]Entity)
 	}
-	bs.Entities[id].Children[bundle] = append(bs.Entities[id].Children[bundle], entity)
+	bs.Entities[id].Children[bundle] = append(bs.Entities[id].Children[bundle], storage.Load(child))
 }
 
-func (bs *BundleSlice) Get() <-chan Entity {
-	c := make(chan Entity)
+func (bs *BundleSlice) Get(parentPathIndex int) <-chan URIWithParent {
+	c := make(chan URIWithParent)
 	go func() {
 		defer close(c)
 		for _, entity := range bs.Entities {
-			c <- entity
+			var parent URI
+			if parentPathIndex > -1 {
+				parent = entity.Path[parentPathIndex]
+			}
+			c <- URIWithParent{
+				URI:    entity.URI,
+				Parent: parent,
+			}
 		}
 	}()
 	return c

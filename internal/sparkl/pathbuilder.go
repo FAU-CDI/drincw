@@ -22,8 +22,8 @@ func LoadPathbuilder(pb *pathbuilder.Pathbuilder, index *Index) map[string][]Ent
 			storage := ExtractEntities(bundles[i], index, NewBundleSlice)
 			defer storage.Close()
 
-			for entity := range storage.Get() {
-				entities[i] = append(entities[i], entity)
+			for element := range storage.Get(-1) {
+				entities[i] = append(entities[i], storage.Load(element.URI))
 			}
 		}()
 	}

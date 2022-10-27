@@ -9,23 +9,23 @@ import (
 // LoadPathbuilder loads all paths from the given pathbuilder
 func LoadPathbuilder(pb *pathbuilder.Pathbuilder, index *Index) map[string][]Entity {
 	bundles := pb.Bundles()
+	storages := StoreBundles(bundles, index, NewBundleSlice)
+
 	entities := make([][]Entity, len(bundles))
 
 	var wg sync.WaitGroup
-	for i := range bundles {
-		i := i
-
+	for i := range storages {
 		wg.Add(1)
-		go func() {
+		go func(i int) {
 			defer wg.Done()
 
-			storage := ExtractEntities(bundles[i], index, NewBundleSlice)
+			storage := storages[i]
 			defer storage.Close()
 
 			for element := range storage.Get(-1) {
 				entities[i] = append(entities[i], storage.Load(element.URI))
 			}
-		}()
+		}(i)
 	}
 	wg.Wait()
 

@@ -8,23 +8,36 @@ import (
 	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder"
 )
 
-// ExtractEntities loads all entities from the given bundle into a new storage, which is then returned.
+// StoreBundle loads all entities from the given bundle into a new storage, which is then returned.
 //
 // Storages for any child bundles, and the bundle itself, are created using the makeStorage function.
 // The storage for this bundle is returned.
-func ExtractEntities(bundle *pathbuilder.Bundle, index *Index, makeStorage func(bundle *pathbuilder.Bundle) BundleStorage) BundleStorage {
-	var extractWait, childAddWait sync.WaitGroup
+func StoreBundle(bundle *pathbuilder.Bundle, index *Index, makeStorage func(bundle *pathbuilder.Bundle) BundleStorage) BundleStorage {
+	return StoreBundles([]*pathbuilder.Bundle{bundle}, index, makeStorage)[0]
+}
 
-	extractWait.Add(1)
-	storage := extractEntities(bundle, &context{
+// StoreBundles is like StoreBundle, but takes multiple bundles
+func StoreBundles(bundles []*pathbuilder.Bundle, index *Index, makeStorage func(bundle *pathbuilder.Bundle) BundleStorage) []BundleStorage {
+	var extractWait, childAddWait sync.WaitGroup
+	context := &context{
 		index:       index,
 		makeStorage: makeStorage,
 
 		extractWait:  &extractWait,
 		childAddWait: &childAddWait,
-	})
+	}
+
+	storages := make([]BundleStorage, len(bundles))
+	for i := range storages {
+		extractWait.Add(1)
+		go func(i int) {
+			storages[i] = storeBundle(bundles[i], context)
+		}(i)
+	}
+
+	extractWait.Wait()
 	childAddWait.Wait()
-	return storage
+	return storages
 }
 
 type context struct {
@@ -35,7 +48,7 @@ type context struct {
 	childAddWait *sync.WaitGroup // loading child entities wait
 }
 
-func extractEntities(bundle *pathbuilder.Bundle, context *context) BundleStorage {
+func storeBundle(bundle *pathbuilder.Bundle, context *context) BundleStorage {
 	defer context.extractWait.Done()
 
 	// initialize a new storage for this bundle
@@ -80,7 +93,7 @@ func extractEntities(bundle *pathbuilder.Bundle, context *context) BundleStorage
 		context.childAddWait.Add(1)
 
 		go func(i int, bundle *pathbuilder.Bundle) {
-			storages[i] = extractEntities(bundle, context) // does context.extractWait.Done()
+			storages[i] = storeBundle(bundle, context) // does context.extractWait.Done()
 		}(i, bundle)
 	}
 

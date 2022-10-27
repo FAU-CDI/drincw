@@ -25,31 +25,16 @@ func ExtractEntities(bundle *pathbuilder.Bundle, index *Index, makeStorage func(
 
 	var wg sync.WaitGroup
 
-	// prepare receiving fields and child paths
-	fields := bundle.Fields()
-	cBundles := bundle.ChildBundles
-
-	// receive paths for all the entities
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		defer storage.DoneAdding()
-
-		for path := range extractPath(bundle.Group, index) {
-			nodes := path.Nodes()
-			storage.Add(Entity{
-				URI:  nodes[entityURIIndex],
-				Path: nodes,
-
-				Fields:   make(map[string][]FieldValue, len(fields)),
-				Children: make(map[string][]Entity, len(cBundles)),
-			})
-		}
-	}()
+	// add all the elements
+	// adding element is performed concurrently.
+	for path := range extractPath(bundle.Group, index) {
+		nodes := path.Nodes()
+		storage.Add(nodes[entityURIIndex], nodes)
+	}
 
 	// scan all the paths for all of the fields
-	wg.Add(len(fields))
-	for _, field := range fields {
+	for _, field := range bundle.Fields() {
+		wg.Add(1)
 		go func(field pathbuilder.Field) {
 			defer wg.Done()
 
@@ -61,22 +46,21 @@ func ExtractEntities(bundle *pathbuilder.Bundle, index *Index, makeStorage func(
 				}
 				uri := nodes[entityURIIndex]
 
-				storage.AddFieldValue(uri, field.ID, FieldValue{
-					Path:  nodes,
-					Value: datum,
-				})
+				storage.AddFieldValue(uri, field.ID, datum, nodes)
 			}
 		}(field)
 	}
 
 	// fetch all the child bundles
-	wg.Add(len(cBundles))
-	for _, bundle := range cBundles {
+	for _, bundle := range bundle.ChildBundles {
+		wg.Add(1)
 		go func(bundle *pathbuilder.Bundle) {
 			defer wg.Done()
 
-			// fetch entities
-			for entity := range ExtractEntities(bundle, index, makeStorage).Get() {
+			storage := ExtractEntities(bundle, index, makeStorage)
+			defer storage.Close()
+
+			for entity := range storage.Get() {
 				uri := entity.Path[entityURIIndex]
 				storage.AddChild(uri, bundle.Group.ID, entity)
 			}
@@ -84,7 +68,6 @@ func ExtractEntities(bundle *pathbuilder.Bundle, index *Index, makeStorage func(
 	}
 
 	wg.Wait()
-	storage.DoneStoring()
 
 	return storage
 }

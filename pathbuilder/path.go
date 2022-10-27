@@ -34,6 +34,14 @@ type Path struct {
 	Name string
 }
 
+// MakeCardinality returns the cardinality to use for a call to make()
+func (p Path) MakeCardinality() int {
+	if p.Cardinality < 0 {
+		return 0
+	}
+	return p.Cardinality
+}
+
 // MachineName returns the machine name of this path
 func (p Path) MachineName() string {
 	if p.IsGroup {

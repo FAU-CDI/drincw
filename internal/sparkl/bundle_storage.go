@@ -8,29 +8,29 @@ import (
 
 // BundleStorage is responsible for storing entities for a single bundle
 type BundleStorage interface {
-	// Add adds a new Entity to this storage.
-	// Only the URI and Path fields will be filled.
+	// Add adds a new entity with the given URI (and optional path information)
+	// to this bundle.
 	//
-	// Calls to Add will be serialized.
-	Add(Entity)
-
-	// DoneAdding signals that no more entities will be added to this BundleStorage.
-	DoneAdding()
+	// Calls to add for a specific bundle storage are serialized.
+	Add(uri URI, path []URI)
 
 	// AddFieldValue adds a value to the given field for the entity with the given uri.
-	AddFieldValue(uri URI, field string, value FieldValue)
+	AddFieldValue(uri URI, field string, value any, path []URI)
 
 	// AddChild adds a child entity of the given bundle to the given entity.
 	//
 	// Multiple concurrent calls to AddFieldValue may take place.
 	AddChild(uri URI, bundle string, entity Entity)
 
-	// Done informs this BundleStorage that no more calls will be made to Add, AddFieldValue, AddChild
-	DoneStoring()
-
 	// Get returns a channel that receives each entity that was created.
 	// Once all entities have been returned, the channel is closed.
 	Get() <-chan Entity
+
+	// Load loads an entity with the given URI from this storage
+	Load(uri URI) Entity
+
+	// Close closes this BundleStorage
+	Close()
 }
 
 // NewBundleSlice create a new BundleSlice storage.
@@ -57,20 +57,28 @@ type BundleSlice struct {
 }
 
 // Add adds an entity to this BundleSlice
-func (bs *BundleSlice) Add(entity Entity) {
-	uri := entity.URI
+func (bs *BundleSlice) Add(uri URI, path []URI) {
 	bs.lookup[uri] = len(bs.Entities)
+	entity := Entity{
+		URI:      uri,
+		Path:     path,
+		Fields:   make(map[string][]FieldValue, len(bs.bundle.ChildFields)),
+		Children: make(map[string][]Entity, len(bs.bundle.ChildBundles)),
+	}
+
+	for _, field := range bs.bundle.ChildFields {
+		entity.Fields[field.ID] = make([]FieldValue, 0, field.MakeCardinality())
+	}
+
+	for _, bundle := range bs.bundle.ChildBundles {
+		entity.Children[bundle.Group.ID] = make([]Entity, 0, bundle.Group.MakeCardinality())
+	}
+
 	bs.Entities = append(bs.Entities, entity)
 }
 
-// DoneAdding signals that no more adds should take place
-func (bs *BundleSlice) DoneAdding() {
-	close(bs.adding)
-}
-
 // AddFieldValue
-func (bs *BundleSlice) AddFieldValue(uri URI, field string, value FieldValue) {
-	<-bs.adding
+func (bs *BundleSlice) AddFieldValue(uri URI, field string, value any, path []URI) {
 	bs.setFieldLock.Lock()
 	defer bs.setFieldLock.Unlock()
 
@@ -82,11 +90,13 @@ func (bs *BundleSlice) AddFieldValue(uri URI, field string, value FieldValue) {
 	if bs.Entities[id].Fields == nil {
 		bs.Entities[id].Fields = make(map[string][]FieldValue)
 	}
-	bs.Entities[id].Fields[field] = append(bs.Entities[id].Fields[field], value)
+	bs.Entities[id].Fields[field] = append(bs.Entities[id].Fields[field], FieldValue{
+		Value: value,
+		Path:  path,
+	})
 }
 
 func (bs *BundleSlice) AddChild(uri URI, bundle string, entity Entity) {
-	<-bs.adding
 	bs.addChildLock.Lock()
 	defer bs.addChildLock.Unlock()
 
@@ -101,10 +111,6 @@ func (bs *BundleSlice) AddChild(uri URI, bundle string, entity Entity) {
 	bs.Entities[id].Children[bundle] = append(bs.Entities[id].Children[bundle], entity)
 }
 
-func (bs *BundleSlice) DoneStoring() {
-	bs.lookup = nil
-}
-
 func (bs *BundleSlice) Get() <-chan Entity {
 	c := make(chan Entity)
 	go func() {
@@ -114,4 +120,12 @@ func (bs *BundleSlice) Get() <-chan Entity {
 		}
 	}()
 	return c
+}
+
+func (bs *BundleSlice) Load(uri URI) Entity {
+	return bs.Entities[bs.lookup[uri]]
+}
+
+func (bs *BundleSlice) Close() {
+	bs.lookup = nil
 }

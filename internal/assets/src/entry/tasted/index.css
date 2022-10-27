@@ -76,3 +76,26 @@ hr {
 .entity_table td.break {
     width: 1px;
 }
+
+img {
+    max-width: 100%;
+}
+
+.uri, .link, .image, .text {
+    font-family: monospace;
+}
+
+.uri::before,
+.uri::after
+{
+    color: black;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.uri::before {
+    content: "<";
+}
+.uri::after {
+    content: ">";
+}

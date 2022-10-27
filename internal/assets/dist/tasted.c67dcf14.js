@@ -1,0 +1,1 @@
+!function(){const e=document.querySelectorAll(".showable");Array.from(e).forEach((e=>{const n=e.innerHTML,r=r=>{r&&r.preventDefault(),t?(e.innerHTML=n,t=!1):(e.innerHTML="Show",t=!0)};let t=!1;e.addEventListener("click",r),r(null)}))}();

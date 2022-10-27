@@ -42,9 +42,11 @@
                 {{ template "viewer_render_value.html" combine "Globals" $globals "Field" $field "Value" $value }}
             </td>
             <td class="break">
-                {{ range $value.Triples $field }}
-                {{ . }}<br />
-                {{ end }}
+                <div class="showable">
+                    {{ range $value.Triples $field }}
+                    {{ . }}<br />
+                    {{ end }}
+                </div>
             </td>
         </tr>
         {{ end }}

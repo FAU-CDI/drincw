@@ -1,22 +1,23 @@
 {{ $globals := .Globals }}
 {{ if eq .Field.FieldType "entity_reference" }}
-    <a href="/wisski/get?uri={{ .Value.Value }}">
-        <code>{{ .Value.Value }}</code>
-    </a>
+    <a class="uri" rel="noopener noreferrer" target="_blank" href="/wisski/get?uri={{ .Value.Value }}">{{ .Value.Value }}</a>
+{{ else if eq .Field.FieldType "link" }}
+    <a class="link" href="{{ .Value.Value }}">{{ .Value.Value }}</a>
 {{ else if eq .Field.FieldType "image" }}
     {{ if $globals.ImageRender }}
-        <img src="{{ $globals.ReplaceURL .Value.Value }}">
+        {{ $url := $globals.ReplaceURL .Value.Value }}
+        <a href="{{ $url }}" rel="noopener noreferrer" target="_blank">
+            <img src="{{ $url }}">
+        </a>
     {{ else }}
-        <code>
-        &lt;img src="<a href="{{ .Value.Value }}">{{ .Value.Value }}</a>"&gt;
-        </code>
+        <a class="image" href="{{ .Value.Value }}" rel="noopener noreferrer" target="_blank">{{ .Value.Value }}</a>
     {{ end }}
 {{ else if eq .Field.FieldType "text_long" }}
     {{ if $globals.HTMLRender }}
         {{ renderhtml .Value.Value $globals }}
     {{ else }}
-        <code>{{ .Value.Value }}</code>
+        <span class="text">{{ .Value.Value }}</span>
     {{ end }}
 {{ else }}
-<code>{{ .Value.Value }}</code>
+    <span class="text">{{ .Value.Value }}</span>
 {{ end }}

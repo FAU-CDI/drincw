@@ -1,6 +1,6 @@
 {{ $globals := .Globals }}
 {{ if eq .Field.FieldType "entity_reference" }}
-    <a class="uri" rel="noopener noreferrer" target="_blank" href="/wisski/get?uri={{ .Value.Value }}">{{ .Value.Value }}</a>
+    <a class="uri" href="/wisski/get?uri={{ .Value.Value }}">{{ .Value.Value }}</a>
 {{ else if eq .Field.FieldType "link" }}
     <a class="link" href="{{ .Value.Value }}">{{ .Value.Value }}</a>
 {{ else if eq .Field.FieldType "image" }}

@@ -57,10 +57,10 @@ func ExtractEntities(bundle *pathbuilder.Bundle, index *Index, makeStorage func(
 		go func(bundle *pathbuilder.Bundle) {
 			defer wg.Done()
 
-			storage := ExtractEntities(bundle, index, makeStorage)
-			defer storage.Close()
+			cstorage := ExtractEntities(bundle, index, makeStorage)
+			defer cstorage.Close()
 
-			for entity := range storage.Get() {
+			for entity := range cstorage.Get() {
 				uri := entity.Path[entityURIIndex]
 				storage.AddChild(uri, bundle.Group.ID, entity)
 			}

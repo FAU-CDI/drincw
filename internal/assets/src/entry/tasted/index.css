@@ -99,3 +99,7 @@ img {
 .uri::after {
     content: ">";
 }
+
+.bundle-nested {
+    margin-left: 1em;
+}

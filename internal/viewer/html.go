@@ -62,6 +62,15 @@ var indexTemplate *template.Template = assets.Assetstasted.MustParseShared(
 	contextTemplateFuncs,
 )
 
+//go:embed templates/pathbuilder.html
+var pathbuilderHTML string
+
+var pbTemplate *template.Template = assets.Assetstasted.MustParseShared(
+	"pathbuilder.html",
+	pathbuilderHTML,
+	contextTemplateFuncs,
+)
+
 type contextGlobal struct {
 	RenderFlags
 
@@ -148,6 +157,23 @@ func (viewer *Viewer) htmlBundle(w http.ResponseWriter, r *http.Request) {
 		Globals: viewer.contextGlobal(),
 		Bundle:  bundle,
 		URIS:    entities,
+	})
+	if err != nil {
+		panic(err)
+	}
+}
+
+type htmlPathbuilderContext struct {
+	Globals     contextGlobal
+	Pathbuilder *pathbuilder.Pathbuilder
+}
+
+func (viewer *Viewer) htmlPathbuilder(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html")
+	w.WriteHeader(http.StatusOK)
+	err := pbTemplate.Execute(w, htmlPathbuilderContext{
+		Globals:     viewer.contextGlobal(),
+		Pathbuilder: viewer.Pathbuilder,
 	})
 	if err != nil {
 		panic(err)

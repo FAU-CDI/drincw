@@ -1,7 +1,7 @@
 package drincw
 
 // ===========================================================================================================
-// This file was generated automatically at 27-10-2022 16:52:08 using gogenlicense.
+// This file was generated automatically at 28-10-2022 06:52:49 using gogenlicense.
 // Do not edit manually, as changes may be overwritten.
 // ===========================================================================================================
 
@@ -441,7 +441,7 @@ package drincw
 // # Generation
 //
 // This variable and the associated documentation have been automatically generated using the 'gogenlicense' tool.
-// It was last updated at 27-10-2022 16:52:08.
+// It was last updated at 28-10-2022 06:52:49.
 var Notices string
 
 func init() {

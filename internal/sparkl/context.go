@@ -5,6 +5,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/tkw1536/FAU-CDI/drincw/internal/wisski"
 	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder"
 )
 
@@ -12,15 +13,15 @@ import (
 //
 // Storages for any child bundles, and the bundle itself, are created using the makeStorage function.
 // The storage for this bundle is returned.
-func StoreBundle(bundle *pathbuilder.Bundle, index *Index, makeStorage func(bundle *pathbuilder.Bundle) BundleStorage) BundleStorage {
-	return StoreBundles([]*pathbuilder.Bundle{bundle}, index, makeStorage)[0]
+func StoreBundle(bundle *pathbuilder.Bundle, index *Index, engine BundleEngine) BundleStorage {
+	return StoreBundles([]*pathbuilder.Bundle{bundle}, index, engine)[0]
 }
 
 // StoreBundles is like StoreBundle, but takes multiple bundles
-func StoreBundles(bundles []*pathbuilder.Bundle, index *Index, makeStorage func(bundle *pathbuilder.Bundle) BundleStorage) []BundleStorage {
+func StoreBundles(bundles []*pathbuilder.Bundle, index *Index, engine BundleEngine) []BundleStorage {
 	context := &Context{
-		Index:       index,
-		MakeStorage: makeStorage,
+		Index:  index,
+		Engine: engine,
 	}
 	context.Open()
 
@@ -38,8 +39,8 @@ func StoreBundles(bundles []*pathbuilder.Bundle, index *Index, makeStorage func(
 // A Context must be opened, and eventually waited on.
 // See [Open] and [Close].
 type Context struct {
-	Index       *Index
-	MakeStorage func(bundle *pathbuilder.Bundle) BundleStorage
+	Index  *Index
+	Engine BundleEngine
 
 	extractWait  sync.WaitGroup // waiting on extracting entities in all bundles
 	childAddWait sync.WaitGroup // loading child entities wait
@@ -68,7 +69,7 @@ func (context *Context) Store(bundle *pathbuilder.Bundle) BundleStorage {
 	context.extractWait.Add(1)
 
 	// create a new context
-	storage := context.MakeStorage(bundle)
+	storage := context.Engine(bundle)
 
 	go func() {
 		defer context.extractWait.Done()
@@ -160,14 +161,14 @@ func extractPath(path pathbuilder.Path, index *Index) <-chan Path {
 		debugID = atomic.AddInt64(&debugLogID, 1)
 	}
 
-	set := index.PathsStarting(Type, URI(uris[0]))
+	set := index.PathsStarting(wisski.Type, URI(uris[0]))
 	if debugLogAllPaths {
 		log.Println(debugID, uris[0], set.Size())
 	}
 
 	for i := 1; i < len(uris) && set.Size() > 0; i++ {
 		if i%2 == 0 {
-			set.Ending(Type, URI(uris[i]))
+			set.Ending(wisski.Type, URI(uris[i]))
 		} else {
 			set.Connected(URI(uris[i]))
 		}

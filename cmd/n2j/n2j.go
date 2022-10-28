@@ -11,6 +11,7 @@ import (
 
 	"github.com/tkw1536/FAU-CDI/drincw"
 	"github.com/tkw1536/FAU-CDI/drincw/internal/sparkl"
+	"github.com/tkw1536/FAU-CDI/drincw/internal/wisski"
 	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder"
 	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder/pbxml"
 	"github.com/tkw1536/FAU-CDI/drincw/pkg/perf"
@@ -69,8 +70,8 @@ func main() {
 }
 
 var nArgs []string
-var sameAs = string(sparkl.SameAs)
-var inverseOf = string(sparkl.InverseOf)
+var sameAs = string(wisski.SameAs)
+var inverseOf = string(wisski.InverseOf)
 
 func init() {
 	var legalFlag bool = false

@@ -64,14 +64,16 @@ func init() {
 }
 
 func BenchmarkIMap(b *testing.B) {
-	var mp IMap[string]
-	for i := 0; i < b.N; i++ {
-		mp.Reset()
-		for _, t := range testIDs {
-			mp.Add(t)
+	/*
+		var mp IMap[string]
+		for i := 0; i < b.N; i++ {
+			mp.Reset()
+			for _, t := range testIDs {
+				mp.Add(t)
+			}
+			for _, t := range testIDs {
+				mp.Add(t)
+			}
 		}
-		for _, t := range testIDs {
-			mp.Add(t)
-		}
-	}
+	*/
 }

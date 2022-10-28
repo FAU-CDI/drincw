@@ -1,6 +1,7 @@
 package sparkl
 
 import (
+	"github.com/tkw1536/FAU-CDI/drincw/internal/wisski"
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
 )
@@ -30,7 +31,7 @@ type Cache struct {
 // TODO: Do we want to use an IMap here?
 
 // NewCache creates a new cache from a bundle-entity-map
-func NewCache(Data map[string][]Entity, SameAs map[URI]URI) (c Cache) {
+func NewCache(Data map[string][]wisski.Entity, SameAs map[URI]URI) (c Cache) {
 	// store the bundle-entity index
 	c.BEIndex = Data
 	c.BIIndex = make(map[string]map[URI]int, len(c.BEIndex))

@@ -48,7 +48,6 @@ func (index *IGraph[Label, Datum]) Reset() {
 	index.inverses = make(imap.MapStorage[imap.ID, imap.ID])
 	index.psoIndex = make(ThreeHash)
 	index.posIndex = make(ThreeHash)
-
 }
 
 // AddTriple inserts a subject-predicate-object triple into the index.

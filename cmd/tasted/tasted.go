@@ -13,6 +13,7 @@ import (
 	"github.com/tkw1536/FAU-CDI/drincw"
 	"github.com/tkw1536/FAU-CDI/drincw/internal/sparkl"
 	"github.com/tkw1536/FAU-CDI/drincw/internal/viewer"
+	"github.com/tkw1536/FAU-CDI/drincw/internal/wisski"
 	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder"
 	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder/pbxml"
 	"github.com/tkw1536/FAU-CDI/drincw/pkg/imap"
@@ -115,8 +116,8 @@ var nArgs []string
 var addr string = ":3000"
 
 var flags viewer.RenderFlags
-var sameAs string = string(sparkl.SameAs)
-var inverseOf string = string(sparkl.InverseOf)
+var sameAs string = string(wisski.SameAs)
+var inverseOf string = string(wisski.InverseOf)
 
 func init() {
 	var legalFlag bool = false

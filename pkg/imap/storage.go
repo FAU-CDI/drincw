@@ -1,9 +1,13 @@
 package imap
 
+import "io"
+
 // Storage represents a storage for an imap instance.
 //
 // Must be able to handle multiple reading operations concurrently.
 type Storage[Key comparable, Value any] interface {
+	io.Closer
+
 	// Set sets the given key to the given value
 	Set(key Key, value Value)
 
@@ -59,4 +63,12 @@ func (ims MapStorage[Key, Value]) Iterate(f func(Key, Value)) {
 	for key, value := range ims {
 		f(key, value)
 	}
+}
+
+// Close closes this MapStorage, deleting all values
+func (ims MapStorage[Key, Value]) Close() error {
+	for key := range ims {
+		delete(ims, key)
+	}
+	return nil
 }

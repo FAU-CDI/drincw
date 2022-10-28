@@ -2,22 +2,28 @@ package lstream
 
 // Stream represents a stream that is evaluated lazily
 type Stream[Element any] interface {
-	// Next returns the next element in this stream
-	Next() (element Element, ok bool)
+	// Next returns the next element in this stream.
+	//
+	// ok indiciates if there are more elements left in this channel.
+	// error indiciates if an error occured
+	Next() (element Element, ok bool, err error)
 }
 
 // New creates a new stream
-func New[Element any](source func(sender chan<- Element)) Stream[Element] {
+func New[Element any](source func(sender chan<- Element) error) Stream[Element] {
 	c := make(chan Element)
+
+	stream := lstream[Element]{
+		c: c,
+	}
 
 	go func() {
 		defer close(c)
-		source(c)
+
+		stream.err = source(c)
 	}()
 
-	return &lstream[Element]{
-		c: c,
-	}
+	return &stream
 }
 
 // NewConcrete creates a new stream from a given set of elements
@@ -29,35 +35,44 @@ func NewConcrete[Element any](elements []Element) Stream[Element] {
 }
 
 // Pipe calls pipe for every element of the stream, and creates a new result stream
-func Pipe[Element any](s Stream[Element], pipe func(element Element, sender chan<- Element)) Stream[Element] {
-	return New(func(sender chan<- Element) {
-		for element := range Channel(s) {
-			pipe(element, sender)
+func Pipe[Element any](s Stream[Element], pipe func(element Element, sender chan<- Element) error) Stream[Element] {
+	return New(func(sender chan<- Element) (err error) {
+		c := Channel(s, &err)
+		for element := range c {
+			if err := pipe(element, sender); err != nil {
+				// make sure that the channel is drained
+				for range c {
+				}
+				return err
+			}
 		}
+		return nil
 	})
 }
 
 // Drain drains the entire stream into a slice
-func Drain[Element any](s Stream[Element]) []Element {
+func Drain[Element any](s Stream[Element]) ([]Element, error) {
 	var drain []Element
-	for element := range Channel(s) {
+	var err error
+	for element := range Channel(s, &err) {
 		drain = append(drain, element)
 	}
-	return drain
+	return drain, err
 }
 
-// Channel represents a stream as a channel
-func Channel[Element any](str Stream[Element]) <-chan Element {
-	if s, ok := str.(*lstream[Element]); ok {
-		return s.c
-	}
-
+// Channel returns a channel representing the underlying stream.
+// The channel will receive values as long as there are values.
+// The channel must be drained by the caller.
+//
+// If an error occurs, writes the error to errDst before closing the channel
+func Channel[Element any](str Stream[Element], errDst *error) <-chan Element {
 	c := make(chan Element)
 	go func() {
 		defer close(c)
 		for {
-			elem, ok := str.Next()
-			if !ok {
+			elem, ok, err := str.Next()
+			if !ok || err != nil {
+				*errDst = err
 				break
 			}
 			c <- elem
@@ -68,13 +83,19 @@ func Channel[Element any](str Stream[Element]) <-chan Element {
 
 type lstream[Element any] struct {
 	c chan Element
+
+	// any error that occured; should only be read once c is closed
+	err error
 }
 
 func (*lstream[Element]) isStream() {}
 
-func (l *lstream[Element]) Next() (Element, bool) {
+func (l *lstream[Element]) Next() (Element, bool, error) {
 	element, ok := <-l.c
-	return element, ok
+	if !ok {
+		return element, false, l.err
+	}
+	return element, ok, nil
 }
 
 type cstream[Element any] struct {
@@ -84,7 +105,7 @@ type cstream[Element any] struct {
 
 func (*cstream[Element]) isStream() {}
 
-func (c *cstream[Element]) Next() (element Element, ok bool) {
+func (c *cstream[Element]) Next() (element Element, ok bool, err error) {
 	// no more elements left, so we can clear everything!
 	if len(c.elements) <= c.index {
 		c.elements = nil
@@ -94,5 +115,5 @@ func (c *cstream[Element]) Next() (element Element, ok bool) {
 
 	element = c.elements[c.index]
 	c.index++
-	return element, true
+	return element, true, nil
 }

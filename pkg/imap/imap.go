@@ -12,10 +12,11 @@ type IMap[Label comparable] struct {
 }
 
 // Reset resets this IMap to be empty.
-func (mp *IMap[Label]) Reset() {
+func (mp *IMap[Label]) Reset() error {
 	mp.forward = make(MapStorage[Label, ID])
 	mp.reverse = make(MapStorage[ID, Label])
 	mp.id.Reset()
+	return nil
 }
 
 // Next returns a new unused id within this map
@@ -27,15 +28,18 @@ func (mp *IMap[Label]) Next() ID {
 // Add inserts label into this IMap and returns the corresponding ID.
 //
 // When label (or any object marked identical to ID) already exists in this IMap, returns the corresponding ID.
-func (mp *IMap[Label]) Add(label Label) (id ID) {
-	id, _ = mp.AddNew(label)
+func (mp *IMap[Label]) Add(label Label) (id ID, err error) {
+	id, _, err = mp.AddNew(label)
 	return
 }
 
 // AddNew behaves like Add, except additionally returns a boolean indiciating if the returned id existed previously.
-func (mp *IMap[Label]) AddNew(label Label) (id ID, old bool) {
+func (mp *IMap[Label]) AddNew(label Label) (id ID, old bool, err error) {
 	// fetch the mapping (if any)
-	id, old = mp.forward.Get(label)
+	id, old, err = mp.forward.Get(label)
+	if err != nil {
+		return
+	}
 	if old {
 		return
 	}
@@ -59,10 +63,16 @@ func (mp *IMap[Label]) AddNew(label Label) (id ID, old bool) {
 //
 // NOTE(twiesing): Each call to MarkIdentical potentially requires iterating over all calls that were previously added to this map.
 // This is a potentially slow operation and should be avoided.
-func (mp *IMap[Label]) MarkIdentical(new, old Label) (canonical ID) {
+func (mp *IMap[Label]) MarkIdentical(new, old Label) (canonical ID, err error) {
 	// left and right are the same object
-	canonical = mp.Add(new)
-	alias, aliasIsOld := mp.AddNew(old)
+	canonical, err = mp.Add(new)
+	if err != nil {
+		return canonical, err
+	}
+	alias, aliasIsOld, err := mp.AddNew(old)
+	if err != nil {
+		return canonical, err
+	}
 
 	// the canonical
 	if canonical == alias {
@@ -71,24 +81,29 @@ func (mp *IMap[Label]) MarkIdentical(new, old Label) (canonical ID) {
 
 	// optimization: if the alias was new
 	if !aliasIsOld {
-		mp.forward.Set(old, canonical)
-		mp.reverse.Delete(alias)
+		if err := mp.forward.Set(old, canonical); err != nil {
+			return canonical, err
+		}
+		if err := mp.reverse.Delete(alias); err != nil {
+			return canonical, err
+		}
 		return
 	}
 
 	// iterate over all the items
-	mp.forward.Iterate(func(label Label, id ID) {
+	err = mp.forward.Iterate(func(label Label, id ID) error {
 		if id != alias || label == new {
-			return
+			return nil
 		}
 
-		mp.forward.Set(label, canonical)
+		if err := mp.forward.Set(label, canonical); err != nil {
+			return err
+		}
 
 		// delete the reverse mapping of the alias
 		// because it cannot ever be returned
-		mp.reverse.Delete(id)
+		return mp.reverse.Delete(id)
 	})
-
 	return
 }
 
@@ -96,13 +111,13 @@ func (mp *IMap[Label]) MarkIdentical(new, old Label) (canonical ID) {
 //
 // If the label is not contained in this map, the zero ID is returned.
 // The zero ID is never returned for a valid id.
-func (mp *IMap[Label]) Forward(label Label) ID {
+func (mp *IMap[Label]) Forward(label Label) (ID, error) {
 	return mp.forward.GetZero(label)
 }
 
 // Reverse returns the label corresponding to the given id.
 // When id is not contained in this map, the zero value of the label type is contained.
-func (mp *IMap[Label]) Reverse(id ID) Label {
+func (mp *IMap[Label]) Reverse(id ID) (Label, error) {
 	return mp.reverse.GetZero(id)
 }
 
@@ -111,10 +126,15 @@ func (mp *IMap[Label]) Reverse(id ID) Label {
 // Concretely a pair (L1, L2) is written to storage iff
 //
 //	mp.Reverse(mp.Forward(L1)) == L2 && L1 != L2
-func (mp *IMap[Label]) IdentityMap(storage Storage[Label, Label]) {
-	mp.forward.Iterate(func(label Label, id ID) {
-		if value := mp.reverse.GetZero(id); value != label {
-			storage.Set(label, value)
+func (mp *IMap[Label]) IdentityMap(storage Storage[Label, Label]) error {
+	return mp.forward.Iterate(func(label Label, id ID) error {
+		value, err := mp.reverse.GetZero(id)
+		if err != nil {
+			return err
 		}
+		if value != label {
+			return storage.Set(label, value)
+		}
+		return nil
 	})
 }

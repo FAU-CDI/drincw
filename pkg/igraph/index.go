@@ -33,21 +33,23 @@ type IGraph[Label comparable, Datum any] struct {
 
 // TripleCount returns the total number of (distinct) triples in this graph.
 // Triples which have been identified will only count once.
-func (index *IGraph[Label, Datum]) TripleCount() (count int64) {
+func (index *IGraph[Label, Datum]) TripleCount() (count int64, err error) {
 	if index == nil {
-		return 0
+		return 0, nil
 	}
 	return index.psoIndex.Count()
 }
 
 // Reset resets this index and prepares all internal structures for use.
-func (index *IGraph[Label, Datum]) Reset() {
+func (index *IGraph[Label, Datum]) Reset() error {
 	index.labels.Reset()
 
 	index.data = make(imap.MapStorage[imap.ID, Datum])
 	index.inverses = make(imap.MapStorage[imap.ID, imap.ID])
 	index.psoIndex = make(ThreeHash)
 	index.posIndex = make(ThreeHash)
+
+	return nil
 }
 
 // AddTriple inserts a subject-predicate-object triple into the index.
@@ -55,15 +57,32 @@ func (index *IGraph[Label, Datum]) Reset() {
 //
 // Reset must have been called, or this function may panic.
 // After all Add operations have finished, Finalize must be called.
-func (index *IGraph[Label, Datum]) AddTriple(subject, predicate, object Label) {
-	s := index.labels.Add(subject)
-	p := index.labels.Add(predicate)
-	o := index.labels.Add(object)
+func (index *IGraph[Label, Datum]) AddTriple(subject, predicate, object Label) error {
+	s, err := index.labels.Add(subject)
+	if err != nil {
+		return err
+	}
+	p, err := index.labels.Add(predicate)
+	if err != nil {
+		return err
+	}
+	o, err := index.labels.Add(object)
+	if err != nil {
+		return err
+	}
 
 	index.insert(s, p, o)
-	if i, ok := index.inverses.Get(p); ok {
-		index.insert(o, i, s)
+
+	i, ok, err := index.inverses.Get(p)
+	if err != nil {
+		return err
 	}
+	if ok {
+		if err := index.insert(o, i, s); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // AddData inserts a subject-predicate-data triple into the index.
@@ -71,22 +90,41 @@ func (index *IGraph[Label, Datum]) AddTriple(subject, predicate, object Label) {
 //
 // Reset must have been called, or this function may panic.
 // After all Add operations have finished, Finalize must be called.
-func (index *IGraph[Label, Datum]) AddData(subject, predicate Label, object Datum) {
+func (index *IGraph[Label, Datum]) AddData(subject, predicate Label, object Datum) error {
 	o := index.labels.Next()
-	index.data.Set(o, object)
-	index.insert(index.labels.Add(subject), index.labels.Add(predicate), o)
+	if err := index.data.Set(o, object); err != nil {
+		return err
+	}
+
+	s, err := index.labels.Add(subject)
+	if err != nil {
+		return err
+	}
+
+	p, err := index.labels.Add(predicate)
+	if err != nil {
+		return err
+	}
+
+	return index.insert(s, p, o)
 }
 
 // insert inserts the provided (subject, predicate, object) ids into the graph
-func (index *IGraph[Label, Datum]) insert(subject, predicate, object imap.ID) {
-	index.psoIndex.Add(predicate, subject, object)
-	index.posIndex.Add(predicate, object, subject)
+func (index *IGraph[Label, Datum]) insert(subject, predicate, object imap.ID) error {
+	if err := index.psoIndex.Add(predicate, subject, object); err != nil {
+		return err
+	}
+	if err := index.posIndex.Add(predicate, object, subject); err != nil {
+		return err
+	}
+	return nil
 }
 
 // MarkIdentical identifies the left and right subject and right labels.
 // See [imap.IMap.Identifity].
-func (index *IGraph[Label, Datum]) MarkIdentical(left, right Label) {
-	index.labels.MarkIdentical(left, right)
+func (index *IGraph[Label, Datum]) MarkIdentical(left, right Label) error {
+	_, err := index.labels.MarkIdentical(left, right)
+	return err
 }
 
 // MarkInverse marks the left and right Labels as inverse properties of each other.
@@ -96,22 +134,35 @@ func (index *IGraph[Label, Datum]) MarkIdentical(left, right Label) {
 // A label may not be it's own inverse.
 //
 // This means that each call to AddTriple(s, left, o) will also result in a call to AddTriple(o, right, s).
-func (index *IGraph[Label, Datum]) MarkInverse(left, right Label) {
-	l := index.labels.Add(left)
-	r := index.labels.Add(right)
+func (index *IGraph[Label, Datum]) MarkInverse(left, right Label) error {
+	l, err := index.labels.Add(left)
+	if err != nil {
+		return err
+	}
+
+	r, err := index.labels.Add(right)
+	if err != nil {
+		return err
+	}
+
 	if l == r {
-		return
+		return nil
 	}
 
 	// store the inverses of the left and right
-	index.inverses.Set(l, r)
-	index.inverses.Set(r, l)
+	if err := index.inverses.Set(l, r); err != nil {
+		return err
+	}
+	if err := index.inverses.Set(r, l); err != nil {
+		return err
+	}
+	return nil
 }
 
 // IdentityMap writes all Labels for which has a semantically equivalent label.
 // See [imap.Storage.IdentityMap].
-func (index *IGraph[Label, Datum]) IdentityMap(storage imap.Storage[Label, Label]) {
-	index.labels.IdentityMap(storage)
+func (index *IGraph[Label, Datum]) IdentityMap(storage imap.Storage[Label, Label]) error {
+	return index.labels.IdentityMap(storage)
 }
 
 // Finalize finalizes any adding operations into this graph.
@@ -119,7 +170,12 @@ func (index *IGraph[Label, Datum]) IdentityMap(storage imap.Storage[Label, Label
 // Finalize must be called before any query is performed,
 // but after any calls to the Add* methods.
 // Calling finalize multiple times is valid.
-func (index *IGraph[Label, Datum]) Finalize() {
-	index.posIndex.Finalize()
-	index.psoIndex.Finalize()
+func (index *IGraph[Label, Datum]) Finalize() error {
+	if err := index.posIndex.Finalize(); err != nil {
+		return err
+	}
+	if err := index.psoIndex.Finalize(); err != nil {
+		return err
+	}
+	return nil
 }

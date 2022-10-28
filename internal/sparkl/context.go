@@ -83,7 +83,10 @@ func (context *Context) Store(bundle *pathbuilder.Bundle) BundleStorage {
 
 		// stage 1: load the entities themselves
 		for path := range extractPath(bundle.Group, context.Index) {
-			nodes := path.Nodes()
+			nodes, err := path.Nodes()
+			if err != nil {
+				log.Fatal(err)
+			}
 			storage.Add(nodes[entityURIIndex], nodes)
 		}
 
@@ -94,8 +97,14 @@ func (context *Context) Store(bundle *pathbuilder.Bundle) BundleStorage {
 				defer context.extractWait.Done()
 
 				for path := range extractPath(field.Path, context.Index) {
-					nodes := path.Nodes()
-					datum, hasDatum := path.Datum()
+					nodes, err := path.Nodes()
+					if err != nil {
+						log.Fatal(err)
+					}
+					datum, hasDatum, err := path.Datum()
+					if err != nil {
+						log.Fatal(err)
+					}
 					if !hasDatum && len(nodes) > 0 {
 						datum = nodes[len(nodes)-1]
 					}
@@ -161,22 +170,38 @@ func extractPath(path pathbuilder.Path, index *Index) <-chan Path {
 		debugID = atomic.AddInt64(&debugLogID, 1)
 	}
 
-	set := index.PathsStarting(wisski.Type, URI(uris[0]))
+	set, err := index.PathsStarting(wisski.Type, URI(uris[0]))
+	if err != nil {
+		log.Fatal(err)
+	}
 	if debugLogAllPaths {
-		log.Println(debugID, uris[0], set.Size())
+		size, err := set.Size()
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.Println(debugID, uris[0], size)
 	}
 
-	for i := 1; i < len(uris) && set.Size() > 0; i++ {
+	for i := 1; i < len(uris); i++ {
 		if i%2 == 0 {
-			set.Ending(wisski.Type, URI(uris[i]))
+			if err := set.Ending(wisski.Type, URI(uris[i])); err != nil {
+				log.Fatal(err)
+			}
 		} else {
-			set.Connected(URI(uris[i]))
+			if err := set.Connected(URI(uris[i])); err != nil {
+				log.Fatal(err)
+			}
 		}
 
 		if debugLogAllPaths {
-			log.Println(debugID, uris[i], set.Size())
+			size, err := set.Size()
+			if err != nil {
+				log.Fatal(err)
+			}
+			log.Println(debugID, uris[i], size)
 		}
 	}
 
-	return set.Paths()
+	var nowhere error
+	return set.Paths(&nowhere)
 }

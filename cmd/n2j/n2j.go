@@ -53,7 +53,11 @@ func main() {
 		if err != nil {
 			log.Fatalf("Unable to build index: %s", err)
 		}
-		log.Printf("built index, size %d, took %s", index.TripleCount(), indexT)
+		count, err := index.TripleCount()
+		if err != nil {
+			log.Fatalf("Unable to get triple count: %s", err)
+		}
+		log.Printf("built index, size %d, took %s", count, indexT)
 	}
 
 	// generate bundles

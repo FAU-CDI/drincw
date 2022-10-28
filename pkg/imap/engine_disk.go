@@ -2,16 +2,78 @@ package imap
 
 import (
 	"encoding/json"
+	"errors"
+	"io/fs"
+	"os"
+	"path/filepath"
 
 	"github.com/akrylysov/pogreb"
 )
 
-// MakeDiskStorage creates a new disk-based storage stored at path.
-func MakeDiskStorage[Key comparable, Value any](path string) (*DiskStorage[Key, Value], error) {
-	db, err := pogreb.Open(path, &pogreb.Options{})
+// DiskEngine represents an engine that persistently stores data on disk.
+type DiskEngine[Label comparable] struct {
+	Path    string
+	Options pogreb.Options
+
+	MarshalLabel   func(label Label) ([]byte, error)
+	UnmarshalLabel func(dest *Label, src []byte) error
+}
+
+func (de DiskEngine[Label]) Forward() (Storage[Label, ID], error) {
+	forward := filepath.Join(de.Path, "imap_forward.pogrep")
+
+	ds, err := NewDiskStorage[Label, ID](forward, de.Options)
 	if err != nil {
 		return nil, err
 	}
+
+	if de.MarshalLabel != nil && de.UnmarshalLabel != nil {
+		ds.MarshalKey = de.MarshalLabel
+		ds.UnmarshalKey = de.UnmarshalLabel
+	}
+
+	ds.MarshalValue = MarshalID
+	ds.UnmarshalValue = UnmarshalID
+
+	return ds, nil
+}
+
+func (de DiskEngine[Label]) Reverse() (Storage[ID, Label], error) {
+	reverse := filepath.Join(de.Path, "imap_reverse.pogrep")
+
+	ds, err := NewDiskStorage[ID, Label](reverse, de.Options)
+	if err != nil {
+		return nil, err
+	}
+
+	ds.MarshalKey = MarshalID
+	ds.UnmarshalKey = UnmarshalID
+
+	if de.MarshalLabel != nil && de.UnmarshalLabel != nil {
+		ds.MarshalValue = de.MarshalLabel
+		ds.UnmarshalValue = de.UnmarshalLabel
+	}
+
+	return ds, nil
+}
+
+// NewDiskStorage creates a new disk-based storage with the given options.
+// If the filepath already exists, it is deleted.
+func NewDiskStorage[Key comparable, Value any](path string, options pogreb.Options) (*DiskStorage[Key, Value], error) {
+
+	// If the path already exists, cause a panic
+	_, err := os.Stat(path)
+	if errors.Is(err, fs.ErrExist) {
+		if err := os.RemoveAll(path); err != nil {
+			return nil, err
+		}
+	}
+
+	db, err := pogreb.Open(path, &options)
+	if err != nil {
+		return nil, err
+	}
+
 	storage := &DiskStorage[Key, Value]{
 		DB: db,
 
@@ -141,4 +203,14 @@ func (ds *DiskStorage[Key, Value]) Iterate(f func(Key, Value) error) error {
 		}
 	}
 	return nil
+}
+
+func (ds *DiskStorage[Key, Value]) Close() error {
+	var err error
+
+	if ds.DB != nil {
+		err = ds.DB.Close()
+	}
+	ds.DB = nil
+	return err
 }

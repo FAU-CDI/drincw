@@ -1,22 +1,10 @@
 package igraph
 
 import (
-	"io"
-
 	"github.com/tkw1536/FAU-CDI/drincw/pkg/imap"
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
 )
-
-// Engine represents an object that creates storages for an IGraph
-type Engine[Label comparable, Datum any] interface {
-	imap.Engine[Label]
-
-	Data() (imap.Storage[imap.ID, Datum], error)
-	Inverses() (imap.Storage[imap.ID, imap.ID], error)
-	PSOIndex() (ThreeStorage, error)
-	POSIndex() (ThreeStorage, error)
-}
 
 // MemoryEngine represents an engine that stores everything in memory
 type MemoryEngine[Label comparable, Datum any] struct {
@@ -30,31 +18,13 @@ func (MemoryEngine[Label, Datum]) Inverses() (imap.Storage[imap.ID, imap.ID], er
 	return make(imap.MemoryStorage[imap.ID, imap.ID]), nil
 }
 func (MemoryEngine[Label, Datum]) PSOIndex() (ThreeStorage, error) {
-	return make(ThreeHash), nil
+	th := make(ThreeHash)
+	return &th, nil // TODO: Need a disk-based variant
 
 }
 func (MemoryEngine[Label, Datum]) POSIndex() (ThreeStorage, error) {
-	return make(ThreeHash), nil
-}
-
-type ThreeStorage interface {
-	io.Closer
-
-	// Add adds a new mapping for the given ids
-	Add(a, b, c imap.ID) error
-
-	// Count counts the overall number of entries in the index
-	Count() (int64, error)
-
-	// Finalize informs the storage that no more mappings will be made
-	Finalize() error
-
-	// Fetch iterates over all triples (a, b, c) in insertion order on c.
-	// If an error occurs, iteration stops and is returned to the caller
-	Fetch(a, b imap.ID, f func(c imap.ID) error) error
-
-	// Has checks if the given mapping exists
-	Has(a, b, c imap.ID) (bool, error)
+	th := make(ThreeHash)
+	return &th, nil // TODO: Need a disk-based variant
 }
 
 // ThreeHash implements ThreeStorage in memory
@@ -124,6 +94,7 @@ func (tlm ThreeHash) Has(a, b, c imap.ID) (bool, error) {
 	return ok, nil
 }
 
-func (tlm ThreeHash) Close() error {
+func (tlm *ThreeHash) Close() error {
+	*tlm = nil
 	return nil
 }

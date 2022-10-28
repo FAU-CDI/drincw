@@ -51,12 +51,18 @@ func main() {
 	sparkl.ParsePredicateString(&flags.Predicates.SameAs, sameAs)
 	sparkl.ParsePredicateString(&flags.Predicates.InverseOf, inverseOf)
 
+	// make an engine
+	engine := sparkl.NewEngine(cache)
+	if cache != "" {
+		log.Printf("writing cache to %s", cache)
+	}
+
 	// build an index
 	var index *sparkl.Index
 	var indexPerf perf.Diff
 	{
 		start := perf.Now()
-		index, err = sparkl.LoadIndex(nArgs[1], flags.Predicates, &sparkl.MemoryEngine{})
+		index, err = sparkl.LoadIndex(nArgs[1], flags.Predicates, engine)
 		indexPerf = perf.Since(start)
 
 		if err != nil {
@@ -129,6 +135,8 @@ var flags viewer.RenderFlags
 var sameAs string = string(wisski.SameAs)
 var inverseOf string = string(wisski.InverseOf)
 
+var cache string
+
 func init() {
 	var legalFlag bool = false
 	flag.BoolVar(&legalFlag, "legal", legalFlag, "Display legal notices and exit")
@@ -145,6 +153,7 @@ func init() {
 	flag.StringVar(&flags.PublicURL, "public", flags.PublicURL, "Public URL of the wisski the data comes from")
 	flag.StringVar(&sameAs, "sameas", sameAs, "SameAs Properties")
 	flag.StringVar(&inverseOf, "inverseof", inverseOf, "InverseOf Properties")
+	flag.StringVar(&cache, "cache", cache, "During indexing, cache data in the given directory as opposed to memory")
 
 	flag.Parse()
 	nArgs = flag.Args()

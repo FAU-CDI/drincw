@@ -18,6 +18,7 @@ type (
 
 	Engine       = igraph.Engine[URI, any]
 	MemoryEngine = igraph.MemoryEngine[URI, any]
+	DiskEngine   = igraph.DiskEngine[URI, any]
 
 	Index = igraph.IGraph[URI, any] // Index represents an index of a RDF Graph
 	Paths = igraph.Paths[URI, any]  // Set of Paths inside the index
@@ -42,4 +43,16 @@ func ParsePredicateString(target *[]URI, value string) {
 	for i, value := range values {
 		(*target)[i] = URI(value)
 	}
+}
+
+// NewEngine creates an engine that stores data at the specified path.
+// When path is the empty string, stores data in memory.
+func NewEngine(path string) Engine {
+	if path == "" {
+		return MemoryEngine{}
+	}
+
+	var de DiskEngine
+	de.Path = path
+	return de
 }

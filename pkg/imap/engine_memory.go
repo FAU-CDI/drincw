@@ -4,11 +4,13 @@ package imap
 type MemoryEngine[Label comparable] struct{}
 
 func (MemoryEngine[Label]) Forward() (Storage[Label, ID], error) {
-	return make(MemoryStorage[Label, ID]), nil
+	ms := make(MemoryStorage[Label, ID])
+	return &ms, nil
 }
 
 func (MemoryEngine[Label]) Reverse() (Storage[ID, Label], error) {
-	return make(MemoryStorage[ID, Label]), nil
+	ms := make(MemoryStorage[ID, Label])
+	return &ms, nil
 }
 
 // MemoryStorage implements Storage as an in-memory map
@@ -53,9 +55,7 @@ func (ims MemoryStorage[Key, Value]) Iterate(f func(Key, Value) error) error {
 }
 
 // Close closes this MapStorage, deleting all values
-func (ims MemoryStorage[Key, Value]) Close() error {
-	for key := range ims {
-		delete(ims, key)
-	}
+func (ims *MemoryStorage[Key, Value]) Close() error {
+	*ims = nil
 	return nil
 }

@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"runtime/debug"
 
 	"github.com/tkw1536/FAU-CDI/drincw"
 	"github.com/tkw1536/FAU-CDI/drincw/internal/sparkl"
@@ -97,14 +98,15 @@ func main() {
 		start := perf.Now()
 
 		identities := make(imap.MemoryStorage[sparkl.URI, sparkl.URI])
-		index.IdentityMap(identities)
+		index.IdentityMap(&identities)
 		cache = sparkl.NewCache(bundles, identities)
 
 		cachePerf = perf.Since(start)
 		log.Printf("built cache, took %s", cachePerf)
 	}
 
-	index.Close() // We close the index early, because it's no longer needed
+	index.Close()        // We close the index early, because it's no longer needed
+	debug.FreeOSMemory() // force returning memory to the os
 
 	// and finally make a viewer handler
 	var handler viewer.Viewer

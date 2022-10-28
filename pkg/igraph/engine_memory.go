@@ -12,10 +12,12 @@ type MemoryEngine[Label comparable, Datum any] struct {
 }
 
 func (MemoryEngine[Label, Datum]) Data() (imap.Storage[imap.ID, Datum], error) {
-	return make(imap.MemoryStorage[imap.ID, Datum]), nil
+	ms := make(imap.MemoryStorage[imap.ID, Datum])
+	return &ms, nil
 }
 func (MemoryEngine[Label, Datum]) Inverses() (imap.Storage[imap.ID, imap.ID], error) {
-	return make(imap.MemoryStorage[imap.ID, imap.ID]), nil
+	ms := make(imap.MemoryStorage[imap.ID, imap.ID])
+	return &ms, nil
 }
 func (MemoryEngine[Label, Datum]) PSOIndex() (ThreeStorage, error) {
 	th := make(ThreeHash)

@@ -9,12 +9,12 @@ import (
 
 // NewBundleSlice create a new BundleSlice storage.
 // It can be used as the makeStorage argument to [ExtractBundles].
-func NewBundleSlice(bundle *pathbuilder.Bundle) BundleStorage {
+func NewBundleSlice(bundle *pathbuilder.Bundle) (BundleStorage, error) {
 	return &BundleSlice{
 		bundle: bundle,
 		lookup: make(map[wisski.URI]int),
 		adding: make(chan struct{}),
-	}
+	}, nil
 }
 
 // BundleSlice implements an in-memory BundleStorage
@@ -31,7 +31,7 @@ type BundleSlice struct {
 }
 
 // Add adds an entity to this BundleSlice
-func (bs *BundleSlice) Add(uri wisski.URI, path []wisski.URI) {
+func (bs *BundleSlice) Add(uri wisski.URI, path []wisski.URI) error {
 	bs.lookup[uri] = len(bs.Entities)
 	entity := wisski.Entity{
 		URI:      uri,
@@ -49,36 +49,45 @@ func (bs *BundleSlice) Add(uri wisski.URI, path []wisski.URI) {
 	}
 
 	bs.Entities = append(bs.Entities, entity)
+	return nil
 }
 
 // AddFieldValue
-func (bs *BundleSlice) AddFieldValue(uri wisski.URI, field string, value any, path []wisski.URI) {
+func (bs *BundleSlice) AddFieldValue(uri wisski.URI, field string, value any, path []wisski.URI) error {
 	bs.setFieldLock.Lock()
 	defer bs.setFieldLock.Unlock()
 
 	id, ok := bs.lookup[uri]
 	if !ok {
-		return
+		return ErrNoEntity
 	}
 
 	bs.Entities[id].Fields[field] = append(bs.Entities[id].Fields[field], wisski.FieldValue{
 		Value: value,
 		Path:  path,
 	})
+
+	return nil
 }
 
-func (bs *BundleSlice) AddChild(parent wisski.URI, bundle string, child wisski.URI, storage BundleStorage) {
+func (bs *BundleSlice) AddChild(parent wisski.URI, bundle string, child wisski.URI, storage BundleStorage) error {
 	bs.addChildLock.Lock()
 	defer bs.addChildLock.Unlock()
 
 	id, ok := bs.lookup[parent]
 	if !ok {
-		return
+		return ErrNoEntity
 	}
-	bs.Entities[id].Children[bundle] = append(bs.Entities[id].Children[bundle], storage.Load(child))
+
+	entity, err := storage.Load(child)
+	if err != nil {
+		return err
+	}
+	bs.Entities[id].Children[bundle] = append(bs.Entities[id].Children[bundle], entity)
+	return nil
 }
 
-func (bs *BundleSlice) Get(parentPathIndex int) <-chan URIWithParent {
+func (bs *BundleSlice) Get(parentPathIndex int, errDst *error) <-chan URIWithParent {
 	c := make(chan URIWithParent)
 	go func() {
 		defer close(c)
@@ -96,10 +105,15 @@ func (bs *BundleSlice) Get(parentPathIndex int) <-chan URIWithParent {
 	return c
 }
 
-func (bs *BundleSlice) Load(uri wisski.URI) wisski.Entity {
-	return bs.Entities[bs.lookup[uri]]
+func (bs *BundleSlice) Load(uri wisski.URI) (entity wisski.Entity, err error) {
+	index, ok := bs.lookup[uri]
+	if !ok {
+		return entity, ErrNoEntity
+	}
+	return bs.Entities[index], nil
 }
 
-func (bs *BundleSlice) Close() {
+func (bs *BundleSlice) Close() error {
 	bs.lookup = nil
+	return nil
 }

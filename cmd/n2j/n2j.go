@@ -64,7 +64,10 @@ func main() {
 	var bundles map[string][]sparkl.Entity
 	{
 		start := perf.Now()
-		bundles = sparkl.LoadPathbuilder(&pb, index)
+		bundles, err = sparkl.LoadPathbuilder(&pb, index)
+		if err != nil {
+			log.Fatalf("Unable to load pathbuilder: %s", err)
+		}
 		bundleT := perf.Since(start)
 		log.Printf("extracted bundles, took %s", bundleT)
 	}

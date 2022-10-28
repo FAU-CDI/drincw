@@ -75,7 +75,10 @@ func main() {
 	var bundlesPerf perf.Diff
 	{
 		start := perf.Now()
-		bundles = sparkl.LoadPathbuilder(&pb, index)
+		bundles, err = sparkl.LoadPathbuilder(&pb, index)
+		if err != nil {
+			log.Fatalf("Unable to load pathbuilder: %s", err)
+		}
 		bundlesPerf = perf.Since(start)
 		log.Printf("extracted bundles, took %s", bundlesPerf)
 	}

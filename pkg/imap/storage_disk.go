@@ -2,16 +2,15 @@ package imap
 
 import (
 	"encoding/json"
-	"log"
 
 	"github.com/akrylysov/pogreb"
 )
 
 // MakeDiskStorage creates a new disk-based storage stored at path.
-func MakeDiskStorage[Key comparable, Value any](path string) *DiskStorage[Key, Value] {
+func MakeDiskStorage[Key comparable, Value any](path string) (*DiskStorage[Key, Value], error) {
 	db, err := pogreb.Open(path, &pogreb.Options{})
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	storage := &DiskStorage[Key, Value]{
 		DB: db,
@@ -29,7 +28,7 @@ func MakeDiskStorage[Key comparable, Value any](path string) *DiskStorage[Key, V
 			return json.Unmarshal(src, dest)
 		},
 	}
-	return storage
+	return storage, nil
 }
 
 // DiskStorage implements Storage as an in-memory storage
@@ -42,81 +41,83 @@ type DiskStorage[Key comparable, Value any] struct {
 	UnmarshalValue func(dest *Value, src []byte) error
 }
 
-func (ds *DiskStorage[Key, Value]) Set(key Key, value Value) {
+func (ds *DiskStorage[Key, Value]) Set(key Key, value Value) error {
 	keyB, err := ds.MarshalKey(key)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	valueB, err := ds.MarshalValue(value)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
-	ds.DB.Put(keyB, valueB)
+	return ds.DB.Put(keyB, valueB)
 }
 
 // Get returns the given value if it exists
-func (ds *DiskStorage[Key, Value]) Get(key Key) (v Value, b bool) {
+func (ds *DiskStorage[Key, Value]) Get(key Key) (v Value, b bool, err error) {
 	keyB, err := ds.MarshalKey(key)
 	if err != nil {
-		log.Fatal(err)
+		return v, b, err
 	}
 
 	// check if we have the key
 	ok, err := ds.DB.Has(keyB)
 	if err != nil {
-		log.Fatal(err)
+		return v, b, err
 	}
 	if !ok {
-		return v, false
+		return v, false, nil
 	}
 
 	valueB, err := ds.DB.Get(keyB)
 	if err != nil {
-		log.Fatal(err)
+		return v, b, err
 	}
 
 	if err := ds.UnmarshalValue(&v, valueB); err != nil {
-		log.Fatal(err)
+		return v, b, err
 	}
 
-	return v, true
+	return v, true, nil
 }
 
 // GetZero returns the value associated with Key, or the zero value otherwise.
-func (ds *DiskStorage[Key, Value]) GetZero(key Key) Value {
-	value, _ := ds.Get(key)
-	return value
+func (ds *DiskStorage[Key, Value]) GetZero(key Key) (Value, error) {
+	value, _, err := ds.Get(key)
+	return value, err
 }
 
-func (ds *DiskStorage[Key, Value]) Has(key Key) bool {
+func (ds *DiskStorage[Key, Value]) Has(key Key) (bool, error) {
 	keyB, err := ds.MarshalKey(key)
 	if err != nil {
-		log.Fatal(err)
+		return false, err
 	}
 
 	ok, err := ds.DB.Has(keyB)
 	if err != nil {
-		log.Fatal(err)
+		return false, err
 	}
-	return ok
+	return ok, nil
 }
 
 // Delete deletes the given key from this storage
-func (ds *DiskStorage[Key, Value]) Delete(key Key) {
+func (ds *DiskStorage[Key, Value]) Delete(key Key) error {
 	keyB, err := ds.MarshalKey(key)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	if err := ds.DB.Delete(keyB); err != nil {
-		log.Fatal(err)
+		return err
 	}
+
+	return nil
 }
 
 // Iterate calls f for all entries in Storage.
 // there is no guarantee on order.
-func (ds *DiskStorage[Key, Value]) Iterate(f func(Key, Value)) {
+func (ds *DiskStorage[Key, Value]) Iterate(f func(Key, Value) error) error {
 	it := ds.DB.Items()
 	for {
 		keyB, valueB, err := it.Next()
@@ -124,17 +125,20 @@ func (ds *DiskStorage[Key, Value]) Iterate(f func(Key, Value)) {
 			break
 		}
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 
 		var key Key
 		if err := ds.UnmarshalKey(&key, keyB); err != nil {
-			log.Fatal(err)
+			return err
 		}
 		var value Value
 		if err := ds.UnmarshalValue(&value, valueB); err != nil {
-			log.Fatal(err)
+			return err
 		}
-		f(key, value)
+		if err := f(key, value); err != nil {
+			return err
+		}
 	}
+	return nil
 }

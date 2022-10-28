@@ -8,11 +8,18 @@ import (
 )
 
 // LoadPathbuilder loads all paths from the given pathbuilder
-func LoadPathbuilder(pb *pathbuilder.Pathbuilder, index *Index) map[string][]Entity {
+func LoadPathbuilder(pb *pathbuilder.Pathbuilder, index *Index) (map[string][]Entity, error) {
 	bundles := pb.Bundles()
-	storages := StoreBundles(bundles, index, storages.NewBundleSlice)
+
+	storages, err := StoreBundles(bundles, index, storages.NewBundleSlice)
+	if err != nil {
+		return nil, err
+	}
 
 	entities := make([][]Entity, len(bundles))
+
+	var errOnce sync.Once
+	var gErr error
 
 	var wg sync.WaitGroup
 	for i := range storages {
@@ -23,8 +30,16 @@ func LoadPathbuilder(pb *pathbuilder.Pathbuilder, index *Index) map[string][]Ent
 			storage := storages[i]
 			defer storage.Close()
 
-			for element := range storage.Get(-1) {
-				entities[i] = append(entities[i], storage.Load(element.URI))
+			var err error
+			for element := range storage.Get(-1, &err) {
+				entity, err := storage.Load(element.URI)
+				if err != nil {
+					errOnce.Do(func() { gErr = err })
+				}
+				entities[i] = append(entities[i], entity)
+			}
+			if err != nil {
+				errOnce.Do(func() { gErr = err })
 			}
 		}(i)
 	}
@@ -34,5 +49,5 @@ func LoadPathbuilder(pb *pathbuilder.Pathbuilder, index *Index) map[string][]Ent
 	for i, instances := range entities {
 		result[bundles[i].Group.ID] = instances
 	}
-	return result
+	return result, gErr
 }

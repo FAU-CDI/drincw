@@ -5,6 +5,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/tkw1536/FAU-CDI/drincw/internal/sparkl/storages"
 	"github.com/tkw1536/FAU-CDI/drincw/internal/wisski"
 	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder"
 )
@@ -13,12 +14,16 @@ import (
 //
 // Storages for any child bundles, and the bundle itself, are created using the makeStorage function.
 // The storage for this bundle is returned.
-func StoreBundle(bundle *pathbuilder.Bundle, index *Index, engine BundleEngine) BundleStorage {
-	return StoreBundles([]*pathbuilder.Bundle{bundle}, index, engine)[0]
+func StoreBundle(bundle *pathbuilder.Bundle, index *Index, engine BundleEngine) (BundleStorage, error) {
+	storages, err := StoreBundles([]*pathbuilder.Bundle{bundle}, index, engine)
+	if err != nil {
+		return nil, err
+	}
+	return storages[0], err
 }
 
 // StoreBundles is like StoreBundle, but takes multiple bundles
-func StoreBundles(bundles []*pathbuilder.Bundle, index *Index, engine BundleEngine) []BundleStorage {
+func StoreBundles(bundles []*pathbuilder.Bundle, index *Index, engine BundleEngine) ([]BundleStorage, error) {
 	context := &Context{
 		Index:  index,
 		Engine: engine,
@@ -29,9 +34,9 @@ func StoreBundles(bundles []*pathbuilder.Bundle, index *Index, engine BundleEngi
 	for i := range storages {
 		storages[i] = context.Store(bundles[i])
 	}
-	context.Wait()
+	err := context.Wait()
 
-	return storages
+	return storages, err
 }
 
 // Context represents a context to extract bundle data from index into storages.
@@ -41,6 +46,9 @@ func StoreBundles(bundles []*pathbuilder.Bundle, index *Index, engine BundleEngi
 type Context struct {
 	Index  *Index
 	Engine BundleEngine
+
+	errOnce sync.Once
+	err     error
 
 	extractWait  sync.WaitGroup // waiting on extracting entities in all bundles
 	childAddWait sync.WaitGroup // loading child entities wait
@@ -57,19 +65,38 @@ func (context *Context) Open() {
 // And then waits for all bundle extracting to finish.
 //
 // Multiple calls to Wait() are invalid.
-func (context *Context) Wait() {
+func (context *Context) Wait() error {
 	context.extractWait.Done()
 	context.extractWait.Wait()
 	context.childAddWait.Wait()
+	return context.err
+}
+
+// reportError stores an error in this context
+// if error is non-nil, returns true.
+func (context *Context) reportError(err error) bool {
+	if err == nil {
+		return false
+	}
+	context.errOnce.Do(func() {
+		context.err = err
+	})
+	return true
 }
 
 // Store creates a new Storage for the given bundle and schedules entities to be loaded.
 // May only be called between calls [Open] and [Wait].
+//
+// Any error that occurs is returned only by Wait.
 func (context *Context) Store(bundle *pathbuilder.Bundle) BundleStorage {
 	context.extractWait.Add(1)
 
 	// create a new context
-	storage := context.Engine(bundle)
+	storage, err := context.Engine(bundle)
+	if context.reportError(err) {
+		context.extractWait.Done()
+		return nil
+	}
 
 	go func() {
 		defer context.extractWait.Done()
@@ -82,12 +109,16 @@ func (context *Context) Store(bundle *pathbuilder.Bundle) BundleStorage {
 		}
 
 		// stage 1: load the entities themselves
-		for path := range extractPath(bundle.Group, context.Index) {
+		var err error
+		for path := range extractPath(bundle.Group, context.Index, &err) {
 			nodes, err := path.Nodes()
-			if err != nil {
-				log.Fatal(err)
+			if context.reportError(err) {
+				return
 			}
 			storage.Add(nodes[entityURIIndex], nodes)
+		}
+		if context.reportError(err) {
+			return
 		}
 
 		// stage 2: fill all the fields
@@ -96,51 +127,64 @@ func (context *Context) Store(bundle *pathbuilder.Bundle) BundleStorage {
 			go func(field pathbuilder.Field) {
 				defer context.extractWait.Done()
 
-				for path := range extractPath(field.Path, context.Index) {
+				var err error
+				for path := range extractPath(field.Path, context.Index, &err) {
 					nodes, err := path.Nodes()
-					if err != nil {
-						log.Fatal(err)
-					}
+					context.reportError(err)
+
 					datum, hasDatum, err := path.Datum()
-					if err != nil {
-						log.Fatal(err)
-					}
+					context.reportError(err)
+
 					if !hasDatum && len(nodes) > 0 {
 						datum = nodes[len(nodes)-1]
 					}
 					uri := nodes[entityURIIndex]
 
-					storage.AddFieldValue(uri, field.ID, datum, nodes)
+					err = storage.AddFieldValue(uri, field.ID, datum, nodes)
+					if err != storages.ErrNoEntity {
+						context.reportError(err)
+					}
 				}
+				context.reportError(err)
 			}(field)
 		}
 
 		// stage 3: read child paths
-		storages := make([]BundleStorage, len(bundle.ChildBundles))
+		cstorages := make([]BundleStorage, len(bundle.ChildBundles))
 		for i, bundle := range bundle.ChildBundles {
-			storages[i] = context.Store(bundle)
+			cstorages[i] = context.Store(bundle)
+			if cstorages[i] == nil {
+				// creating the storage has failed, so we don't need to continue
+				// and we can return immediatly.
+				return
+			}
 		}
 
-		context.childAddWait.Add(len(storages))
+		context.childAddWait.Add(len(cstorages))
+
 		// stage 4: register all the child entities
 		go func() {
 			context.extractWait.Wait()
 
-			for i, cstorage := range storages {
+			for i, cstorage := range cstorages {
 				go func(cstorage BundleStorage, bundle *pathbuilder.Bundle) {
 					defer context.childAddWait.Done()
+					defer cstorage.Close()
 
-					for child := range cstorage.Get(entityURIIndex) {
-						storage.AddChild(child.Parent, bundle.Group.ID, child.URI, cstorage)
+					var err error
+					for child := range cstorage.Get(entityURIIndex, &err) {
+						err := storage.AddChild(child.Parent, bundle.Group.ID, child.URI, cstorage)
+						if err != storages.ErrNoEntity {
+							context.reportError(err)
+						}
 					}
-					cstorage.Close()
+					context.reportError(err)
 				}(cstorage, bundle.ChildBundles[i])
 			}
 		}()
 	}()
 
 	return storage
-
 }
 
 const (
@@ -150,8 +194,22 @@ const (
 
 var debugLogID int64 // id of the current log id
 
-// extractPath extracts values for a single path from the index
-func extractPath(path pathbuilder.Path, index *Index) <-chan Path {
+// extractPath extracts values for a single path from the index.
+// The returned channel is never nil.
+//
+// Any values found along the path are written to the returned channel which is then closed.
+// If an error occurs, it is written to errDst before the channel is closed.
+func extractPath(path pathbuilder.Path, index *Index, errDst *error) (c <-chan Path) {
+	// if we return a nil channel, we actually want to returned a closed channel.
+	// so that the caller can always safely iterate over it.
+	defer func() {
+		if c == nil {
+			out := make(chan Path)
+			close(out)
+			c = out
+		}
+	}()
+
 	// start with the path array
 	uris := append([]string{}, path.PathArray...)
 	if len(uris) == 0 {
@@ -172,12 +230,14 @@ func extractPath(path pathbuilder.Path, index *Index) <-chan Path {
 
 	set, err := index.PathsStarting(wisski.Type, URI(uris[0]))
 	if err != nil {
-		log.Fatal(err)
+		*errDst = err
+		return nil
 	}
 	if debugLogAllPaths {
 		size, err := set.Size()
 		if err != nil {
-			log.Fatal(err)
+			*errDst = err
+			return nil
 		}
 		log.Println(debugID, uris[0], size)
 	}
@@ -185,23 +245,25 @@ func extractPath(path pathbuilder.Path, index *Index) <-chan Path {
 	for i := 1; i < len(uris); i++ {
 		if i%2 == 0 {
 			if err := set.Ending(wisski.Type, URI(uris[i])); err != nil {
-				log.Fatal(err)
+				*errDst = err
+				return nil
 			}
 		} else {
 			if err := set.Connected(URI(uris[i])); err != nil {
-				log.Fatal(err)
+				*errDst = err
+				return nil
 			}
 		}
 
 		if debugLogAllPaths {
 			size, err := set.Size()
 			if err != nil {
-				log.Fatal(err)
+				*errDst = err
+				return nil
 			}
 			log.Println(debugID, uris[i], size)
 		}
 	}
 
-	var nowhere error
-	return set.Paths(&nowhere)
+	return set.Paths(errDst)
 }

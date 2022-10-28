@@ -56,12 +56,13 @@ func main() {
 	var indexPerf perf.Diff
 	{
 		start := perf.Now()
-		index, err = sparkl.LoadIndex(nArgs[1], flags.Predicates)
+		index, err = sparkl.LoadIndex(nArgs[1], flags.Predicates, &sparkl.MemoryEngine{})
 		indexPerf = perf.Since(start)
 
 		if err != nil {
 			log.Fatalf("Unable to build index: %s", err)
 		}
+		defer index.Close()
 
 		count, err := index.TripleCount()
 		if err != nil {
@@ -89,14 +90,15 @@ func main() {
 	{
 		start := perf.Now()
 
-		identities := make(imap.MapStorage[sparkl.URI, sparkl.URI])
+		identities := make(imap.MemoryStorage[sparkl.URI, sparkl.URI])
 		index.IdentityMap(identities)
 		cache = sparkl.NewCache(bundles, identities)
 
 		cachePerf = perf.Since(start)
-		cachePerf.Bytes += indexPerf.Bytes // because the index is now deallocated
 		log.Printf("built cache, took %s", cachePerf)
 	}
+
+	index.Close() // We close the index early, because it's no longer needed
 
 	// and finally make a viewer handler
 	var handler viewer.Viewer

@@ -1,12 +1,45 @@
 package igraph
 
 import (
+	"io"
+
 	"github.com/tkw1536/FAU-CDI/drincw/pkg/imap"
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
 )
 
+// Engine represents an object that creates storages for an IGraph
+type Engine[Label comparable, Datum any] interface {
+	imap.Engine[Label]
+
+	Data() (imap.Storage[imap.ID, Datum], error)
+	Inverses() (imap.Storage[imap.ID, imap.ID], error)
+	PSOIndex() (ThreeStorage, error)
+	POSIndex() (ThreeStorage, error)
+}
+
+// MemoryEngine represents an engine that stores everything in memory
+type MemoryEngine[Label comparable, Datum any] struct {
+	imap.MemoryEngine[Label]
+}
+
+func (MemoryEngine[Label, Datum]) Data() (imap.Storage[imap.ID, Datum], error) {
+	return make(imap.MemoryStorage[imap.ID, Datum]), nil
+}
+func (MemoryEngine[Label, Datum]) Inverses() (imap.Storage[imap.ID, imap.ID], error) {
+	return make(imap.MemoryStorage[imap.ID, imap.ID]), nil
+}
+func (MemoryEngine[Label, Datum]) PSOIndex() (ThreeStorage, error) {
+	return make(ThreeHash), nil
+
+}
+func (MemoryEngine[Label, Datum]) POSIndex() (ThreeStorage, error) {
+	return make(ThreeHash), nil
+}
+
 type ThreeStorage interface {
+	io.Closer
+
 	// Add adds a new mapping for the given ids
 	Add(a, b, c imap.ID) error
 
@@ -89,4 +122,8 @@ func (tlm ThreeHash) Has(a, b, c imap.ID) (bool, error) {
 	}
 	_, ok := three.Data[c]
 	return ok, nil
+}
+
+func (tlm ThreeHash) Close() error {
+	return nil
 }

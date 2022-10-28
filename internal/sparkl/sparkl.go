@@ -16,6 +16,9 @@ type (
 	BundleStorage = storages.BundleStorage
 	BundleEngine  = storages.BundleEngine
 
+	Engine       = igraph.Engine[URI, any]
+	MemoryEngine = igraph.MemoryEngine[URI, any]
+
 	Index = igraph.IGraph[URI, any] // Index represents an index of a RDF Graph
 	Paths = igraph.Paths[URI, any]  // Set of Paths inside the index
 	Path  = igraph.Path[URI, any]   // Singel Path in the index

@@ -6,40 +6,50 @@ import (
 	"os"
 )
 
-// LoadIndex is like MakeIndex, but reads nquads from the given path
-func LoadIndex(path string, predicates Predicates) (*Index, error) {
+// LoadIndex is like MakeIndex, but reads nquads from the given path.
+// When err != nil, the caller must eventually close the index.
+func LoadIndex(path string, predicates Predicates, engine Engine) (*Index, error) {
 	reader, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}
 	defer reader.Close()
 
-	return MakeIndex(&QuadSource{Reader: reader}, predicates)
+	return MakeIndex(&QuadSource{Reader: reader}, predicates, engine)
 }
 
-// MakeIndex creates a new Index from the given source
-func MakeIndex(source Source, predicates Predicates) (*Index, error) {
+// MakeIndex creates a new Index from the given source.
+// When err != nil, the caller must eventually close the index.
+func MakeIndex(source Source, predicates Predicates, engine Engine) (*Index, error) {
 	// create a new index
 	var index Index
-	index.Reset()
+	if err := index.Reset(engine); err != nil {
+		return nil, err
+	}
 
 	// read the "same as" triples first
 	if err := indexSameAs(source, &index, predicates.SameAs); err != nil {
+		index.Close()
 		return nil, err
 	}
 
 	// read the "inverse" triples next
 	if err := indexInverseOf(source, &index, predicates.InverseOf); err != nil {
+		index.Close()
 		return nil, err
 	}
 
 	// and then read all the other data
 	if err := indexData(source, &index); err != nil {
+		index.Close()
 		return nil, err
 	}
 
 	// and finalize the index
-	index.Finalize()
+	if err := index.Finalize(); err != nil {
+		index.Close()
+		return nil, err
+	}
 	return &index, nil
 }
 

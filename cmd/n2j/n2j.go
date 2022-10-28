@@ -47,12 +47,14 @@ func main() {
 	var index *sparkl.Index
 	{
 		start := perf.Now()
-		index, err = sparkl.LoadIndex(nArgs[1], predicates)
+		index, err = sparkl.LoadIndex(nArgs[1], predicates, &sparkl.MemoryEngine{})
 		indexT := perf.Since(start)
 
 		if err != nil {
 			log.Fatalf("Unable to build index: %s", err)
 		}
+		defer index.Close()
+
 		count, err := index.TripleCount()
 		if err != nil {
 			log.Fatalf("Unable to get triple count: %s", err)

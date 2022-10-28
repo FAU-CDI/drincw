@@ -1,5 +1,7 @@
 package imap
 
+import "io"
+
 // IMap holds forward and reverse mapping from Labels to IDs.
 // An IMap may be read concurrently; however any operations which change internal state are not safe to access concurrently.
 //
@@ -11,10 +13,29 @@ type IMap[Label comparable] struct {
 	id ID // last id inserted
 }
 
-// Reset resets this IMap to be empty.
-func (mp *IMap[Label]) Reset() error {
-	mp.forward = make(MapStorage[Label, ID])
-	mp.reverse = make(MapStorage[ID, Label])
+// Reset resets this IMap to be empty, finishing any previ
+func (mp *IMap[Label]) Reset(engine Engine[Label]) error {
+	if err := mp.Close(); err != nil {
+		return err
+	}
+
+	var err error
+	var closers []io.Closer
+
+	mp.forward, err = engine.Forward()
+	if err != nil {
+		return err
+	}
+	closers = append(closers, mp.forward)
+
+	mp.reverse, err = engine.Reverse()
+	if err != nil {
+		for _, closer := range closers {
+			closer.Close()
+		}
+		return err
+	}
+
 	mp.id.Reset()
 	return nil
 }
@@ -137,4 +158,27 @@ func (mp *IMap[Label]) IdentityMap(storage Storage[Label, Label]) error {
 		}
 		return nil
 	})
+}
+
+// Close closes any storages related to this IMap.
+//
+// Calling close multiple times results in err = nil.
+func (mp *IMap[Label]) Close() error {
+	var errors [2]error
+
+	if mp.forward != nil {
+		errors[0] = mp.forward.Close()
+		mp.forward = nil
+	}
+	if mp.reverse != nil {
+		errors[1] = mp.reverse.Close()
+		mp.reverse = nil
+	}
+
+	for _, err := range errors {
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

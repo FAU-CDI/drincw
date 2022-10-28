@@ -1,6 +1,8 @@
 package igraph
 
 import (
+	"io"
+
 	"github.com/tkw1536/FAU-CDI/drincw/pkg/imap"
 )
 
@@ -41,13 +43,53 @@ func (index *IGraph[Label, Datum]) TripleCount() (count int64, err error) {
 }
 
 // Reset resets this index and prepares all internal structures for use.
-func (index *IGraph[Label, Datum]) Reset() error {
-	index.labels.Reset()
+func (index *IGraph[Label, Datum]) Reset(engine Engine[Label, Datum]) error {
+	if err := index.Close(); err != nil {
+		return err
+	}
 
-	index.data = make(imap.MapStorage[imap.ID, Datum])
-	index.inverses = make(imap.MapStorage[imap.ID, imap.ID])
-	index.psoIndex = make(ThreeHash)
-	index.posIndex = make(ThreeHash)
+	var closers []io.Closer
+	var err error
+
+	if err := index.labels.Reset(engine); err != nil {
+		return err
+	}
+	closers = append(closers, &index.labels)
+
+	index.data, err = engine.Data()
+	if err != nil {
+		for _, closer := range closers {
+			closer.Close()
+		}
+		return err
+	}
+	closers = append(closers, index.data)
+
+	index.inverses, err = engine.Inverses()
+	if err != nil {
+		for _, closer := range closers {
+			closer.Close()
+		}
+		return err
+	}
+	closers = append(closers, index.inverses)
+
+	index.psoIndex, err = engine.PSOIndex()
+	if err != nil {
+		for _, closer := range closers {
+			closer.Close()
+		}
+		return err
+	}
+	closers = append(closers, index.psoIndex)
+
+	index.posIndex, err = engine.POSIndex()
+	if err != nil {
+		for _, closer := range closers {
+			closer.Close()
+		}
+		return err
+	}
 
 	return nil
 }
@@ -176,6 +218,39 @@ func (index *IGraph[Label, Datum]) Finalize() error {
 	}
 	if err := index.psoIndex.Finalize(); err != nil {
 		return err
+	}
+	return nil
+}
+
+// Close closes any storages attached to this storage
+func (index *IGraph[Label, Datum]) Close() error {
+	var errors [5]error
+	errors[0] = index.labels.Close()
+
+	if index.data != nil {
+		errors[1] = index.data.Close()
+		index.data = nil
+	}
+
+	if index.inverses != nil {
+		errors[2] = index.inverses.Close()
+		index.inverses = nil
+	}
+
+	if index.psoIndex != nil {
+		errors[3] = index.psoIndex.Close()
+		index.psoIndex = nil
+	}
+
+	if index.posIndex != nil {
+		errors[4] = index.posIndex.Close()
+		index.posIndex = nil
+	}
+
+	for _, err := range errors {
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }

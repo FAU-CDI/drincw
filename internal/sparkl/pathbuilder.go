@@ -11,7 +11,7 @@ import (
 func LoadPathbuilder(pb *pathbuilder.Pathbuilder, index *Index) (map[string][]Entity, error) {
 	bundles := pb.Bundles()
 
-	storages, err := StoreBundles(bundles, index, storages.NewBundleSlice)
+	storages, err := StoreBundles(bundles, index, storages.NewMemorySlice)
 	if err != nil {
 		return nil, err
 	}

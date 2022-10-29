@@ -158,6 +158,9 @@ func (context *Context) Store(bundle *pathbuilder.Bundle) BundleStorage {
 				// and we can return immediatly.
 				return
 			}
+
+			err := storage.RegisterChildStorage(bundle.Group.ID, cstorages[i])
+			context.reportError(err)
 		}
 
 		context.childAddWait.Add(len(cstorages))
@@ -173,7 +176,7 @@ func (context *Context) Store(bundle *pathbuilder.Bundle) BundleStorage {
 
 					var err error
 					for child := range cstorage.Get(entityURIIndex, &err) {
-						err := storage.AddChild(child.Parent, bundle.Group.ID, child.URI, cstorage)
+						err := storage.AddChild(child.Parent, bundle.Group.ID, child.URI)
 						if err != storages.ErrNoEntity {
 							context.reportError(err)
 						}

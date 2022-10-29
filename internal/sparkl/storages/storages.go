@@ -26,12 +26,19 @@ type BundleStorage interface {
 	// A non-existing uri should return ErrNoEntity.
 	AddFieldValue(uri wisski.URI, field string, value any, path []wisski.URI) error
 
+	// RegisterChildStorage register the given storage as a BundleStorage for the child bundle.
+	// The Storage should delete the reference to the child storage when it is closed.
+	RegisterChildStorage(bundle string, storage BundleStorage) error
+
 	// AddChild adds a child entity of the given bundle to the given entity.
 	//
 	// Multiple concurrent calls to AddChild may take place.
 	//
 	// A non-existing parent should return ErrNoEntity.
-	AddChild(parent wisski.URI, bundle string, child wisski.URI, storage BundleStorage) error
+	AddChild(parent wisski.URI, bundle string, child wisski.URI) error
+
+	// Finalize is called to signal to this storage that no more write operations will take place.
+	Finalize() error
 
 	// Get returns a channel that receives the url of every entity in this bundle, along with their parent URIs.
 	// parentPathIndex returns the index of the parent uri in child paths
@@ -45,7 +52,7 @@ type BundleStorage interface {
 }
 
 var (
-	ErrNoEntity = errors.New("No such entity")
+	ErrNoEntity = errors.New("no such entity")
 )
 
 // URIWithParent represents a URI along with it's parent

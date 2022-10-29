@@ -28,7 +28,7 @@ type ThreeStorage interface {
 	// Finalize informs the storage that no more mappings will be made
 	Finalize() error
 
-	// Fetch iterates over all triples (a, b, c) in insertion order on c.
+	// Fetch iterates over all triples (a, b, c) in c-order.
 	// If an error occurs, iteration stops and is returned to the caller
 	Fetch(a, b imap.ID, f func(c imap.ID) error) error
 

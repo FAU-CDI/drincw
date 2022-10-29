@@ -2,8 +2,6 @@ package imap
 
 import (
 	"encoding/json"
-	"errors"
-	"io/fs"
 	"os"
 	"path/filepath"
 
@@ -61,9 +59,9 @@ func (de DiskEngine[Label]) Reverse() (Storage[ID, Label], error) {
 // If the filepath already exists, it is deleted.
 func NewDiskStorage[Key comparable, Value any](path string, options pogreb.Options) (*DiskStorage[Key, Value], error) {
 
-	// If the path already exists, cause a panic
+	// If the path already exists, wipe it
 	_, err := os.Stat(path)
-	if errors.Is(err, fs.ErrExist) {
+	if err == nil {
 		if err := os.RemoveAll(path); err != nil {
 			return nil, err
 		}

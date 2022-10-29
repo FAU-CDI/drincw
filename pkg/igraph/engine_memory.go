@@ -21,12 +21,12 @@ func (MemoryEngine[Label, Datum]) Inverses() (imap.Storage[imap.ID, imap.ID], er
 }
 func (MemoryEngine[Label, Datum]) PSOIndex() (ThreeStorage, error) {
 	th := make(ThreeHash)
-	return &th, nil // TODO: Need a disk-based variant
+	return &th, nil
 
 }
 func (MemoryEngine[Label, Datum]) POSIndex() (ThreeStorage, error) {
 	th := make(ThreeHash)
-	return &th, nil // TODO: Need a disk-based variant
+	return &th, nil
 }
 
 // ThreeHash implements ThreeStorage in memory
@@ -84,6 +84,7 @@ func (tlm ThreeHash) Fetch(a, b imap.ID, f func(c imap.ID) error) error {
 			return err
 		}
 	}
+
 	return nil
 }
 

@@ -5,22 +5,22 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/akrylysov/pogreb"
+	"github.com/syndtr/goleveldb/leveldb"
+	"github.com/syndtr/goleveldb/leveldb/opt"
 )
 
 // DiskEngine represents an engine that persistently stores data on disk.
 type DiskEngine[Label comparable] struct {
-	Path    string
-	Options pogreb.Options
+	Path string
 
 	MarshalLabel   func(label Label) ([]byte, error)
 	UnmarshalLabel func(dest *Label, src []byte) error
 }
 
 func (de DiskEngine[Label]) Forward() (Storage[Label, ID], error) {
-	forward := filepath.Join(de.Path, "imap_forward.pogrep")
+	forward := filepath.Join(de.Path, "forward.pogrep")
 
-	ds, err := NewDiskStorage[Label, ID](forward, de.Options)
+	ds, err := NewDiskStorage[Label, ID](forward)
 	if err != nil {
 		return nil, err
 	}
@@ -37,9 +37,9 @@ func (de DiskEngine[Label]) Forward() (Storage[Label, ID], error) {
 }
 
 func (de DiskEngine[Label]) Reverse() (Storage[ID, Label], error) {
-	reverse := filepath.Join(de.Path, "imap_reverse.pogrep")
+	reverse := filepath.Join(de.Path, "reverse.leveldb")
 
-	ds, err := NewDiskStorage[ID, Label](reverse, de.Options)
+	ds, err := NewDiskStorage[ID, Label](reverse)
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +57,7 @@ func (de DiskEngine[Label]) Reverse() (Storage[ID, Label], error) {
 
 // NewDiskStorage creates a new disk-based storage with the given options.
 // If the filepath already exists, it is deleted.
-func NewDiskStorage[Key comparable, Value any](path string, options pogreb.Options) (*DiskStorage[Key, Value], error) {
+func NewDiskStorage[Key comparable, Value any](path string) (*DiskStorage[Key, Value], error) {
 
 	// If the path already exists, wipe it
 	_, err := os.Stat(path)
@@ -67,7 +67,7 @@ func NewDiskStorage[Key comparable, Value any](path string, options pogreb.Optio
 		}
 	}
 
-	db, err := pogreb.Open(path, &options)
+	db, err := leveldb.OpenFile(path, &opt.Options{})
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +93,9 @@ func NewDiskStorage[Key comparable, Value any](path string, options pogreb.Optio
 
 // DiskStorage implements Storage as an in-memory storage
 type DiskStorage[Key comparable, Value any] struct {
-	DB *pogreb.DB
+	DB   *leveldb.DB
+	ropt opt.ReadOptions
+	wopt opt.WriteOptions
 
 	MarshalKey     func(key Key) ([]byte, error)
 	UnmarshalKey   func(dest *Key, src []byte) error
@@ -111,7 +113,7 @@ func (ds *DiskStorage[Key, Value]) Set(key Key, value Value) error {
 		return err
 	}
 
-	return ds.DB.Put(keyB, valueB)
+	return ds.DB.Put(keyB, valueB, &ds.wopt)
 }
 
 // Get returns the given value if it exists
@@ -121,16 +123,10 @@ func (ds *DiskStorage[Key, Value]) Get(key Key) (v Value, b bool, err error) {
 		return v, b, err
 	}
 
-	// check if we have the key
-	ok, err := ds.DB.Has(keyB)
-	if err != nil {
-		return v, b, err
-	}
-	if !ok {
+	valueB, err := ds.DB.Get(keyB, &ds.ropt)
+	if err == leveldb.ErrNotFound {
 		return v, false, nil
 	}
-
-	valueB, err := ds.DB.Get(keyB)
 	if err != nil {
 		return v, b, err
 	}
@@ -154,7 +150,7 @@ func (ds *DiskStorage[Key, Value]) Has(key Key) (bool, error) {
 		return false, err
 	}
 
-	ok, err := ds.DB.Has(keyB)
+	ok, err := ds.DB.Has(keyB, &ds.ropt)
 	if err != nil {
 		return false, err
 	}
@@ -168,7 +164,7 @@ func (ds *DiskStorage[Key, Value]) Delete(key Key) error {
 		return err
 	}
 
-	if err := ds.DB.Delete(keyB); err != nil {
+	if err := ds.DB.Delete(keyB, &ds.wopt); err != nil {
 		return err
 	}
 
@@ -178,29 +174,23 @@ func (ds *DiskStorage[Key, Value]) Delete(key Key) error {
 // Iterate calls f for all entries in Storage.
 // there is no guarantee on order.
 func (ds *DiskStorage[Key, Value]) Iterate(f func(Key, Value) error) error {
-	it := ds.DB.Items()
-	for {
-		keyB, valueB, err := it.Next()
-		if err == pogreb.ErrIterationDone {
-			break
-		}
-		if err != nil {
-			return err
-		}
+	it := ds.DB.NewIterator(nil, &ds.ropt)
+	defer it.Release()
 
+	for it.Next() {
 		var key Key
-		if err := ds.UnmarshalKey(&key, keyB); err != nil {
+		if err := ds.UnmarshalKey(&key, it.Key()); err != nil {
 			return err
 		}
 		var value Value
-		if err := ds.UnmarshalValue(&value, valueB); err != nil {
+		if err := ds.UnmarshalValue(&value, it.Value()); err != nil {
 			return err
 		}
 		if err := f(key, value); err != nil {
 			return err
 		}
 	}
-	return nil
+	return it.Error()
 }
 
 func (ds *DiskStorage[Key, Value]) Close() error {

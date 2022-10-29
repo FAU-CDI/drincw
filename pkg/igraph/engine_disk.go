@@ -20,9 +20,9 @@ type DiskEngine[Label comparable, Datum any] struct {
 }
 
 func (de DiskEngine[Label, Datum]) Data() (imap.Storage[imap.ID, Datum], error) {
-	data := filepath.Join(de.Path, "igraph_data.pogrep")
+	data := filepath.Join(de.Path, "data.leveldb")
 
-	ds, err := imap.NewDiskStorage[imap.ID, Datum](data, de.Options)
+	ds, err := imap.NewDiskStorage[imap.ID, Datum](data)
 	if err != nil {
 		return nil, err
 	}
@@ -38,9 +38,9 @@ func (de DiskEngine[Label, Datum]) Data() (imap.Storage[imap.ID, Datum], error) 
 	return ds, nil
 }
 func (de DiskEngine[Label, Datum]) Inverses() (imap.Storage[imap.ID, imap.ID], error) {
-	inverses := filepath.Join(de.Path, "igraph_inverses.pogrep")
+	inverses := filepath.Join(de.Path, "inverses.leveldb")
 
-	ds, err := imap.NewDiskStorage[imap.ID, imap.ID](inverses, de.Options)
+	ds, err := imap.NewDiskStorage[imap.ID, imap.ID](inverses)
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +88,9 @@ type ThreeDiskHash struct {
 	wopt opt.WriteOptions
 }
 
-// encodeTriple encodes the given id triple into a range
+// encodeTriple encodes the given id triple into a range of bytes.
+// It is guaranteed that lexiographical ordering on the returned byte slice
+// is the same as lexiographical ordering on the ids.
 func encodeTriple(id1, id2, id3 imap.ID) []byte {
 	b := make([]byte, 24)
 	binary.BigEndian.PutUint64(b[0:8], id1[0])
@@ -97,15 +99,18 @@ func encodeTriple(id1, id2, id3 imap.ID) []byte {
 	return b
 }
 
+// encodePair encodes the given pairs of ids
+func encodePair(id1, id2 imap.ID) []byte {
+	b := make([]byte, 16)
+	binary.BigEndian.PutUint64(b[0:8], id1[0])
+	binary.BigEndian.PutUint64(b[8:16], id2[0])
+	return b
+}
+
 func decodeLast(data []byte) imap.ID {
 	third := binary.BigEndian.Uint64(data[16:24])
 	return [1]uint64{third}
 }
-
-var (
-	minID = [1]uint64{0}
-	maxID = [1]uint64{^uint64(0)}
-)
 
 func (tlm *ThreeDiskHash) Add(a, b, c imap.ID) error {
 	return tlm.DB.Put(encodeTriple(a, b, c), nil, &tlm.wopt)
@@ -134,10 +139,7 @@ func (tlm ThreeDiskHash) Finalize() error {
 }
 
 func (tlm *ThreeDiskHash) Fetch(a, b imap.ID, f func(c imap.ID) error) error {
-	iterator := tlm.DB.NewIterator(&util.Range{
-		Start: encodeTriple(a, b, minID),
-		Limit: encodeTriple(a, b, maxID),
-	}, &tlm.ropt)
+	iterator := tlm.DB.NewIterator(util.BytesPrefix(encodePair(a, b)), &tlm.ropt)
 	defer iterator.Release()
 
 	for iterator.Next() {

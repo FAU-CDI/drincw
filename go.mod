@@ -3,7 +3,6 @@ module github.com/tkw1536/FAU-CDI/drincw
 go 1.18
 
 require (
-	github.com/akrylysov/pogreb v0.10.1
 	github.com/cayleygraph/quad v1.2.4
 	github.com/dustin/go-humanize v1.0.0
 	github.com/gorilla/mux v1.8.0

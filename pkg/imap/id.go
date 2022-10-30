@@ -59,7 +59,7 @@ func (id *ID) Inc() ID {
 // The big.Int is returned for convenience.
 func (id ID) Int(value *big.Int) *big.Int {
 	bytes := make([]byte, IDLen)
-	id.MarshalTo(bytes)
+	id.Encode(bytes)
 	return value.SetBytes(bytes)
 }
 
@@ -68,7 +68,7 @@ func (id ID) Int(value *big.Int) *big.Int {
 //
 // The ID is returned for convenience.
 func (id *ID) LoadInt(value *big.Int) *ID {
-	id.UnmarshalFrom(value.FillBytes(make([]byte, IDLen)))
+	id.Decode(value.FillBytes(make([]byte, IDLen)))
 	return id
 }
 
@@ -87,75 +87,74 @@ func (id ID) Less(other ID) bool {
 }
 
 // String formats this id as a string.
-// It is only intended for debugging.
+// It is only intended for debugging, and should not be used for production code.
 func (id ID) String() string {
-	return fmt.Sprintf("%v", [IDLen]byte(id))
+	return fmt.Sprintf("ID(%v)", id.Int(big.NewInt(0)))
 }
 
-// MarshalTo encodes id using a big endian encoding into dest.
-// dest must be of at least size [IDLen]
-func (id ID) MarshalTo(dest []byte) {
+// Encode encodes id using a big endian encoding into dest.
+// dest must be of at least size [IDLen].
+//
+// Comparing two distinct slices using [bytes.Compare] produces the same result
+// as using appropriate calls [Less].
+func (id ID) Encode(dest []byte) {
 	_ = dest[IDLen-1] // boundary hint to compiler
 	for i := 0; i < IDLen; i++ {
 		dest[i] = id[i]
 	}
 }
 
-// UnmarshalFrom encodes an id using big endian encoding from src.
-// src must be of at least size [IDLen]
-func (id *ID) UnmarshalFrom(src []byte) {
+// Decode sets this id to be the values that has been decoded from src.
+// src must be of at least size IDLen, or a runtime panic occurs.
+func (id *ID) Decode(src []byte) {
 	_ = src[IDLen-1] // boundary hint to compiler
 	for i := 0; i < IDLen; i++ {
 		(*id)[i] = src[i]
 	}
 }
 
-// TODO: These require testing
-
-// EncodeIDs marshals a set of ids into a new byte slice.
+// EncodeIDs encodes IDs into a new slice of bytes.
+// Each id is encoded sequentially using [Encode].
 func EncodeIDs(ids ...ID) []byte {
 	bytes := make([]byte, len(ids)*IDLen)
 	for i := 0; i < len(ids); i++ {
-		ids[i].MarshalTo(bytes[i*IDLen:])
+		ids[i].Encode(bytes[i*IDLen:])
 	}
 	return bytes
 }
 
-// DecodeIDs unmarshals a set of ids encoded with MarshalIDs.
-// When src is not an integer multiple of IDLen, any trailing data is ignored.
+// DecodeIDs decodes a set of ids encoded with [EncodeIDs].
+// The behaviour of slices that do not evenly divide into IDs is not defined.
 func DecodeIDs(src []byte) []ID {
 	ids := make([]ID, len(src)/IDLen)
 	for i := 0; i < len(ids); i++ {
-		ids[i].UnmarshalFrom(src[i*IDLen:])
+		ids[i].Decode(src[i*IDLen:])
 	}
 	return ids
 }
 
-// DecodeID works exactly like DecodeIDs, but unmarshals only the id
-// with the given index.
-//
-// If src does not contain enough bytes for the given index, the behavior is undefined.
+// DecodeID works like DecodeIDs, but only decodes the id with index i
 func DecodeID(src []byte, index int) (id ID) {
-	id.UnmarshalFrom(src[index*IDLen:])
+	id.Decode(src[index*IDLen:])
 	return
 }
 
-// MarshalID is like value.MarshalTo, but automatically creates a new slice
+// MarshalID behaves like [value.Encode], but allocates a new slice
 // and returns nil error.
 func MarshalID(value ID) ([]byte, error) {
 	dest := make([]byte, IDLen)
-	value.MarshalTo(dest)
+	value.Encode(dest)
 	return dest, nil
 }
 
 var errUnmarshal = errors.New("unmarshalID: invalid length")
 
-// UnmarshalID is like dest.UnmarshalFrom,
-// but returns an error when the given slice is not of the correct length.
+// UnmarshalID behaves like [dest.Decode], but produces an error
+// when there are insufficient number of bytes in src.
 func UnmarshalID(dest *ID, src []byte) error {
 	if len(src) < IDLen {
 		return errUnmarshal
 	}
-	dest.UnmarshalFrom(src)
+	dest.Decode(src)
 	return nil
 }

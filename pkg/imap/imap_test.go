@@ -1,6 +1,12 @@
 package imap
 
-/*
+import (
+	"fmt"
+	"math/big"
+	"strconv"
+	"testing"
+)
+
 func ExampleIMap() {
 
 	var mp IMap[string]
@@ -30,57 +36,87 @@ func ExampleIMap() {
 	lid("get")(mp.Forward("world"))
 	lid("get")(mp.Forward("earth"))
 
-	lstr("reverse")(mp.Reverse([1]uint64{1}))
-	lstr("reverse")(mp.Reverse([1]uint64{2}))
-	lstr("reverse")(mp.Reverse([1]uint64{3}))
+	lstr("reverse")(mp.Reverse(*new(ID).LoadInt(big.NewInt(1))))
+	lstr("reverse")(mp.Reverse(*new(ID).LoadInt(big.NewInt(2))))
+	lstr("reverse")(mp.Reverse(*new(ID).LoadInt(big.NewInt(3))))
 
 	mp.MarkIdentical("earth", "world")
 
-	lstr("reverse<again>")(mp.Reverse([1]uint64{1}))
-	lstr("reverse<again>")(mp.Reverse([1]uint64{3}))
+	lstr("reverse<again>")(mp.Reverse(*new(ID).LoadInt(big.NewInt(1))))
+	lstr("reverse<again>")(mp.Reverse(*new(ID).LoadInt(big.NewInt(3))))
 
 	lid("add<again>")(mp.Add("hello"))
 	lid("add<again>")(mp.Add("world"))
 	lid("add<again>")(mp.Add("earth"))
 
-	// Output: add 1 <nil>
-	// add 2 <nil>
-	// add 3 <nil>
-	// add<again> 1 <nil>
-	// add<again> 2 <nil>
-	// add<again> 3 <nil>
-	// get 1 <nil>
-	// get 2 <nil>
-	// get 3 <nil>
+	// Output: add ID(1) <nil>
+	// add ID(2) <nil>
+	// add ID(3) <nil>
+	// add<again> ID(1) <nil>
+	// add<again> ID(2) <nil>
+	// add<again> ID(3) <nil>
+	// get ID(1) <nil>
+	// get ID(2) <nil>
+	// get ID(3) <nil>
 	// reverse hello <nil>
 	// reverse world <nil>
 	// reverse earth <nil>
 	// reverse<again> hello <nil>
 	// reverse<again> earth <nil>
-	// add<again> 1 <nil>
-	// add<again> 3 <nil>
-	// add<again> 3 <nil>
+	// add<again> ID(1) <nil>
+	// add<again> ID(3) <nil>
+	// add<again> ID(3) <nil>
 }
 
-var testIDs [10000]string
+// engineTest performs a test for a given engine
+func engineTest(t *testing.T, engine Engine[string], N int) {
+	var mp IMap[string]
+	mp.Reset(engine)
+	defer mp.Close()
 
-func init() {
-	for i := 0; i < 10000; i++ {
-		testIDs[i] = strconv.Itoa(i)
+	// make i == i + 1
+	for i := 0; i < N; i += 2 {
+		canon, err := mp.MarkIdentical(strconv.Itoa(i), strconv.Itoa(i+1))
+		if err != nil {
+			t.Fatalf("MarkIdentical returned error %s", err)
+		}
+		got := canon.Int(big.NewInt(0)).Int64()
+		want := int64(i + 1)
+		if got != want {
+			t.Errorf("MarkIdentical() got id = %s, want = %d", canon, want)
+		}
+	}
+
+	// check that forward mappings work
+	for i := 0; i < N; i++ {
+		id, err := mp.Forward(strconv.Itoa(i))
+		if err != nil {
+			t.Errorf("Forward() returned error %s", err)
+		}
+		got := int(id.Int(big.NewInt(0)).Int64())
+		want := i - (i % 2) + 1
+		if got != want {
+			t.Errorf("Forward() got = %d, want = %d", got, want)
+		}
+	}
+
+	// check that reverse mappings work
+	var id ID
+	var big big.Int
+	for i := 0; i < N; i++ {
+		big.SetInt64(int64(i))
+
+		got, err := mp.Reverse(*id.LoadInt(&big))
+		if err != nil {
+			t.Errorf("Reverse() returned error %s", err)
+		}
+		var want string
+		if i%2 == 1 {
+			want = strconv.Itoa(i - 1)
+		}
+
+		if got != want {
+			t.Errorf("Reverse() got = %q, want = %q", got, want)
+		}
 	}
 }
-
-func BenchmarkIMap(b *testing.B) {
-		var mp IMap[string]
-		for i := 0; i < b.N; i++ {
-			mp.Reset()
-			for _, t := range testIDs {
-				mp.Add(t)
-			}
-			for _, t := range testIDs {
-				mp.Add(t)
-			}
-		}
-}
-
-*/

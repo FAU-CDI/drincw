@@ -1,11 +1,6 @@
 package imap
 
-import (
-	"fmt"
-	"strconv"
-	"testing"
-)
-
+/*
 func ExampleIMap() {
 
 	var mp IMap[string]
@@ -76,7 +71,6 @@ func init() {
 }
 
 func BenchmarkIMap(b *testing.B) {
-	/*
 		var mp IMap[string]
 		for i := 0; i < b.N; i++ {
 			mp.Reset()
@@ -87,5 +81,6 @@ func BenchmarkIMap(b *testing.B) {
 				mp.Add(t)
 			}
 		}
-	*/
 }
+
+*/

@@ -12,6 +12,11 @@ import (
 	"github.com/tkw1536/FAU-CDI/drincw/pkg/perf"
 )
 
+const (
+	sqliteMaxQueryVar = 32766 // see https://www.sqlite.org/limits.html
+	sqlLiteBatchSize  = 1000
+)
+
 func doSqlite(pb *pathbuilder.Pathbuilder, index *sparkl.Index, bEngine storages.BundleEngine) {
 	var err error
 
@@ -25,7 +30,10 @@ func doSqlite(pb *pathbuilder.Pathbuilder, index *sparkl.Index, bEngine storages
 	{
 		start := perf.Now()
 		err = sparkl.Export(pb, index, bEngine, &exporter.SQL{
-			DB: db,
+			DB:          db,
+			BatchSize:   sqlLiteBatchSize,
+			MaxQueryVar: sqliteMaxQueryVar,
+			Separator:   ",",
 		})
 		if err != nil {
 			log.Fatalf("Unable to export sql: %s", err)

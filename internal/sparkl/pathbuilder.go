@@ -33,15 +33,18 @@ func LoadPathbuilder(pb *pathbuilder.Pathbuilder, index *Index, engine storages.
 			storage := storages[i]
 			defer storage.Close()
 
-			var err error
-			for element := range storage.Get(-1, &err) {
+			uris := storage.Get(-1)
+			defer uris.Close()
+
+			for uris.Next() {
+				element := uris.Datum()
 				entity, err := storage.Load(element.URI)
 				if err != nil {
 					errOnce.Do(func() { gErr = err })
 				}
 				entities[i] = append(entities[i], entity)
 			}
-			if err != nil {
+			if err := uris.Err(); err != nil {
 				errOnce.Do(func() { gErr = err })
 			}
 		}(i)

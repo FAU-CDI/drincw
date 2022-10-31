@@ -9,6 +9,7 @@ import (
 	"github.com/tkw1536/FAU-CDI/drincw/internal/sparkl/storages"
 	"github.com/tkw1536/FAU-CDI/drincw/internal/wisski"
 	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder"
+	"github.com/tkw1536/FAU-CDI/drincw/pkg/iterator"
 )
 
 // StoreBundle loads all entities from the given bundle into a new storage, which is then returned.
@@ -128,14 +129,21 @@ func (context *Context) Store(bundle *pathbuilder.Bundle) BundleStorage {
 		}
 
 		// stage 1: load the entities themselves
-		var err error
-		for path := range extractPath(bundle.Group, context.Index, &err) {
-			nodes, err := path.Nodes()
-			if context.reportError(err) {
-				return
+		err := (func() error {
+			paths := extractPath(bundle.Group, context.Index)
+			defer paths.Close()
+
+			for paths.Next() {
+				path := paths.Datum()
+				nodes, err := path.Nodes()
+				if context.reportError(err) {
+					return err
+				}
+				storage.Add(nodes[entityURIIndex], nodes)
 			}
-			storage.Add(nodes[entityURIIndex], nodes)
-		}
+
+			return paths.Err()
+		})()
 		if context.reportError(err) {
 			return
 		}
@@ -146,8 +154,11 @@ func (context *Context) Store(bundle *pathbuilder.Bundle) BundleStorage {
 			go func(field pathbuilder.Field) {
 				defer context.extractWait.Done()
 
-				var err error
-				for path := range extractPath(field.Path, context.Index, &err) {
+				paths := extractPath(field.Path, context.Index)
+				defer paths.Close()
+
+				for paths.Next() {
+					path := paths.Datum()
 					nodes, err := path.Nodes()
 					context.reportError(err)
 
@@ -164,7 +175,7 @@ func (context *Context) Store(bundle *pathbuilder.Bundle) BundleStorage {
 						context.reportError(err)
 					}
 				}
-				context.reportError(err)
+				context.reportError(paths.Err())
 			}(field)
 		}
 
@@ -196,14 +207,15 @@ func (context *Context) Store(bundle *pathbuilder.Bundle) BundleStorage {
 					defer wg.Done()
 					defer context.childAddWait.Done()
 
-					var err error
-					for child := range cstorage.Get(entityURIIndex, &err) {
+					children := cstorage.Get(entityURIIndex)
+					for children.Next() {
+						child := children.Datum()
 						err := storage.AddChild(child.Parent, bundle.Group.ID, child.URI)
 						if err != storages.ErrNoEntity {
 							context.reportError(err)
 						}
 					}
-					context.reportError(err)
+					context.reportError(children.Err())
 				}(cstorage, bundle.ChildBundles[i])
 			}
 
@@ -230,21 +242,11 @@ var debugLogID int64 // id of the current log id
 //
 // Any values found along the path are written to the returned channel which is then closed.
 // If an error occurs, it is written to errDst before the channel is closed.
-func extractPath(path pathbuilder.Path, index *Index, errDst *error) (c <-chan Path) {
-	// if we return a nil channel, we actually want to returned a closed channel.
-	// so that the caller can always safely iterate over it.
-	defer func() {
-		if c == nil {
-			out := make(chan Path)
-			close(out)
-			c = out
-		}
-	}()
-
+func extractPath(path pathbuilder.Path, index *Index) iterator.Iterator[Path] {
 	// start with the path array
 	uris := append([]string{}, path.PathArray...)
 	if len(uris) == 0 {
-		return nil
+		return iterator.Empty[Path](nil)
 	}
 
 	// add the datatype property if are not a group
@@ -261,14 +263,12 @@ func extractPath(path pathbuilder.Path, index *Index, errDst *error) (c <-chan P
 
 	set, err := index.PathsStarting(wisski.Type, URI(uris[0]))
 	if err != nil {
-		*errDst = err
-		return nil
+		return iterator.Empty[Path](err)
 	}
 	if debugLogAllPaths {
 		size, err := set.Size()
 		if err != nil {
-			*errDst = err
-			return nil
+			return iterator.Empty[Path](err)
 		}
 		log.Println(debugID, uris[0], size)
 	}
@@ -276,25 +276,22 @@ func extractPath(path pathbuilder.Path, index *Index, errDst *error) (c <-chan P
 	for i := 1; i < len(uris); i++ {
 		if i%2 == 0 {
 			if err := set.Ending(wisski.Type, URI(uris[i])); err != nil {
-				*errDst = err
-				return nil
+				return iterator.Empty[Path](err)
 			}
 		} else {
 			if err := set.Connected(URI(uris[i])); err != nil {
-				*errDst = err
-				return nil
+				return iterator.Empty[Path](err)
 			}
 		}
 
 		if debugLogAllPaths {
 			size, err := set.Size()
 			if err != nil {
-				*errDst = err
-				return nil
+				return iterator.Empty[Path](err)
 			}
 			log.Println(debugID, uris[i], size)
 		}
 	}
 
-	return set.Paths(errDst)
+	return set.Paths()
 }

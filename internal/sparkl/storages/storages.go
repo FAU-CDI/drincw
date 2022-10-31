@@ -7,6 +7,7 @@ import (
 
 	"github.com/tkw1536/FAU-CDI/drincw/internal/wisski"
 	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder"
+	"github.com/tkw1536/FAU-CDI/drincw/pkg/iterator"
 )
 
 // BundleEngine is a function that initializes and returns a new BundleStorage
@@ -56,11 +57,11 @@ type BundleStorage interface {
 	// Finalize is called to signal to this storage that no more write operations will take place.
 	Finalize() error
 
-	// Get returns a channel that receives the url of every entity in this bundle, along with their parent URIs.
-	// parentPathIndex returns the index of the parent uri in child paths
+	// Get returns an iterator that iterates over the url of every entity in this bundle, along with their parent URIs.
+	// The iterator is guaranteed to iterate in some consistent order, but no further guarantees beyond that.
 	//
-	// The caller is responsible for draining the channel.
-	Get(parentPathIndex int, errDst *error) <-chan URIWithParent
+	// parentPathIndex returns the index of the parent uri in child paths.
+	Get(parentPathIndex int) iterator.Iterator[URIWithParent]
 
 	// Load loads an entity with the given URI from this storage.
 	// A non-existing entity should return err = ErrNoEntity.

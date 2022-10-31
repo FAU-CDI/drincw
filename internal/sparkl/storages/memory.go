@@ -5,6 +5,7 @@ import (
 
 	"github.com/tkw1536/FAU-CDI/drincw/internal/wisski"
 	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder"
+	"github.com/tkw1536/FAU-CDI/drincw/pkg/iterator"
 )
 
 type MemoryEngine struct{}
@@ -96,22 +97,24 @@ func (bs *Memory) Finalize() error {
 	return nil
 }
 
-func (bs *Memory) Get(parentPathIndex int, errDst *error) <-chan URIWithParent {
-	c := make(chan URIWithParent)
-	go func() {
-		defer close(c)
+func (bs *Memory) Get(parentPathIndex int) iterator.Iterator[URIWithParent] {
+	return iterator.New(func(sender iterator.Generator[URIWithParent]) {
+		defer sender.Return()
+
 		for _, entity := range bs.Entities {
 			var parent wisski.URI
 			if parentPathIndex > -1 {
 				parent = entity.Path[parentPathIndex]
 			}
-			c <- URIWithParent{
+
+			if sender.Yield(URIWithParent{
 				URI:    entity.URI,
 				Parent: parent,
+			}) {
+				break
 			}
 		}
-	}()
-	return c
+	})
 }
 
 func (bs *Memory) Load(uri wisski.URI) (entity wisski.Entity, err error) {

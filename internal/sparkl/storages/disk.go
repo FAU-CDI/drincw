@@ -9,6 +9,7 @@ import (
 	"github.com/syndtr/goleveldb/leveldb/errors"
 	"github.com/tkw1536/FAU-CDI/drincw/internal/wisski"
 	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder"
+	"github.com/tkw1536/FAU-CDI/drincw/pkg/iterator"
 )
 
 type DiskEngine struct {
@@ -184,10 +185,9 @@ func (ds *Disk) Finalize() error {
 	return ds.DB.SetReadOnly()
 }
 
-func (ds *Disk) Get(parentPathIndex int, errDst *error) <-chan URIWithParent {
-	c := make(chan URIWithParent)
-	go func() {
-		defer close(c)
+func (ds *Disk) Get(parentPathIndex int) iterator.Iterator[URIWithParent] {
+	return iterator.New(func(sender iterator.Generator[URIWithParent]) {
+		defer sender.Return()
 
 		it := ds.DB.NewIterator(nil, nil)
 		defer it.Release()
@@ -208,15 +208,17 @@ func (ds *Disk) Get(parentPathIndex int, errDst *error) <-chan URIWithParent {
 				uri.URI = wisski.URI(it.Key())
 			}
 
-			if err != nil {
-				*errDst = err
+			if sender.YieldError(err) {
 				return
 			}
-			c <- uri
+
+			if sender.Yield(uri) {
+				return
+			}
 		}
-		*errDst = it.Error()
-	}()
-	return c
+
+		sender.YieldError(it.Error())
+	})
 }
 
 func (ds *Disk) Load(uri wisski.URI) (entity wisski.Entity, err error) {

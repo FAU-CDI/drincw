@@ -1,12 +1,13 @@
 package igraph
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
 
 	"github.com/tkw1536/FAU-CDI/drincw/pkg/imap"
-	"github.com/tkw1536/FAU-CDI/drincw/pkg/lstream"
+	"github.com/tkw1536/FAU-CDI/drincw/pkg/iterator"
 )
 
 // Paths represents a set of paths in a related GraphIndex.
@@ -19,7 +20,7 @@ type Paths[Label comparable, Datum any] struct {
 	index      *IGraph[Label, Datum]
 	predicates []imap.ID
 
-	elements lstream.Stream[element]
+	elements iterator.Iterator[element]
 	size     int
 }
 
@@ -36,22 +37,28 @@ func (index *IGraph[Label, Datum]) PathsStarting(predicate, object Label) (*Path
 		return nil, err
 	}
 
-	return index.newQuery(func(sender chan<- element) error {
-		return index.posIndex.Fetch(p, o, func(s imap.ID) error {
-			sender <- element{
+	return index.newQuery(func(sender iterator.Generator[element]) {
+		err := index.posIndex.Fetch(p, o, func(s imap.ID) error {
+			if sender.Yield(element{
 				Node:   s,
 				Parent: nil,
+			}) {
+				return errAborted
 			}
 			return nil
 		})
+
+		if err != errAborted {
+			sender.YieldError(err)
+		}
 	}), nil
 }
 
 // newQuery creates a new Query object that contains nodes with the given ids
-func (index *IGraph[URI, Datum]) newQuery(source func(sender chan<- element) error) (q *Paths[URI, Datum]) {
+func (index *IGraph[URI, Datum]) newQuery(source func(sender iterator.Generator[element])) (q *Paths[URI, Datum]) {
 	q = &Paths[URI, Datum]{
 		index:    index,
-		elements: lstream.New(source),
+		elements: iterator.New(source),
 		size:     -1,
 	}
 	return q
@@ -68,16 +75,25 @@ func (set *Paths[Label, Datum]) Connected(predicate Label) error {
 	return set.expand(p)
 }
 
+var errAborted = errors.New("paths: aborted")
+
 // expand expands the nodes in this query by adding a link to each element found in the index
 func (set *Paths[URI, Datum]) expand(p imap.ID) error {
-	set.elements = lstream.Pipe(set.elements, func(subject element, sender chan<- element) error {
-		return set.index.psoIndex.Fetch(p, subject.Node, func(object imap.ID) error {
-			sender <- element{
+	set.elements = iterator.Pipe(set.elements, func(subject element, sender iterator.Generator[element]) (stop bool) {
+		err := set.index.psoIndex.Fetch(p, subject.Node, func(object imap.ID) error {
+			if sender.Yield(element{
 				Node:   object,
 				Parent: &subject,
+			}) {
+				return errAborted
 			}
 			return nil
 		})
+
+		if err != errAborted {
+			sender.YieldError(err)
+		}
+		return err != nil && err != errAborted
 	})
 	set.size = -1
 	return nil
@@ -99,15 +115,16 @@ func (set *Paths[URI, Datum]) Ending(predicate URI, object URI) error {
 
 // restrict restricts the set of nodes by those mapped in the index
 func (set *Paths[URI, Datum]) restrict(p, o imap.ID) error {
-	set.elements = lstream.Pipe(set.elements, func(subject element, sender chan<- element) error {
+	set.elements = iterator.Pipe(set.elements, func(subject element, sender iterator.Generator[element]) bool {
 		has, err := set.index.posIndex.Has(p, o, subject.Node)
 		if err != nil {
-			return err
+			sender.YieldError(err)
+			return true
 		}
-		if has {
-			sender <- subject
+		if !has {
+			return false
 		}
-		return nil
+		return sender.Yield(subject)
 	})
 	set.size = -1
 	return nil
@@ -122,34 +139,25 @@ func (set *Paths[Label, Datum]) Size() (int, error) {
 	}
 
 	// we don't know the size, so we need to fully expand it
-	all, err := lstream.Drain(set.elements)
+	all, err := iterator.Drain(set.elements)
 	if err != nil {
 		return 0, err
 	}
 	set.size = len(all)
-	set.elements = lstream.NewConcrete(all)
+	set.elements = iterator.NewFromElements(all)
 	return set.size, nil
 }
 
-// Paths returns a channel that returns all paths in this PathSet.
-//
-// The returned channel must be drained by the caller.
-// Paths may only be called once, and invalidates the PathSet.
-//
-// If an error occurs while retrieving paths, a non-nil error is written to errDst.
-func (set *Paths[Label, Datum]) Paths(errDst *error) <-chan Path[Label, Datum] {
-	paths := make(chan Path[Label, Datum])
-	go func() {
-		defer close(paths)
-		for element := range lstream.Channel(set.elements, errDst) {
-			paths <- Path[Label, Datum]{
-				index:   set.index,
-				nodeIDs: element.nodes(),
-				edgeIDs: set.predicates,
-			}
+// Paths returns an iterator over paths contained in this Paths.
+// It may only be called once, afterwards further calls may be invalid.
+func (set *Paths[Label, Datum]) Paths() iterator.Iterator[Path[Label, Datum]] {
+	return iterator.Map(set.elements, func(element element) Path[Label, Datum] {
+		return Path[Label, Datum]{
+			index:   set.index,
+			nodeIDs: element.nodes(),
+			edgeIDs: set.predicates,
 		}
-	}()
-	return paths
+	})
 }
 
 // element represents an element of a path

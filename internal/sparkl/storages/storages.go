@@ -63,6 +63,9 @@ type BundleStorage interface {
 	// parentPathIndex returns the index of the parent uri in child paths.
 	Get(parentPathIndex int) iterator.Iterator[URIWithParent]
 
+	// Count counts the number of entities in this storage.
+	Count() (int64, error)
+
 	// Load loads an entity with the given URI from this storage.
 	// A non-existing entity should return err = ErrNoEntity.
 	Load(uri wisski.URI) (wisski.Entity, error)

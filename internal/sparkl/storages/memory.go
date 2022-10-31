@@ -117,6 +117,10 @@ func (bs *Memory) Get(parentPathIndex int) iterator.Iterator[URIWithParent] {
 	})
 }
 
+func (bs *Memory) Count() (int64, error) {
+	return int64(len(bs.Entities)), nil
+}
+
 func (bs *Memory) Load(uri wisski.URI) (entity wisski.Entity, err error) {
 	index, ok := bs.lookup[uri]
 	if !ok {

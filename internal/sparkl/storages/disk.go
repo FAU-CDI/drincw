@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"sync/atomic"
 
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/errors"
@@ -39,6 +40,8 @@ func (de DiskEngine) NewStorage(bundle *pathbuilder.Bundle) (BundleStorage, erro
 
 // Disk represents a disk-backed storage
 type Disk struct {
+	count int64
+
 	DB *leveldb.DB
 
 	childStorages map[string]BundleStorage
@@ -144,6 +147,7 @@ func (ds *Disk) update(uri wisski.URI, update func(*sEntity) error) error {
 
 // Add adds an entity to this BundleSlice
 func (ds *Disk) Add(uri wisski.URI, path []wisski.URI) error {
+	atomic.AddInt64(&ds.count, 1)
 	return ds.put(func(se *sEntity) error {
 		se.URI = uri
 		se.Path = path
@@ -219,6 +223,10 @@ func (ds *Disk) Get(parentPathIndex int) iterator.Iterator[URIWithParent] {
 
 		sender.YieldError(it.Error())
 	})
+}
+
+func (ds *Disk) Count() (int64, error) {
+	return atomic.LoadInt64(&ds.count), nil
 }
 
 func (ds *Disk) Load(uri wisski.URI) (entity wisski.Entity, err error) {

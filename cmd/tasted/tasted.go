@@ -13,6 +13,7 @@ import (
 
 	"github.com/tkw1536/FAU-CDI/drincw"
 	"github.com/tkw1536/FAU-CDI/drincw/internal/sparkl"
+	"github.com/tkw1536/FAU-CDI/drincw/internal/sparkl/storages"
 	"github.com/tkw1536/FAU-CDI/drincw/internal/viewer"
 	"github.com/tkw1536/FAU-CDI/drincw/internal/wisski"
 	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder"
@@ -54,8 +55,9 @@ func main() {
 
 	// make an engine
 	engine := sparkl.NewEngine(cache)
+	bEngine := storages.NewBundleEngine(cache)
 	if cache != "" {
-		log.Printf("writing cache to %s", cache)
+		log.Printf("caching data on-disk at %s", cache)
 	}
 
 	// build an index
@@ -83,7 +85,7 @@ func main() {
 	var bundlesPerf perf.Diff
 	{
 		start := perf.Now()
-		bundles, err = sparkl.LoadPathbuilder(&pb, index)
+		bundles, err = sparkl.LoadPathbuilder(&pb, index, bEngine)
 		if err != nil {
 			log.Fatalf("Unable to load pathbuilder: %s", err)
 		}

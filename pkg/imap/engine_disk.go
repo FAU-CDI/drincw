@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 
 	"github.com/syndtr/goleveldb/leveldb"
-	"github.com/syndtr/goleveldb/leveldb/opt"
 )
 
 // DiskEngine represents an engine that persistently stores data on disk.
@@ -67,7 +66,7 @@ func NewDiskStorage[Key comparable, Value any](path string) (*DiskStorage[Key, V
 		}
 	}
 
-	db, err := leveldb.OpenFile(path, &opt.Options{})
+	db, err := leveldb.OpenFile(path, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -93,9 +92,7 @@ func NewDiskStorage[Key comparable, Value any](path string) (*DiskStorage[Key, V
 
 // DiskStorage implements Storage as an in-memory storage
 type DiskStorage[Key comparable, Value any] struct {
-	DB   *leveldb.DB
-	ropt opt.ReadOptions
-	wopt opt.WriteOptions
+	DB *leveldb.DB
 
 	MarshalKey     func(key Key) ([]byte, error)
 	UnmarshalKey   func(dest *Key, src []byte) error
@@ -113,7 +110,7 @@ func (ds *DiskStorage[Key, Value]) Set(key Key, value Value) error {
 		return err
 	}
 
-	return ds.DB.Put(keyB, valueB, &ds.wopt)
+	return ds.DB.Put(keyB, valueB, nil)
 }
 
 // Get returns the given value if it exists
@@ -123,7 +120,7 @@ func (ds *DiskStorage[Key, Value]) Get(key Key) (v Value, b bool, err error) {
 		return v, b, err
 	}
 
-	valueB, err := ds.DB.Get(keyB, &ds.ropt)
+	valueB, err := ds.DB.Get(keyB, nil)
 	if err == leveldb.ErrNotFound {
 		return v, false, nil
 	}
@@ -150,7 +147,7 @@ func (ds *DiskStorage[Key, Value]) Has(key Key) (bool, error) {
 		return false, err
 	}
 
-	ok, err := ds.DB.Has(keyB, &ds.ropt)
+	ok, err := ds.DB.Has(keyB, nil)
 	if err != nil {
 		return false, err
 	}
@@ -164,7 +161,7 @@ func (ds *DiskStorage[Key, Value]) Delete(key Key) error {
 		return err
 	}
 
-	if err := ds.DB.Delete(keyB, &ds.wopt); err != nil {
+	if err := ds.DB.Delete(keyB, nil); err != nil {
 		return err
 	}
 
@@ -174,7 +171,7 @@ func (ds *DiskStorage[Key, Value]) Delete(key Key) error {
 // Iterate calls f for all entries in Storage.
 // there is no guarantee on order.
 func (ds *DiskStorage[Key, Value]) Iterate(f func(Key, Value) error) error {
-	it := ds.DB.NewIterator(nil, &ds.ropt)
+	it := ds.DB.NewIterator(nil, nil)
 	defer it.Release()
 
 	for it.Next() {

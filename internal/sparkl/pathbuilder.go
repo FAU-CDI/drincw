@@ -7,11 +7,14 @@ import (
 	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder"
 )
 
-// LoadPathbuilder loads all paths from the given pathbuilder
-func LoadPathbuilder(pb *pathbuilder.Pathbuilder, index *Index) (map[string][]Entity, error) {
+// LoadPathbuilder loads all paths in the given pathbuilder
+func LoadPathbuilder(pb *pathbuilder.Pathbuilder, index *Index, engine storages.BundleEngine) (map[string][]Entity, error) {
 	bundles := pb.Bundles()
 
-	storages, err := StoreBundles(bundles, index, storages.NewMemorySlice)
+	storages, closer, err := StoreBundles(bundles, index, engine)
+	if closer != nil {
+		defer closer()
+	}
 	if err != nil {
 		return nil, err
 	}

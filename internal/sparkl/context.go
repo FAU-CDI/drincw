@@ -1,6 +1,7 @@
 package sparkl
 
 import (
+	"io"
 	"log"
 	"sync"
 	"sync/atomic"
@@ -14,16 +15,16 @@ import (
 //
 // Storages for any child bundles, and the bundle itself, are created using the makeStorage function.
 // The storage for this bundle is returned.
-func StoreBundle(bundle *pathbuilder.Bundle, index *Index, engine BundleEngine) (BundleStorage, error) {
-	storages, err := StoreBundles([]*pathbuilder.Bundle{bundle}, index, engine)
+func StoreBundle(bundle *pathbuilder.Bundle, index *Index, engine BundleEngine) (BundleStorage, func() error, error) {
+	storages, closer, err := StoreBundles([]*pathbuilder.Bundle{bundle}, index, engine)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return storages[0], err
+	return storages[0], closer, err
 }
 
 // StoreBundles is like StoreBundle, but takes multiple bundles
-func StoreBundles(bundles []*pathbuilder.Bundle, index *Index, engine BundleEngine) ([]BundleStorage, error) {
+func StoreBundles(bundles []*pathbuilder.Bundle, index *Index, engine BundleEngine) ([]BundleStorage, func() error, error) {
 	context := &Context{
 		Index:  index,
 		Engine: engine,
@@ -36,7 +37,7 @@ func StoreBundles(bundles []*pathbuilder.Bundle, index *Index, engine BundleEngi
 	}
 	err := context.Wait()
 
-	return storages, err
+	return storages, context.Close, err
 }
 
 // Context represents a context to extract bundle data from index into storages.
@@ -52,6 +53,8 @@ type Context struct {
 
 	extractWait  sync.WaitGroup // waiting on extracting entities in all bundles
 	childAddWait sync.WaitGroup // loading child entities wait
+
+	closers chan io.Closer
 }
 
 // Open opens this context, and signals that multiple calls to Store() may follow.
@@ -59,6 +62,7 @@ type Context struct {
 // Multiple calls to Open are invalid.
 func (context *Context) Open() {
 	context.extractWait.Add(1)
+	context.closers = make(chan io.Closer)
 }
 
 // Wait signals this context that no more bundles will be loaded.
@@ -70,6 +74,21 @@ func (context *Context) Wait() error {
 	context.extractWait.Wait()
 	context.childAddWait.Wait()
 	return context.err
+}
+
+// Close closes this context
+func (context *Context) Close() (err error) {
+	for {
+		select {
+		case closer := <-context.closers:
+			cErr := closer.Close()
+			if err == nil {
+				err = cErr
+			}
+		default:
+			return nil
+		}
+	}
 }
 
 // reportError stores an error in this context
@@ -92,7 +111,7 @@ func (context *Context) Store(bundle *pathbuilder.Bundle) BundleStorage {
 	context.extractWait.Add(1)
 
 	// create a new context
-	storage, err := context.Engine(bundle)
+	storage, err := context.Engine.NewStorage(bundle)
 	if context.reportError(err) {
 		context.extractWait.Done()
 		return nil
@@ -169,10 +188,13 @@ func (context *Context) Store(bundle *pathbuilder.Bundle) BundleStorage {
 		go func() {
 			context.extractWait.Wait()
 
+			var wg sync.WaitGroup
+
 			for i, cstorage := range cstorages {
+				wg.Add(1)
 				go func(cstorage BundleStorage, bundle *pathbuilder.Bundle) {
+					defer wg.Done()
 					defer context.childAddWait.Done()
-					defer cstorage.Close()
 
 					var err error
 					for child := range cstorage.Get(entityURIIndex, &err) {
@@ -184,6 +206,12 @@ func (context *Context) Store(bundle *pathbuilder.Bundle) BundleStorage {
 					context.reportError(err)
 				}(cstorage, bundle.ChildBundles[i])
 			}
+
+			wg.Wait()
+			storage.Finalize() // no more writing!
+
+			// tell the storage to be closed on a call to Close()
+			context.closers <- storage
 		}()
 	}()
 

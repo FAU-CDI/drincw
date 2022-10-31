@@ -3,13 +3,27 @@ package storages
 import (
 	"errors"
 	"io"
+	"path/filepath"
 
 	"github.com/tkw1536/FAU-CDI/drincw/internal/wisski"
 	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder"
 )
 
 // BundleEngine is a function that initializes and returns a new BundleStorage
-type BundleEngine func(bundle *pathbuilder.Bundle) (BundleStorage, error)
+type BundleEngine interface {
+	NewStorage(bundle *pathbuilder.Bundle) (BundleStorage, error)
+}
+
+// NewBundleEngine creates a new BundleEngine backed by the disk at the provided path.
+// If path is the empty string, return a memory-backed engine instead.
+func NewBundleEngine(path string) BundleEngine {
+	if path == "" {
+		return MemoryEngine{}
+	}
+	return DiskEngine{
+		Path: filepath.Join(path, "bundles"),
+	}
+}
 
 // BundleStorage is responsible for storing entities for a single bundle
 type BundleStorage interface {
@@ -23,7 +37,9 @@ type BundleStorage interface {
 
 	// AddFieldValue adds a value to the given field for the entity with the given uri.
 	//
-	// A non-existing uri should return ErrNoEntity.
+	// Concurrent calls to distinct fields may take place, however within each field calls are always syncronized.
+	//
+	// A non-existing parent should return ErrNoEntity.
 	AddFieldValue(uri wisski.URI, field string, value any, path []wisski.URI) error
 
 	// RegisterChildStorage register the given storage as a BundleStorage for the child bundle.
@@ -32,7 +48,7 @@ type BundleStorage interface {
 
 	// AddChild adds a child entity of the given bundle to the given entity.
 	//
-	// Multiple concurrent calls to AddChild may take place.
+	// Multiple concurrent calls to AddChild may take place, but every concurrent call will be for a different bundle.
 	//
 	// A non-existing parent should return ErrNoEntity.
 	AddChild(parent wisski.URI, bundle string, child wisski.URI) error

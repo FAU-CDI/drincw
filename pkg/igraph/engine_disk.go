@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 
 	"github.com/syndtr/goleveldb/leveldb"
-	"github.com/syndtr/goleveldb/leveldb/opt"
 	"github.com/syndtr/goleveldb/leveldb/util"
 	"github.com/tkw1536/FAU-CDI/drincw/pkg/imap"
 )
@@ -70,7 +69,7 @@ func NewDiskHash(path string) (ThreeStorage, error) {
 		}
 	}
 
-	level, err := leveldb.OpenFile(path, &opt.Options{})
+	level, err := leveldb.OpenFile(path, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -82,17 +81,15 @@ func NewDiskHash(path string) (ThreeStorage, error) {
 
 // ThreeHash implements ThreeStorage in memory
 type ThreeDiskHash struct {
-	DB   *leveldb.DB
-	ropt opt.ReadOptions
-	wopt opt.WriteOptions
+	DB *leveldb.DB
 }
 
 func (tlm *ThreeDiskHash) Add(a, b, c imap.ID) error {
-	return tlm.DB.Put(imap.EncodeIDs(a, b, c), nil, &tlm.wopt)
+	return tlm.DB.Put(imap.EncodeIDs(a, b, c), nil, nil)
 }
 
 func (tlm *ThreeDiskHash) Count() (total int64, err error) {
-	iterator := tlm.DB.NewIterator(nil, &tlm.ropt)
+	iterator := tlm.DB.NewIterator(nil, nil)
 	defer iterator.Release()
 
 	for iterator.Next() {
@@ -114,7 +111,7 @@ func (tlm ThreeDiskHash) Finalize() error {
 }
 
 func (tlm *ThreeDiskHash) Fetch(a, b imap.ID, f func(c imap.ID) error) error {
-	iterator := tlm.DB.NewIterator(util.BytesPrefix(imap.EncodeIDs(a, b)), &tlm.ropt)
+	iterator := tlm.DB.NewIterator(util.BytesPrefix(imap.EncodeIDs(a, b)), nil)
 	defer iterator.Release()
 
 	for iterator.Next() {
@@ -132,7 +129,7 @@ func (tlm *ThreeDiskHash) Fetch(a, b imap.ID, f func(c imap.ID) error) error {
 }
 
 func (tlm *ThreeDiskHash) Has(a, b, c imap.ID) (bool, error) {
-	return tlm.DB.Has(imap.EncodeIDs(a, b, c), &tlm.ropt)
+	return tlm.DB.Has(imap.EncodeIDs(a, b, c), nil)
 }
 
 func (tlm *ThreeDiskHash) Close() (err error) {

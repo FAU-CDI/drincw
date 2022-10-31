@@ -7,33 +7,32 @@ import (
 	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder"
 )
 
-// NewMemorySlice create a new BundleStorage that stores all bundles in memory
-func NewMemorySlice(bundle *pathbuilder.Bundle) (BundleStorage, error) {
-	return &MemorySlice{
+type MemoryEngine struct{}
+
+func (MemoryEngine) NewStorage(bundle *pathbuilder.Bundle) (BundleStorage, error) {
+	return &Memory{
 		bundle:        bundle,
 		childStorages: make(map[string]BundleStorage),
 
 		lookup: make(map[wisski.URI]int),
-		adding: make(chan struct{}),
 	}, nil
 }
 
-// MemorySlice implements an in-memory BundleStorage.
-type MemorySlice struct {
+// Memory implements an in-memory bundle storage
+type Memory struct {
 	Entities []wisski.Entity
 
 	bundle        *pathbuilder.Bundle
 	childStorages map[string]BundleStorage
 
-	setFieldLock sync.Mutex
-	addChildLock sync.Mutex
-
 	lookup map[wisski.URI]int
-	adding chan struct{}
+
+	addField sync.Mutex // mutex for adding fields
+	addChild sync.Mutex // mutex for adding children
 }
 
 // Add adds an entity to this BundleSlice
-func (bs *MemorySlice) Add(uri wisski.URI, path []wisski.URI) error {
+func (bs *Memory) Add(uri wisski.URI, path []wisski.URI) error {
 	bs.lookup[uri] = len(bs.Entities)
 	entity := wisski.Entity{
 		URI:      uri,
@@ -54,15 +53,14 @@ func (bs *MemorySlice) Add(uri wisski.URI, path []wisski.URI) error {
 	return nil
 }
 
-// AddFieldValue
-func (bs *MemorySlice) AddFieldValue(uri wisski.URI, field string, value any, path []wisski.URI) error {
-	bs.setFieldLock.Lock()
-	defer bs.setFieldLock.Unlock()
-
+func (bs *Memory) AddFieldValue(uri wisski.URI, field string, value any, path []wisski.URI) error {
 	id, ok := bs.lookup[uri]
 	if !ok {
 		return ErrNoEntity
 	}
+
+	bs.addField.Lock()
+	defer bs.addField.Unlock()
 
 	bs.Entities[id].Fields[field] = append(bs.Entities[id].Fields[field], wisski.FieldValue{
 		Value: value,
@@ -72,22 +70,19 @@ func (bs *MemorySlice) AddFieldValue(uri wisski.URI, field string, value any, pa
 	return nil
 }
 
-func (bs *MemorySlice) RegisterChildStorage(bundle string, storage BundleStorage) error {
-	bs.addChildLock.Lock()
-	defer bs.addChildLock.Unlock()
-
+func (bs *Memory) RegisterChildStorage(bundle string, storage BundleStorage) error {
 	bs.childStorages[bundle] = storage
 	return nil
 }
 
-func (bs *MemorySlice) AddChild(parent wisski.URI, bundle string, child wisski.URI) error {
-	bs.addChildLock.Lock()
-	defer bs.addChildLock.Unlock()
-
+func (bs *Memory) AddChild(parent wisski.URI, bundle string, child wisski.URI) error {
 	id, ok := bs.lookup[parent]
 	if !ok {
 		return ErrNoEntity
 	}
+
+	bs.addChild.Lock()
+	defer bs.addChild.Unlock()
 
 	entity, err := bs.childStorages[bundle].Load(child)
 	if err != nil {
@@ -97,11 +92,11 @@ func (bs *MemorySlice) AddChild(parent wisski.URI, bundle string, child wisski.U
 	return nil
 }
 
-func (bs *MemorySlice) Finalize() error {
+func (bs *Memory) Finalize() error {
 	return nil
 }
 
-func (bs *MemorySlice) Get(parentPathIndex int, errDst *error) <-chan URIWithParent {
+func (bs *Memory) Get(parentPathIndex int, errDst *error) <-chan URIWithParent {
 	c := make(chan URIWithParent)
 	go func() {
 		defer close(c)
@@ -119,7 +114,7 @@ func (bs *MemorySlice) Get(parentPathIndex int, errDst *error) <-chan URIWithPar
 	return c
 }
 
-func (bs *MemorySlice) Load(uri wisski.URI) (entity wisski.Entity, err error) {
+func (bs *Memory) Load(uri wisski.URI) (entity wisski.Entity, err error) {
 	index, ok := bs.lookup[uri]
 	if !ok {
 		return entity, ErrNoEntity
@@ -127,7 +122,7 @@ func (bs *MemorySlice) Load(uri wisski.URI) (entity wisski.Entity, err error) {
 	return bs.Entities[index], nil
 }
 
-func (bs *MemorySlice) Close() error {
+func (bs *Memory) Close() error {
 	bs.lookup = nil
 	bs.childStorages = nil
 	return nil

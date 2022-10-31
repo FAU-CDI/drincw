@@ -67,7 +67,9 @@ func Export(pb *pathbuilder.Pathbuilder, index *Index, engine storages.BundleEng
 					if err != nil {
 						return err
 					}
-					exporter.Add(bundle, &entity)
+					if err := exporter.Add(bundle, &entity); err != nil {
+						return err
+					}
 				}
 
 				// and return it

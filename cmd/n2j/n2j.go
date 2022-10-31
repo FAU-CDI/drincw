@@ -3,7 +3,6 @@ package main
 
 import (
 	_ "embed"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
@@ -71,33 +70,31 @@ func main() {
 		log.Printf("built index, size %d, took %s", count, indexT)
 	}
 
-	// generate bundles
-	var bundles map[string][]sparkl.Entity
-	{
-		start := perf.Now()
-		bundles, err = sparkl.LoadPathbuilder(&pb, index, bEngine)
-		if err != nil {
-			log.Fatalf("Unable to load pathbuilder: %s", err)
-		}
-		bundleT := perf.Since(start)
-		log.Printf("extracted bundles, took %s", bundleT)
+	switch {
+	case sqlite != "":
+		doSqlite(&pb, index, bEngine)
+	default:
+		doJSON(&pb, index, bEngine)
 	}
-
-	// dump as json
-	json.NewEncoder(os.Stdout).Encode(bundles)
 }
+
+// ===================
 
 var nArgs []string
 var cache string
 var sameAs = string(wisski.SameAs)
 var inverseOf = string(wisski.InverseOf)
+var sqlite string
 
 func init() {
 	var legalFlag bool = false
 	flag.BoolVar(&legalFlag, "legal", legalFlag, "Display legal notices and exit")
+
 	flag.StringVar(&sameAs, "sameas", sameAs, "SameAs Properties")
 	flag.StringVar(&inverseOf, "inverseof", inverseOf, "InverseOf Properties")
+
 	flag.StringVar(&cache, "cache", cache, "During indexing, cache data in the given directory as opposed to memory")
+	flag.StringVar(&sqlite, "sqlite", sqlite, "Export an sqlite database to the given path")
 
 	defer func() {
 		if legalFlag {

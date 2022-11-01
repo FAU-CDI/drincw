@@ -30,10 +30,14 @@ func doSqlite(pb *pathbuilder.Pathbuilder, index *sparkl.Index, bEngine storages
 	{
 		start := perf.Now()
 		err = sparkl.Export(pb, index, bEngine, &exporter.SQL{
-			DB:          db,
+			DB: db,
+
 			BatchSize:   sqlLiteBatchSize,
 			MaxQueryVar: sqliteMaxQueryVar,
-			Separator:   ",",
+
+			MakeFieldTables: sqliteFieldTables,
+
+			Separator: ",",
 		})
 		if err != nil {
 			log.Fatalf("Unable to export sql: %s", err)

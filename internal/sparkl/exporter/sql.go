@@ -15,176 +15,228 @@ import (
 // SQL implements an exporter for storing data inside an sql database.
 // TODO(twiesing): For now this only supports string-like fields.
 type SQL struct {
-	DB *sql.DB
+	dbLock sync.Mutex
+	DB     *sql.DB
 
 	BatchSize   int // BatchSize for top-level bundles
 	MaxQueryVar int // Maximum number of query variables (overrides BatchSize)
 
-	Separator string // Seperator for database multi-valued fields
+	MakeFieldTables bool   // create tables for field values (if false, they get joined with "seperator")
+	Separator       string // Seperator for database multi-valued fields
 
-	batches map[string][]wisski.Entity
+	batchLock sync.Mutex
+	batches   map[string][]wisski.Entity
+}
 
-	l sync.Mutex
+// exec executes an sql query
+func (sql *SQL) exec(query string, args []any) (err error) {
+	sql.dbLock.Lock()
+	defer sql.dbLock.Unlock()
+
+	_, err = sql.DB.Exec(query, args...)
+	return
+}
+
+// execInsert executes an insert into the given table, the given columns, and the given values.
+// When this would exceed limits on maximum number of query variables, multiple inserts are executed.
+func (sql *SQL) execInsert(table string, columns []string, values [][]any) error {
+	// nothing to insert!
+	if len(values) == 0 {
+		return nil
+	}
+
+	// determine the chink size based on total number of query variables
+	chunkSize := sql.MaxQueryVar / len(columns)
+	if chunkSize == 0 {
+		return errInsufficientQueryVars
+	}
+
+	// maybe the user requested an even smaller batch size!
+	if sql.BatchSize < chunkSize {
+		chunkSize = sql.BatchSize
+	}
+
+	for i := 0; i < len(values); i += chunkSize {
+		insert := sqlbuilder.InsertInto(table)
+		insert.Cols(columns...)
+
+		// determine the true chunk size
+		chunkStart := i
+		chunkEnd := i + chunkSize
+		if chunkEnd > len(values) {
+			chunkEnd = len(values)
+		}
+
+		// and add the values for this chunk
+		for _, v := range values[chunkStart:chunkEnd] {
+			insert.Values(v...)
+		}
+
+		// perform this insert
+		if err := sql.exec(insert.Build()); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (sql *SQL) Begin(bundle *pathbuilder.Bundle, count int64) error {
-	sql.l.Lock()
-	defer sql.l.Unlock()
+	// make sure that the batches are initialized
+	func() {
+		sql.batchLock.Lock()
+		defer sql.batchLock.Unlock()
 
-	if sql.batches == nil {
-		sql.batches = make(map[string][]wisski.Entity)
-	}
+		if sql.batches == nil {
+			sql.batches = make(map[string][]wisski.Entity)
+		}
+	}()
 
-	return sql.CreateTable(bundle) // create a table for the given bundle
+	// create a table for the given bundle
+	return sql.createBundleTable(bundle)
 }
 
 const (
-	uriField    = "uri"
-	parentField = "parent"
-	fieldPrefix = "field_"
+	uriColumn    = "uri"
+	parentColumn = "parent"
+	valueColumn  = "value"
+
+	fieldColumnPrefix = "field__"
+
+	bundleTablePrefix = "bundle__"
+
+	fieldTablePrefix = "field__"
+	fieldTableInfix  = "__"
 )
 
-func (*SQL) Table(bundle *pathbuilder.Bundle) string {
-	return bundle.Group.ID
+func (*SQL) BundleTable(bundle *pathbuilder.Bundle) string {
+	return bundleTablePrefix + bundle.Group.ID
 }
 
-func (*SQL) Column(field pathbuilder.Field) string {
-	return fieldPrefix + field.ID
+func (*SQL) FieldTable(bundle *pathbuilder.Bundle, field pathbuilder.Field) string {
+	return fieldTablePrefix + bundle.Group.ID + fieldTableInfix + field.ID
 }
 
-func (sql *SQL) CreateTable(bundle *pathbuilder.Bundle) error {
+func (*SQL) FieldColumn(field pathbuilder.Field) string {
+	return fieldColumnPrefix + field.ID
+}
+
+// createBundleTable creates a table for the given bundle
+func (sql *SQL) createBundleTable(bundle *pathbuilder.Bundle) error {
 	// build all the child tables first!
 	for _, child := range bundle.ChildBundles {
-		if err := sql.CreateTable(child); err != nil {
+		if err := sql.createBundleTable(child); err != nil {
 			return err
 		}
 	}
 
 	// drop the table if it already exists
-	if _, err := sql.DB.Exec("DROP TABLE IF EXISTS " + sql.Table(bundle) + ";"); err != nil {
+	if err := sql.exec("DROP TABLE IF EXISTS "+sql.BundleTable(bundle)+";", nil); err != nil {
 		return err
 	}
 
 	// create a table with fields for every field, and the child field
-	table := sqlbuilder.CreateTable(sql.Table(bundle)).IfNotExists()
-	table.Define(uriField, "TEXT", "NOT NULL")
-	table.Define(parentField, "TEXT")
+	table := sqlbuilder.CreateTable(sql.BundleTable(bundle)).IfNotExists()
+	table.Define(uriColumn, "TEXT", "NOT NULL")
+	if !bundle.Toplevel() {
+		table.Define(parentColumn, "TEXT")
+	}
 	for _, field := range bundle.ChildFields {
-		table.Define(sql.Column(field))
+		if !sql.MakeFieldTables {
+			table.Define(sql.FieldColumn(field))
+		} else {
+			if err := sql.CreateFieldTable(bundle, field); err != nil {
+				return err
+			}
+		}
 	}
 
-	// build the table after the child table
-	query, args := table.Build()
-	_, err := sql.DB.Exec(query, args...)
-	return err
+	// run the query
+	return sql.exec(table.Build())
+}
+
+// CreateFieldTable creates a table for the given field
+func (sql *SQL) CreateFieldTable(bundle *pathbuilder.Bundle, field pathbuilder.Field) error {
+	table := sqlbuilder.CreateTable(sql.FieldTable(bundle, field)).IfNotExists()
+	table.Define(uriColumn, "TEXT")
+	table.Define(valueColumn, "TEXT")
+	return sql.exec(table.Build())
 }
 
 func (sql *SQL) Add(bundle *pathbuilder.Bundle, entity *wisski.Entity) error {
-	sql.l.Lock()
-	defer sql.l.Unlock()
+	var shouldFlush bool
 
-	sql.batches[bundle.Group.ID] = append(sql.batches[bundle.Group.ID], *entity)
-	if len(sql.batches) > sql.BatchSize-1 {
-		sql.flushBatches(bundle)
+	func() {
+		sql.batchLock.Lock()
+		defer sql.batchLock.Unlock()
+
+		sql.batches[bundle.Group.ID] = append(sql.batches[bundle.Group.ID], *entity)
+		shouldFlush = len(sql.batches) >= sql.BatchSize
+	}()
+
+	if shouldFlush {
+		return sql.flushBatches(bundle)
 	}
 
 	return nil
 }
 
 func (sql *SQL) flushBatches(bundle *pathbuilder.Bundle) error {
-	err := sql.doInserts(bundle, "", sql.batches[bundle.Group.ID])
-	sql.batches[bundle.Group.ID] = nil
-	return err
+	// take all the bundle from the cache
+	entities := make([]wisski.Entity, sql.BatchSize)
+	func() {
+		sql.batchLock.Lock()
+		defer sql.batchLock.Unlock()
+
+		count := copy(entities, sql.batches[bundle.Group.ID]) // copy entities to batch
+		entities = entities[:count]
+
+		rest := copy(sql.batches[bundle.Group.ID], sql.batches[bundle.Group.ID][count:]) // slide to the left
+		sql.batches[bundle.Group.ID] = sql.batches[bundle.Group.ID][:rest]               // and remove references to everything else
+	}()
+
+	// and do the inserts
+	if len(entities) > 0 {
+		return sql.insert(bundle, "", entities)
+	}
+
+	return nil
 }
 
-var nullString sql.NullString
+func (sql *SQL) End(bundle *pathbuilder.Bundle) error {
+	return sql.flushBatches(bundle)
+}
 
-const maxVariables = 999
+func (sql *SQL) Close() error {
+	return sql.DB.Close() // close the databas
+}
 
-var errSQLInsufficientVars = errors.New("Insufficient query variables")
+var (
+	nullString               sql.NullString
+	errInsufficientQueryVars = errors.New("insufficient query variables")
+)
 
-// flushBuffers flushes the buffers and performs an actual insert
-func (sql *SQL) doInserts(bundle *pathbuilder.Bundle, parent wisski.URI, entities []wisski.Entity) error {
+// inserts performs inserts into the table for the provided bundle.
+func (sql *SQL) insert(bundle *pathbuilder.Bundle, parent wisski.URI, entities []wisski.Entity) error {
 
-	// find all the columns to insert
-	var columns []string
-	columns = append(columns, uriField)
-	if parent != "" {
-		columns = append(columns, parentField)
-	}
-	for _, field := range bundle.Fields() {
-		columns = append(columns, sql.Column(field))
-	}
-
-	// compute the maximal chunk size
-	chunkSize := sql.MaxQueryVar / len(columns)
-	if chunkSize == 0 {
-		return errSQLInsufficientVars
+	// 1. insert into the bundle table
+	if err := sql.insertBundleTable(bundle, parent, entities); err != nil {
+		return err
 	}
 
-	// iterate over each chunk (for which there are sufficient variables)
-	var builder strings.Builder
-	for i := 0; i < len(entities); i += chunkSize {
-		insert := sqlbuilder.InsertInto(sql.Table(bundle))
-		insert.Cols(columns...)
-
-		// compute the true chunk bounds
-		var (
-			chunkStart = i
-			chunkEnd   = i + chunkSize
-		)
-		if chunkEnd > len(entities) {
-			chunkEnd = len(entities)
-		}
-
-		for _, entity := range entities[chunkStart:chunkEnd] {
-			values := make([]any, 1, len(columns))
-			values[0] = entity.URI
-
-			if parent != "" {
-				values = append(values, string(parent))
-			}
-
-			for _, field := range bundle.Fields() {
-				fvalues := entity.Fields[field.ID]
-				if len(fvalues) == 0 {
-					values = append(values, nullString)
-					continue
-				}
-				for _, v := range fvalues {
-					fmt.Fprintf(&builder, "%v,", v.Value)
-				}
-				values = append(values, builder.String()[:builder.Len()-1])
-				builder.Reset()
-			}
-
-			insert.Values(values...)
-		}
-
-		// perform the actual insert!
-		query, args := insert.Build()
-		_, err := sql.DB.Exec(query, args...)
-		if err != nil {
+	// 2. insert into the field table(s) (if any)
+	for _, field := range bundle.ChildFields {
+		if err := sql.insertFieldTables(bundle, field, entities); err != nil {
 			return err
 		}
 	}
 
-	// perform the insert of all children
-	for _, bundle := range bundle.ChildBundles {
-		for _, entity := range entities {
-			children := entity.Children[bundle.Group.ID]
-			for i := 0; i < len(children); i += sql.BatchSize {
-				// compute the true batch bounds
-				var (
-					batchStart = i
-					batchEnd   = i + sql.BatchSize
-				)
-				if batchEnd > len(children) {
-					batchEnd = len(children)
-				}
-				if err := sql.doInserts(bundle, entity.URI, children[batchStart:batchEnd]); err != nil {
-					return err
-				}
+	// 3. insert any children into table(s)
+	bundles := bundle.ChildBundles
+	for _, entity := range entities {
+		for _, bundle := range bundles {
+			if err := sql.insertChildTables(entity, bundle); err != nil {
+				return err
 			}
 		}
 	}
@@ -192,13 +244,77 @@ func (sql *SQL) doInserts(bundle *pathbuilder.Bundle, parent wisski.URI, entitie
 	return nil
 }
 
-func (sql *SQL) End(bundle *pathbuilder.Bundle) error {
-	sql.l.Lock()
-	defer sql.l.Unlock()
+func (sql *SQL) insertFieldTables(bundle *pathbuilder.Bundle, field pathbuilder.Field, entities []wisski.Entity) error {
+	if !sql.MakeFieldTables {
+		// user requested *not* to make the field tables
+		return nil
+	}
 
-	return sql.flushBatches(bundle)
+	// insert into the uri and value columns for each field
+	columns := []string{uriColumn, valueColumn}
+	values := make([][]any, 0)
+	for _, entity := range entities {
+		for _, value := range entity.Fields[field.ID] {
+			values = append(values, []any{
+				entity.URI,
+				fmt.Sprintf("%v", value.Value),
+			})
+		}
+	}
+
+	// do the actual insert!
+	return sql.execInsert(sql.FieldTable(bundle, field), columns, values)
 }
 
-func (sql *SQL) Close() error {
-	return sql.DB.Close() // close the databas
+func (sql *SQL) insertBundleTable(bundle *pathbuilder.Bundle, parent wisski.URI, entities []wisski.Entity) error {
+	// determine all the columns to insert
+	var columns []string
+	columns = append(columns, uriColumn)
+	if !bundle.Toplevel() {
+		columns = append(columns, parentColumn)
+	}
+
+	fields := bundle.ChildFields // the child fields to iterate over
+	if !sql.MakeFieldTables {
+		for _, field := range fields {
+			columns = append(columns, sql.FieldColumn(field))
+		}
+	}
+
+	// make all the strings
+	var builder strings.Builder
+	values := make([][]any, len(entities))
+	for i, entity := range entities {
+		values[i] = make([]any, 0, len(values))
+
+		// uri and parent
+		values[i] = append(values[i], string(entity.URI))
+		if !bundle.Toplevel() {
+			values[i] = append(values[i], string(parent))
+		}
+
+		if sql.MakeFieldTables { // don't have to insert
+			continue
+		}
+
+		// values for the actual fields
+		for _, field := range fields {
+			fvalues := entity.Fields[field.ID]
+			if len(fvalues) == 0 {
+				values[i] = append(values[i], nullString)
+				continue
+			}
+			for _, v := range fvalues {
+				fmt.Fprintf(&builder, "%v%s", v.Value, sql.Separator)
+			}
+			values[i] = append(values[i], builder.String()[:builder.Len()-len(sql.Separator)])
+			builder.Reset()
+		}
+	}
+	return sql.execInsert(sql.BundleTable(bundle), columns, values)
+}
+
+func (sql *SQL) insertChildTables(parent wisski.Entity, bundle *pathbuilder.Bundle) error {
+	children := parent.Children[bundle.Group.ID]
+	return sql.insert(bundle, parent.URI, children)
 }

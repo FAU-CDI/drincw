@@ -84,7 +84,9 @@ var nArgs []string
 var cache string
 var sameAs = string(wisski.SameAs)
 var inverseOf = string(wisski.InverseOf)
+
 var sqlite string
+var sqliteFieldTables bool
 
 func init() {
 	var legalFlag bool = false
@@ -95,6 +97,7 @@ func init() {
 
 	flag.StringVar(&cache, "cache", cache, "During indexing, cache data in the given directory as opposed to memory")
 	flag.StringVar(&sqlite, "sqlite", sqlite, "Export an sqlite database to the given path")
+	flag.BoolVar(&sqliteFieldTables, "sqlite-field-tables", sqliteFieldTables, "Store values for fields in seperate tables")
 
 	defer func() {
 		if legalFlag {

@@ -151,12 +151,14 @@ func (index *IGraph[Label, Datum]) AddData(subject, predicate Label, object Datu
 	return index.insert(s, p, o)
 }
 
+var _unused imap.ID
+
 // insert inserts the provided (subject, predicate, object) ids into the graph
 func (index *IGraph[Label, Datum]) insert(subject, predicate, object imap.ID) error {
-	if err := index.psoIndex.Add(predicate, subject, object); err != nil {
+	if err := index.psoIndex.Add(predicate, subject, object, _unused); err != nil {
 		return err
 	}
-	if err := index.posIndex.Add(predicate, object, subject); err != nil {
+	if err := index.posIndex.Add(predicate, object, subject, _unused); err != nil {
 		return err
 	}
 	return nil

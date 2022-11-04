@@ -19,8 +19,11 @@ type Engine[Label comparable, Datum any] interface {
 type ThreeStorage interface {
 	io.Closer
 
-	// Add adds a new mapping for the given ids
-	Add(a, b, c imap.ID) error
+	// Add adds a new mapping for the given (a, b, c).
+	//
+	// l acts as a label for the insert.
+	// Multiple inserts with identical (a, b, c) but the same label should only return the latest label.
+	Add(a, b, c imap.ID, l imap.ID) error
 
 	// Count counts the overall number of entries in the index
 	Count() (int64, error)
@@ -29,8 +32,9 @@ type ThreeStorage interface {
 	Finalize() error
 
 	// Fetch iterates over all triples (a, b, c) in c-order.
+	// l is the last label that was created for the triple.
 	// If an error occurs, iteration stops and is returned to the caller
-	Fetch(a, b imap.ID, f func(c imap.ID) error) error
+	Fetch(a, b imap.ID, f func(c imap.ID, l imap.ID) error) error
 
 	// Has checks if the given mapping exists
 	Has(a, b, c imap.ID) (bool, error)

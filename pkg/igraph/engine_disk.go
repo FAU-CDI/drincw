@@ -84,8 +84,8 @@ type ThreeDiskHash struct {
 	DB *leveldb.DB
 }
 
-func (tlm *ThreeDiskHash) Add(a, b, c imap.ID) error {
-	return tlm.DB.Put(imap.EncodeIDs(a, b, c), nil, nil)
+func (tlm *ThreeDiskHash) Add(a, b, c imap.ID, l imap.ID) error {
+	return tlm.DB.Put(imap.EncodeIDs(a, b, c), imap.EncodeIDs(l), nil)
 }
 
 func (tlm *ThreeDiskHash) Count() (total int64, err error) {
@@ -110,13 +110,14 @@ func (tlm ThreeDiskHash) Finalize() error {
 	return tlm.DB.SetReadOnly()
 }
 
-func (tlm *ThreeDiskHash) Fetch(a, b imap.ID, f func(c imap.ID) error) error {
+func (tlm *ThreeDiskHash) Fetch(a, b imap.ID, f func(c imap.ID, l imap.ID) error) error {
 	iterator := tlm.DB.NewIterator(util.BytesPrefix(imap.EncodeIDs(a, b)), nil)
 	defer iterator.Release()
 
 	for iterator.Next() {
 		c := imap.DecodeID(iterator.Key(), 2)
-		if err := f(c); err != nil {
+		l := imap.DecodeID(iterator.Value(), 0)
+		if err := f(c, l); err != nil {
 			return err
 		}
 	}

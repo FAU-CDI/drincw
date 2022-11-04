@@ -38,10 +38,11 @@ func (index *IGraph[Label, Datum]) PathsStarting(predicate, object Label) (*Path
 	}
 
 	return index.newQuery(func(sender iterator.Generator[element]) {
-		err := index.posIndex.Fetch(p, o, func(s imap.ID) error {
+		err := index.posIndex.Fetch(p, o, func(s imap.ID, l imap.ID) error {
 			if sender.Yield(element{
-				Node:   s,
-				Parent: nil,
+				Node:       s,
+				IndexLabel: l,
+				Parent:     nil,
 			}) {
 				return errAborted
 			}
@@ -80,10 +81,11 @@ var errAborted = errors.New("paths: aborted")
 // expand expands the nodes in this query by adding a link to each element found in the index
 func (set *Paths[URI, Datum]) expand(p imap.ID) error {
 	set.elements = iterator.Pipe(set.elements, func(subject element, sender iterator.Generator[element]) (stop bool) {
-		err := set.index.psoIndex.Fetch(p, subject.Node, func(object imap.ID) error {
+		err := set.index.psoIndex.Fetch(p, subject.Node, func(object imap.ID, l imap.ID) error {
 			if sender.Yield(element{
-				Node:   object,
-				Parent: &subject,
+				Node:       object,
+				IndexLabel: l,
+				Parent:     &subject,
 			}) {
 				return errAborted
 			}
@@ -164,6 +166,9 @@ func (set *Paths[Label, Datum]) Paths() iterator.Iterator[Path[Label, Datum]] {
 type element struct {
 	// node this path ends at
 	Node imap.ID
+
+	// label this node had in the index (if applicable)
+	IndexLabel imap.ID
 
 	// previous element of this path (if any)
 	Parent *element

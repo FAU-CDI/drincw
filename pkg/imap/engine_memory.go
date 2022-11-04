@@ -3,8 +3,8 @@ package imap
 // MemoryEngine represents an engine that stores storages in memory
 type MemoryEngine[Label comparable] struct{}
 
-func (MemoryEngine[Label]) Forward() (Storage[Label, ID], error) {
-	ms := make(MemoryStorage[Label, ID])
+func (MemoryEngine[Label]) Forward() (Storage[Label, [2]ID], error) {
+	ms := make(MemoryStorage[Label, [2]ID])
 	return &ms, nil
 }
 

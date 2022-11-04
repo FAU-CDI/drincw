@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 
 	"github.com/syndtr/goleveldb/leveldb"
+	"github.com/syndtr/goleveldb/leveldb/errors"
 	"github.com/syndtr/goleveldb/leveldb/util"
 	"github.com/tkw1536/FAU-CDI/drincw/pkg/imap"
 )
@@ -35,6 +36,24 @@ func (de DiskEngine[Label, Datum]) Data() (imap.Storage[imap.ID, Datum], error) 
 
 	return ds, nil
 }
+
+func (de DiskEngine[Label, Datum]) Triples() (imap.Storage[imap.ID, IndexTriple], error) {
+	data := filepath.Join(de.Path, "triples.leveldb")
+
+	ds, err := imap.NewDiskStorage[imap.ID, IndexTriple](data)
+	if err != nil {
+		return nil, err
+	}
+
+	ds.MarshalKey = imap.MarshalID
+	ds.UnmarshalKey = imap.UnmarshalID
+
+	ds.MarshalValue = MarshalTriple
+	ds.UnmarshalValue = UnmarshalTriple
+
+	return ds, nil
+}
+
 func (de DiskEngine[Label, Datum]) Inverses() (imap.Storage[imap.ID, imap.ID], error) {
 	inverses := filepath.Join(de.Path, "inverses.leveldb")
 
@@ -84,8 +103,19 @@ type ThreeDiskHash struct {
 	DB *leveldb.DB
 }
 
-func (tlm *ThreeDiskHash) Add(a, b, c imap.ID, l imap.ID) error {
-	return tlm.DB.Put(imap.EncodeIDs(a, b, c), imap.EncodeIDs(l), nil)
+func (tlm *ThreeDiskHash) Add(a, b, c imap.ID, l imap.ID, conflict func(old, new imap.ID) (imap.ID, error)) (conflicted bool, err error) {
+	key := imap.EncodeIDs(a, b, c)
+	value, err := tlm.DB.Get(key, nil)
+	switch err {
+	case nil:
+		l, err = conflict(imap.DecodeID(value, 0), l)
+		if err != nil {
+			return false, err
+		}
+		conflicted = true
+	case errors.ErrNotFound:
+	}
+	return conflicted, tlm.DB.Put(imap.EncodeIDs(a, b, c), imap.EncodeIDs(l), nil)
 }
 
 func (tlm *ThreeDiskHash) Count() (total int64, err error) {

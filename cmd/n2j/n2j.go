@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/pkg/profile"
 	"github.com/tkw1536/FAU-CDI/drincw"
 	"github.com/tkw1536/FAU-CDI/drincw/internal/sparkl"
 	"github.com/tkw1536/FAU-CDI/drincw/internal/sparkl/storages"
@@ -18,6 +19,10 @@ import (
 )
 
 func main() {
+	if debugProfile != "" {
+		defer profile.Start(profile.ProfilePath(debugProfile)).Stop()
+	}
+
 	if len(nArgs) != 2 {
 		log.Print("Usage: n2r [-help] [...flags] /path/to/pathbuilder /path/to/nquads")
 		flag.PrintDefaults()
@@ -63,11 +68,7 @@ func main() {
 		}
 		defer index.Close()
 
-		count, err := index.TripleCount()
-		if err != nil {
-			log.Fatalf("Unable to get triple count: %s", err)
-		}
-		log.Printf("built index, size %d, took %s", count, indexT)
+		log.Printf("built index, stats %s, took %s", index.Stats(), indexT)
 	}
 
 	switch {
@@ -84,6 +85,7 @@ var nArgs []string
 var cache string
 var sameAs = string(wisski.SameAs)
 var inverseOf = string(wisski.InverseOf)
+var debugProfile = ""
 
 var sqlite string
 var sqliteFieldTables bool
@@ -98,6 +100,8 @@ func init() {
 	flag.StringVar(&cache, "cache", cache, "During indexing, cache data in the given directory as opposed to memory")
 	flag.StringVar(&sqlite, "sqlite", sqlite, "Export an sqlite database to the given path")
 	flag.BoolVar(&sqliteFieldTables, "sqlite-field-tables", sqliteFieldTables, "Store values for fields in seperate tables")
+
+	flag.StringVar(&debugProfile, "debug-profile", debugProfile, "write out a debugging profile to the given path")
 
 	defer func() {
 		if legalFlag {

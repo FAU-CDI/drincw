@@ -40,9 +40,9 @@ func (index *IGraph[Label, Datum]) PathsStarting(predicate, object Label) (*Path
 	return index.newQuery(func(sender iterator.Generator[element]) {
 		err := index.posIndex.Fetch(p, o, func(s imap.ID, l imap.ID) error {
 			if sender.Yield(element{
-				Node:       s,
-				IndexLabel: l,
-				Parent:     nil,
+				Node:   s,
+				Triple: l,
+				Parent: nil,
 			}) {
 				return errAborted
 			}
@@ -83,9 +83,9 @@ func (set *Paths[URI, Datum]) expand(p imap.ID) error {
 	set.elements = iterator.Pipe(set.elements, func(subject element, sender iterator.Generator[element]) (stop bool) {
 		err := set.index.psoIndex.Fetch(p, subject.Node, func(object imap.ID, l imap.ID) error {
 			if sender.Yield(element{
-				Node:       object,
-				IndexLabel: l,
-				Parent:     &subject,
+				Node:   object,
+				Triple: l,
+				Parent: &subject,
 			}) {
 				return errAborted
 			}
@@ -153,13 +153,33 @@ func (set *Paths[Label, Datum]) Size() (int, error) {
 // Paths returns an iterator over paths contained in this Paths.
 // It may only be called once, afterwards further calls may be invalid.
 func (set *Paths[Label, Datum]) Paths() iterator.Iterator[Path[Label, Datum]] {
-	return iterator.Map(set.elements, func(element element) Path[Label, Datum] {
-		return Path[Label, Datum]{
-			index:   set.index,
-			nodeIDs: element.nodes(),
-			edgeIDs: set.predicates,
+	return iterator.Map(set.elements, set.makePath)
+}
+
+// makePath creates a path from an element
+func (set *Paths[Label, Datum]) makePath(elem element) (path Path[Label, Datum]) {
+	path.index = set.index
+	path.edgeIDs = set.predicates
+
+	// insert nodes and triples
+	e := &elem
+	for {
+		path.nodeIDs = append(path.nodeIDs, e.Node)
+		path.tripleIDs = append(path.tripleIDs, elem.Triple)
+		e = e.Parent
+		if e == nil {
+			break
 		}
-	})
+	}
+
+	// reverse the triples and nodes
+	for i := len(path.nodeIDs)/2 - 1; i >= 0; i-- {
+		opp := len(path.nodeIDs) - 1 - i
+		path.nodeIDs[i], path.nodeIDs[opp] = path.nodeIDs[opp], path.nodeIDs[i]
+		path.tripleIDs[i], path.tripleIDs[opp] = path.tripleIDs[opp], path.tripleIDs[i]
+	}
+
+	return path
 }
 
 // element represents an element of a path
@@ -167,33 +187,11 @@ type element struct {
 	// node this path ends at
 	Node imap.ID
 
-	// label this node had in the index (if applicable)
-	IndexLabel imap.ID
+	// triple this label had (if applicable)
+	Triple imap.ID
 
 	// previous element of this path (if any)
 	Parent *element
-}
-
-// nodes returns the nodes contained in this path
-func (elem *element) nodes() []imap.ID {
-	// create a new slice for the nodes
-	slice := []imap.ID{}
-	for {
-		slice = append(slice, elem.Node)
-		elem = elem.Parent
-		if elem == nil {
-			break
-		}
-	}
-
-	// reverse the elements!
-	for i := len(slice)/2 - 1; i >= 0; i-- {
-		opp := len(slice) - 1 - i
-		slice[i], slice[opp] = slice[opp], slice[i]
-	}
-
-	// and return them
-	return slice
 }
 
 // Path represents a path inside a GraphIndex
@@ -212,6 +210,11 @@ type Path[Label comparable, Datum any] struct {
 	edgeIDs   []imap.ID
 	edgesOnce sync.Once
 	edges     []Label
+
+	errTriples  error
+	tripleIDs   []imap.ID
+	triplesOnce sync.Once
+	triples     []Triple[Label, Datum]
 }
 
 // Nodes returns the nodes this path consists of, in order.
@@ -289,6 +292,24 @@ func (path *Path[Label, Datum]) processEdges() {
 		path.edges = make([]Label, len(path.edgeIDs))
 		for j, label := range path.edgeIDs {
 			path.edges[j], path.errEdges = path.index.labels.Reverse(label)
+			if path.errEdges != nil {
+				return
+			}
+		}
+	})
+}
+
+// Triples returns the triples this path consists of
+func (path *Path[Label, Datum]) Triples() ([]Triple[Label, Datum], error) {
+	path.processTriples()
+	return path.triples, path.errTriples
+}
+
+func (path *Path[Label, Datum]) processTriples() {
+	path.triplesOnce.Do(func() {
+		path.triples = make([]Triple[Label, Datum], len(path.tripleIDs))
+		for j, label := range path.tripleIDs {
+			path.triples[j], path.errTriples = path.index.Triple(label)
 			if path.errEdges != nil {
 				return
 			}

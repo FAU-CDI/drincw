@@ -11,6 +11,7 @@ type Engine[Label comparable, Datum any] interface {
 	imap.Engine[Label]
 
 	Data() (imap.Storage[imap.ID, Datum], error)
+	Triples() (imap.Storage[imap.ID, IndexTriple], error)
 	Inverses() (imap.Storage[imap.ID, imap.ID], error)
 	PSOIndex() (ThreeStorage, error)
 	POSIndex() (ThreeStorage, error)
@@ -22,8 +23,8 @@ type ThreeStorage interface {
 	// Add adds a new mapping for the given (a, b, c).
 	//
 	// l acts as a label for the insert.
-	// Multiple inserts with identical (a, b, c) but the same label should only return the latest label.
-	Add(a, b, c imap.ID, l imap.ID) error
+	// when the given edge already exists, the conflict function should be called to resolve the conflict
+	Add(a, b, c imap.ID, l imap.ID, conflict func(old, new imap.ID) (imap.ID, error)) (conflicted bool, err error)
 
 	// Count counts the overall number of entries in the index
 	Count() (int64, error)

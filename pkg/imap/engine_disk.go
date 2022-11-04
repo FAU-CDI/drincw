@@ -16,10 +16,10 @@ type DiskEngine[Label comparable] struct {
 	UnmarshalLabel func(dest *Label, src []byte) error
 }
 
-func (de DiskEngine[Label]) Forward() (Storage[Label, ID], error) {
+func (de DiskEngine[Label]) Forward() (Storage[Label, [2]ID], error) {
 	forward := filepath.Join(de.Path, "forward.pogrep")
 
-	ds, err := NewDiskStorage[Label, ID](forward)
+	ds, err := NewDiskStorage[Label, [2]ID](forward)
 	if err != nil {
 		return nil, err
 	}
@@ -29,8 +29,8 @@ func (de DiskEngine[Label]) Forward() (Storage[Label, ID], error) {
 		ds.UnmarshalKey = de.UnmarshalLabel
 	}
 
-	ds.MarshalValue = MarshalID
-	ds.UnmarshalValue = UnmarshalID
+	ds.MarshalValue = MarshalIDPair
+	ds.UnmarshalValue = UnmarshalIDPair
 
 	return ds, nil
 }

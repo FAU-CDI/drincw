@@ -147,6 +147,11 @@ func MarshalID(value ID) ([]byte, error) {
 	return dest, nil
 }
 
+// MarshalIDPair is like MarshalID but takes two ids
+func MarshalIDPair(values [2]ID) ([]byte, error) {
+	return EncodeIDs(values[0], values[1]), nil
+}
+
 var errUnmarshal = errors.New("unmarshalID: invalid length")
 
 // UnmarshalID behaves like [dest.Decode], but produces an error
@@ -156,5 +161,15 @@ func UnmarshalID(dest *ID, src []byte) error {
 		return errUnmarshal
 	}
 	dest.Decode(src)
+	return nil
+}
+
+// UnmarshalIDPair is like UnmarshalID but takes two ids
+func UnmarshalIDPair(dest *[2]ID, src []byte) error {
+	if len(src) < 2*IDLen {
+		return errUnmarshal
+	}
+	dest[0].Decode(src[:IDLen])
+	dest[1].Decode(src[IDLen:])
 	return nil
 }

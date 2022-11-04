@@ -18,19 +18,25 @@ func ExampleIMap() {
 		}
 	}
 
+	lid2 := func(prefix string) func(id [2]ID, err error) {
+		return func(id [2]ID, err error) {
+			fmt.Println(prefix, id[0], err)
+		}
+	}
+
 	lstr := func(prefix string) func(value string, err error) {
 		return func(value string, err error) {
 			fmt.Println(prefix, value, err)
 		}
 	}
 
-	lid("add")(mp.Add("hello"))
-	lid("add")(mp.Add("world"))
-	lid("add")(mp.Add("earth"))
+	lid2("add")(mp.Add("hello"))
+	lid2("add")(mp.Add("world"))
+	lid2("add")(mp.Add("earth"))
 
-	lid("add<again>")(mp.Add("hello"))
-	lid("add<again>")(mp.Add("world"))
-	lid("add<again>")(mp.Add("earth"))
+	lid2("add<again>")(mp.Add("hello"))
+	lid2("add<again>")(mp.Add("world"))
+	lid2("add<again>")(mp.Add("earth"))
 
 	lid("get")(mp.Forward("hello"))
 	lid("get")(mp.Forward("world"))
@@ -45,9 +51,9 @@ func ExampleIMap() {
 	lstr("reverse<again>")(mp.Reverse(*new(ID).LoadInt(big.NewInt(1))))
 	lstr("reverse<again>")(mp.Reverse(*new(ID).LoadInt(big.NewInt(3))))
 
-	lid("add<again>")(mp.Add("hello"))
-	lid("add<again>")(mp.Add("world"))
-	lid("add<again>")(mp.Add("earth"))
+	lid2("add<again>")(mp.Add("hello"))
+	lid2("add<again>")(mp.Add("world"))
+	lid2("add<again>")(mp.Add("earth"))
 
 	// Output: add ID(1) <nil>
 	// add ID(2) <nil>
@@ -103,20 +109,17 @@ func engineTest(t *testing.T, engine Engine[string], N int) {
 	// check that reverse mappings work
 	var id ID
 	var big big.Int
-	for i := 0; i < N; i++ {
+	for i := 1; i < N; i++ {
 		big.SetInt64(int64(i))
 
 		got, err := mp.Reverse(*id.LoadInt(&big))
 		if err != nil {
 			t.Errorf("Reverse() returned error %s", err)
 		}
-		var want string
-		if i%2 == 1 {
-			want = strconv.Itoa(i - 1)
-		}
+		want := strconv.Itoa(i - 1)
 
 		if got != want {
-			t.Errorf("Reverse() got = %q, want = %q", got, want)
+			t.Errorf("Reverse(%s) got = %q, want = %q", &big, got, want)
 		}
 	}
 }

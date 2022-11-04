@@ -4,7 +4,7 @@ import "io"
 
 // Engine creates Storages for an IMap
 type Engine[Label comparable] interface {
-	Forward() (Storage[Label, ID], error)
+	Forward() (Storage[Label, [2]ID], error)
 	Reverse() (Storage[ID, Label], error)
 }
 

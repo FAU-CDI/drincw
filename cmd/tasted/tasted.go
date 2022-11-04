@@ -23,6 +23,10 @@ import (
 )
 
 func main() {
+	if debugServer != "" {
+		go listenDebug()
+	}
+
 	if len(nArgs) != 2 {
 		log.Print("Usage: tasted [-help] [...flags] /path/to/pathbuilder /path/to/nquads")
 		flag.PrintDefaults()
@@ -73,11 +77,7 @@ func main() {
 		}
 		defer index.Close()
 
-		count, err := index.TripleCount()
-		if err != nil {
-			log.Fatalf("Unable to get triple count: %s", err)
-		}
-		log.Printf("built index, size %d, took %s", count, indexPerf)
+		log.Printf("built index, stats %s, took %s", index.Stats(), indexPerf)
 	}
 
 	// generate bundles
@@ -140,6 +140,7 @@ var sameAs string = string(wisski.SameAs)
 var inverseOf string = string(wisski.InverseOf)
 
 var cache string
+var debugServer string
 
 func init() {
 	var legalFlag bool = false
@@ -158,6 +159,7 @@ func init() {
 	flag.StringVar(&sameAs, "sameas", sameAs, "SameAs Properties")
 	flag.StringVar(&inverseOf, "inverseof", inverseOf, "InverseOf Properties")
 	flag.StringVar(&cache, "cache", cache, "During indexing, cache data in the given directory as opposed to memory")
+	flag.StringVar(&debugServer, "debug-listen", debugServer, "start a profiling server on the given address")
 
 	flag.Parse()
 	nArgs = flag.Args()

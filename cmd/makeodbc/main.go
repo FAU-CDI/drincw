@@ -79,7 +79,7 @@ func writeSQL(name string, pb pathbuilder.Pathbuilder, odbc odbc.Server) {
 	if bundle == nil {
 		log.Fatalf("no such bundle: %s", name)
 	}
-	table := odbc.TableByID(bundle.Group.MachineName())
+	table := odbc.TableByID(bundle.Path.MachineName())
 	if table.Name == "" {
 		log.Fatalf("no table for: %s", flagDumpSQL)
 	}

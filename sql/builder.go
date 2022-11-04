@@ -23,7 +23,7 @@ func NewBuilder(pb pathbuilder.Pathbuilder) Builder {
 	bundles := pb.Bundles()
 	b := make(map[string]TableBuilder, len(bundles))
 	for _, bundle := range bundles {
-		b[bundle.Group.ID] = NewTableBuilder(*bundle)
+		b[bundle.Path.ID] = NewTableBuilder(*bundle)
 	}
 	return b
 }
@@ -61,7 +61,7 @@ type TableBuilder struct {
 // Any further details are an implementation detail, and should not be relied upon by the caller.
 func NewTableBuilder(bundle pathbuilder.Bundle) TableBuilder {
 	tb := TableBuilder{}
-	tb.TableName = bundle.Group.ID
+	tb.TableName = bundle.Path.ID
 	tb.ID = "id"
 
 	fields := bundle.AllFields()

@@ -18,7 +18,7 @@ func Marshal(pb pathbuilder.Pathbuilder) string {
 }
 
 func marshalBundle(builder *strings.Builder, bundle *pathbuilder.Bundle, prefix, indent string) {
-	marshalPath(builder, bundle.Group, "Bundle", prefix, indent)
+	marshalPath(builder, bundle.Path, "Bundle", prefix, indent)
 	for _, b := range bundle.Bundles() {
 		marshalBundle(builder, b, prefix+indent, indent)
 	}

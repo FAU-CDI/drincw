@@ -1,22 +1,22 @@
 {{ template "base.html" . }}
 
-{{ define "title" }}TasteD - Bundle "{{ .Bundle.Group.Name }}"{{ end }}
+{{ define "title" }}TasteD - Bundle "{{ .Bundle.Path.Name }}"{{ end }}
 
 
 {{ define "header" }}
-    <h1>{{ .Bundle.Group.Name }}</h1>
+    <h1>{{ .Bundle.Path.Name }}</h1>
 {{ end }}
 
 {{ define "nav" }}
     <a href="/">Bundles</a> &gt;
-    <b>Bundle {{ .Bundle.Group.Name }}</b>
+    <b>Bundle {{ .Bundle.Path.Name }}</b>
 {{ end }}
     
 {{ define "main" }}
     {{ $l := len .URIS }}
     <p>{{ $l }} {{ if eq $l 1 }}Entity{{ else }}Entities{{ end }}</p>
     <ul>
-        {{ $bundle := .Bundle.Group.ID }}
+        {{ $bundle := .Bundle.Path.ID }}
         {{ range .URIS }}
             <li>
                 <a href="/entity/{{ $bundle }}?uri={{ . }}">

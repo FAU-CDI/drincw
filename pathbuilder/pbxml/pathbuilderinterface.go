@@ -48,7 +48,7 @@ func (xml pathbuilderInterface) Pathbuilder() pathbuilder.Pathbuilder {
 
 		// create a new child group
 		group := pb.GetOrCreate(path.ID)
-		group.Group = path.Path()
+		group.Path = path.Path()
 		group.Parent = parent
 		if parent != nil {
 			parent.ChildBundles = append(parent.ChildBundles, group)

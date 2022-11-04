@@ -4,18 +4,20 @@ import (
 	"sort"
 )
 
+// Bundle represents a class of objects
 type Bundle struct {
-	Group Path
+	// Path represents the path of this object
+	Path
 
 	Parent       *Bundle   // Parent Bundle (if any)
 	ChildBundles []*Bundle // Children of this Bundle
 	ChildFields  []Field   // Fields in this Bundle
 
-	// tracks the order this bundle was imported in (if any)
-	importOrder int
+	order int // tracks order of this bundle within a pathbuilder
 }
 
-// Field returns the field with the given id
+// Field returns the field with the given id.
+// if the field does not exist, it returns the empty field.
 func (bundle Bundle) Field(id string) Field {
 	for _, f := range bundle.ChildFields {
 		if f.ID == id {
@@ -25,31 +27,35 @@ func (bundle Bundle) Field(id string) Field {
 	return Field{}
 }
 
-// Bundle returns the child bundle with the given id
+// Bundle returns the bundle with the given ID.
+// If such a bundle does not exists, returns nil
 func (bundle Bundle) Bundle(id string) *Bundle {
 	for _, b := range bundle.ChildBundles {
-		if b.Group.ID == id {
+		if b.Path.ID == id {
 			return b
 		}
 	}
 	return nil
 }
 
-// TopLevel checks if a bundle is toplevel
-func (bundle Bundle) Toplevel() bool {
+// IsToplevel checks if this bundle is toplevel
+func (bundle Bundle) IsToplevel() bool {
 	return bundle.Parent == nil
 }
 
-// Bundles returns a list of child bundles in this Bundle
+// Bundles returns an ordered list of child bundles.
+// Bundles are ordered by their weight.
 func (bundle Bundle) Bundles() []*Bundle {
+	// TODO: can we cache the ordering?
 	children := make([]*Bundle, len(bundle.ChildBundles))
 	copy(children, bundle.ChildBundles)
 	sort.SliceStable(children, func(i, j int) bool {
-		return children[i].Group.Weight < children[j].Group.Weight
+		return children[i].Path.Weight < children[j].Path.Weight
 	})
 	return children
 }
 
+// Fields
 func (bundle Bundle) Fields() []Field {
 	fields := make([]Field, len(bundle.ChildFields))
 	copy(fields, bundle.ChildFields)

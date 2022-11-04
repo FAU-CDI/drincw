@@ -57,7 +57,10 @@ hr {
 }
 
 .entity_table,
-.entity_table td {
+.entity_table td,
+.field_table,
+.field_table td
+{
     border-collapse: collapse;
     border: 1px solid black;
 }
@@ -102,4 +105,8 @@ img {
 
 .bundle-nested {
     margin-left: 1em;
+}
+
+.showable {
+    cursor: pointer;
 }

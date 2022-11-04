@@ -1,6 +1,8 @@
 package viewer
 
 import (
+	"log"
+
 	"github.com/tkw1536/FAU-CDI/drincw/internal/sparkl"
 	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder"
 )
@@ -22,7 +24,7 @@ func (viewer *Viewer) findEntity(bundleid string, uri sparkl.URI) (bundle *pathb
 		return nil, nil, false
 	}
 
-	entity, ok = viewer.Cache.Entity(uri, bundle.Group.ID)
+	entity, ok = viewer.Cache.Entity(uri, bundle.Path.ID)
 	if !ok {
 		return nil, nil, false
 	}
@@ -32,12 +34,14 @@ func (viewer *Viewer) findEntity(bundleid string, uri sparkl.URI) (bundle *pathb
 
 func (viewer *Viewer) getBundles() (bundles []*pathbuilder.Bundle, ok bool) {
 	names := viewer.Cache.BundleNames
-	bundles = make([]*pathbuilder.Bundle, len(names))
-	for i, name := range names {
-		bundles[i] = viewer.Pathbuilder.Get(name)
-		if bundles[i] == nil {
-			return nil, false
+	bundles = make([]*pathbuilder.Bundle, 0, len(names))
+	for _, name := range names {
+		bundle := viewer.Pathbuilder.Get(name)
+		if bundle == nil {
+			log.Println("nil bundle", name)
+			continue
 		}
+		bundles = append(bundles, bundle)
 	}
 	return bundles, true
 }
@@ -50,7 +54,7 @@ func (viewer *Viewer) getEntityURIs(id string) (bundle *pathbuilder.Bundle, uris
 		return nil, nil, false
 	}
 
-	entities := viewer.Cache.BEIndex[bundle.Group.ID]
+	entities := viewer.Cache.BEIndex[bundle.Path.ID]
 	uris = make([]sparkl.URI, len(entities))
 	for i, entity := range entities {
 		uris[i] = entity.URI

@@ -17,7 +17,7 @@ type Map struct {
 func (mp *Map) Begin(bundle *pathbuilder.Bundle, count int64) error {
 	mp.l.Lock()
 	defer mp.l.Unlock()
-	mp.Data[bundle.Group.ID] = make([]wisski.Entity, 0, int(count))
+	mp.Data[bundle.Path.ID] = make([]wisski.Entity, 0, int(count))
 	return nil
 }
 
@@ -25,7 +25,7 @@ func (mp *Map) Begin(bundle *pathbuilder.Bundle, count int64) error {
 func (mp *Map) Add(bundle *pathbuilder.Bundle, entity *wisski.Entity) error {
 	mp.l.Lock()
 	defer mp.l.Unlock()
-	mp.Data[bundle.Group.ID] = append(mp.Data[bundle.Group.ID], *entity)
+	mp.Data[bundle.Path.ID] = append(mp.Data[bundle.Path.ID], *entity)
 	return nil
 }
 

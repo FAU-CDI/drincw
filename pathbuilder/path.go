@@ -1,37 +1,35 @@
 // Package Pathbuilder defines Pathbuilder
 package pathbuilder
 
+// Path represents a single path in the Pathbuilder
 type Path struct {
-	ID      string
-	Weight  int
-	Enabled bool
+	ID   string // Identifier of this path
+	UUID string // UUID of this path
 
-	GroupID string
-	Bundle  string
+	Weight  int  // Display Order in the frontend
+	Enabled bool // Is the path enabled or not
 
-	Field     string
-	FieldType string
+	IsGroup bool // Is this path a group or a field?
 
-	DisplayWidget   string
-	FormatterWidget string
+	GroupID string // Identifier of the group this path belongs to
+	Bundle  string // Identifier of the bundle this path belongs to
 
-	Cardinality int
+	Field                string // Identifier of the field this path belongs to
+	FieldType            string // Actual Field Type
+	FieldTypeInformative string // Field type to display to the user
 
-	FieldTypeInformative string
+	DisplayWidget   string // Widget used for display
+	FormatterWidget string // Widget used for formatting
 
-	PathArray []string
+	Cardinality int // Cardinality of this path
 
-	DatatypeProperty string
+	PathArray        []string // Paths that make up the item
+	DatatypeProperty string   // Datatype property (in case of a field)
+	Disamb           int      // index where the path will be disambiguated
 
-	ShortName string
-	Disamb    int
-
-	Description string
-	UUID        string
-
-	IsGroup bool
-
-	Name string
+	Name        string // Name of this path
+	ShortName   string // ShortName of this path
+	Description string // Description of this path
 }
 
 // MakeCardinality returns the cardinality to use for a call to make()
@@ -64,7 +62,7 @@ func (pb Pathbuilder) Paths() []Path {
 func (bundle Bundle) Paths() []Path {
 	paths := make([]Path, 0, len(bundle.ChildBundles)+len(bundle.ChildBundles)+1)
 
-	paths = append(paths, bundle.Group)
+	paths = append(paths, bundle.Path)
 	for _, c := range bundle.Bundles() {
 		paths = append(paths, c.Paths()...)
 	}

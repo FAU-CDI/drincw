@@ -9,7 +9,7 @@
 
 {{ define "nav" }}
     <a href="/">Bundles</a> &gt;
-    <a href="/bundle/{{ .Bundle.Group.ID }}">Bundle {{ .Bundle.Group.Name }}</a> &gt;
+    <a href="/bundle/{{ .Bundle.Path.ID }}">Bundle {{ .Bundle.Path.Name }}</a> &gt;
     <b>Entity {{ .Entity.URI }}</b>
 {{ end }}
 

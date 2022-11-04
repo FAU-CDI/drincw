@@ -1,17 +1,21 @@
-// Package pathbuilder contains the pathbuilder
+// Package pathbuilder provides the Pathbuilder and related classes
 package pathbuilder
 
 import (
 	"sort"
 )
 
+// Pathbuilder represents a WissKI Pathbuilder
+//
+// A Pathbuilder consists of an order collection of bundles.
+// A singular bundle can be accessed using it's identifier.
 type Pathbuilder map[string]*Bundle
 
-// Bundles returns a list of top-level bundles contained in this BundleDict
+// Bundles returns an ordered list of bundles in this Pathbuilder
 func (pb Pathbuilder) Bundles() []*Bundle {
 	bundles := make([]*Bundle, 0, len(pb))
 	for _, bundle := range pb {
-		if !bundle.Toplevel() {
+		if !bundle.IsToplevel() {
 			continue
 		}
 		bundles = append(bundles, bundle)
@@ -20,12 +24,12 @@ func (pb Pathbuilder) Bundles() []*Bundle {
 		iBundle := bundles[i]
 		jBundle := bundles[j]
 
-		if iBundle.Group.Weight < jBundle.Group.Weight {
+		if iBundle.Path.Weight < jBundle.Path.Weight {
 			return true
 		}
 
-		if iBundle.Group.Weight == jBundle.Group.Weight {
-			return iBundle.importOrder < jBundle.importOrder
+		if iBundle.Path.Weight == jBundle.Path.Weight {
+			return iBundle.order < jBundle.order
 		}
 
 		return false
@@ -33,27 +37,28 @@ func (pb Pathbuilder) Bundles() []*Bundle {
 	return bundles
 }
 
-func (pb Pathbuilder) Get(BundleID string) *Bundle {
-	if BundleID == "" {
+// Get returns the bundle with the given id
+func (pb Pathbuilder) Get(id string) *Bundle {
+	if id == "" {
 		return nil
 	}
-	bundle, ok := pb[BundleID]
+	bundle, ok := pb[id]
 	if !ok {
 		return nil
 	}
 	return bundle
 }
 
-// GetOrCreate creates a new bundle with the given id
-func (pb Pathbuilder) GetOrCreate(BundleID string) *Bundle {
-	if BundleID == "" {
+// GetOrCreate either gets or creates a bundle
+func (pb Pathbuilder) GetOrCreate(id string) *Bundle {
+	if id == "" {
 		return nil
 	}
-	bundle, ok := pb[BundleID]
+	bundle, ok := pb[id]
 	if !ok {
 		bundle = new(Bundle)
-		bundle.importOrder = len(pb)
-		pb[BundleID] = bundle
+		bundle.order = len(pb)
+		pb[id] = bundle
 	}
 	return bundle
 }

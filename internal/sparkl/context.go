@@ -125,12 +125,12 @@ func (context *Context) Store(bundle *pathbuilder.Bundle) BundleStorage {
 		// this is the length of the parent path, or zero (if it does not exist).
 		var entityURIIndex int
 		if bundle.Parent != nil {
-			entityURIIndex = len(bundle.Group.PathArray) / 2
+			entityURIIndex = len(bundle.Path.PathArray) / 2
 		}
 
 		// stage 1: load the entities themselves
 		err := (func() error {
-			paths := extractPath(bundle.Group, context.Index)
+			paths := extractPath(bundle.Path, context.Index)
 			defer paths.Close()
 
 			for paths.Next() {
@@ -189,7 +189,7 @@ func (context *Context) Store(bundle *pathbuilder.Bundle) BundleStorage {
 				return
 			}
 
-			err := storage.RegisterChildStorage(bundle.Group.ID, cstorages[i])
+			err := storage.RegisterChildStorage(bundle.Path.ID, cstorages[i])
 			context.reportError(err)
 		}
 
@@ -210,7 +210,7 @@ func (context *Context) Store(bundle *pathbuilder.Bundle) BundleStorage {
 					children := cstorage.Get(entityURIIndex)
 					for children.Next() {
 						child := children.Datum()
-						err := storage.AddChild(child.Parent, bundle.Group.ID, child.URI)
+						err := storage.AddChild(child.Parent, bundle.Path.ID, child.URI)
 						if err != storages.ErrNoEntity {
 							context.reportError(err)
 						}

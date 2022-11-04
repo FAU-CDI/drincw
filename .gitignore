@@ -1,6 +1,7 @@
 *.xml
 *.json
 *.jsonc
+*.sqlite
 
 # frontend
 !internal/assets/package.json

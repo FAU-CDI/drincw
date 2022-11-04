@@ -110,11 +110,11 @@ const (
 )
 
 func (*SQL) BundleTable(bundle *pathbuilder.Bundle) string {
-	return bundleTablePrefix + bundle.Group.ID
+	return bundleTablePrefix + bundle.Path.ID
 }
 
 func (*SQL) FieldTable(bundle *pathbuilder.Bundle, field pathbuilder.Field) string {
-	return fieldTablePrefix + bundle.Group.ID + fieldTableInfix + field.ID
+	return fieldTablePrefix + bundle.Path.ID + fieldTableInfix + field.ID
 }
 
 func (*SQL) FieldColumn(field pathbuilder.Field) string {
@@ -138,7 +138,7 @@ func (sql *SQL) createBundleTable(bundle *pathbuilder.Bundle) error {
 	// create a table with fields for every field, and the child field
 	table := sqlbuilder.CreateTable(sql.BundleTable(bundle)).IfNotExists()
 	table.Define(uriColumn, "TEXT", "NOT NULL")
-	if !bundle.Toplevel() {
+	if !bundle.IsToplevel() {
 		table.Define(parentColumn, "TEXT")
 	}
 	for _, field := range bundle.ChildFields {
@@ -170,7 +170,7 @@ func (sql *SQL) Add(bundle *pathbuilder.Bundle, entity *wisski.Entity) error {
 		sql.batchLock.Lock()
 		defer sql.batchLock.Unlock()
 
-		sql.batches[bundle.Group.ID] = append(sql.batches[bundle.Group.ID], *entity)
+		sql.batches[bundle.Path.ID] = append(sql.batches[bundle.Path.ID], *entity)
 		shouldFlush = len(sql.batches) >= sql.BatchSize
 	}()
 
@@ -188,11 +188,11 @@ func (sql *SQL) flushBatches(bundle *pathbuilder.Bundle) error {
 		sql.batchLock.Lock()
 		defer sql.batchLock.Unlock()
 
-		count := copy(entities, sql.batches[bundle.Group.ID]) // copy entities to batch
+		count := copy(entities, sql.batches[bundle.Path.ID]) // copy entities to batch
 		entities = entities[:count]
 
-		rest := copy(sql.batches[bundle.Group.ID], sql.batches[bundle.Group.ID][count:]) // slide to the left
-		sql.batches[bundle.Group.ID] = sql.batches[bundle.Group.ID][:rest]               // and remove references to everything else
+		rest := copy(sql.batches[bundle.Path.ID], sql.batches[bundle.Path.ID][count:]) // slide to the left
+		sql.batches[bundle.Path.ID] = sql.batches[bundle.Path.ID][:rest]               // and remove references to everything else
 	}()
 
 	// and do the inserts
@@ -270,7 +270,7 @@ func (sql *SQL) insertBundleTable(bundle *pathbuilder.Bundle, parent wisski.URI,
 	// determine all the columns to insert
 	var columns []string
 	columns = append(columns, uriColumn)
-	if !bundle.Toplevel() {
+	if !bundle.IsToplevel() {
 		columns = append(columns, parentColumn)
 	}
 
@@ -289,7 +289,7 @@ func (sql *SQL) insertBundleTable(bundle *pathbuilder.Bundle, parent wisski.URI,
 
 		// uri and parent
 		values[i] = append(values[i], string(entity.URI))
-		if !bundle.Toplevel() {
+		if !bundle.IsToplevel() {
 			values[i] = append(values[i], string(parent))
 		}
 
@@ -315,6 +315,6 @@ func (sql *SQL) insertBundleTable(bundle *pathbuilder.Bundle, parent wisski.URI,
 }
 
 func (sql *SQL) insertChildTables(parent wisski.Entity, bundle *pathbuilder.Bundle) error {
-	children := parent.Children[bundle.Group.ID]
+	children := parent.Children[bundle.Path.ID]
 	return sql.insert(bundle, parent.URI, children)
 }

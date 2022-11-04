@@ -18,7 +18,7 @@ type DiskEngine struct {
 }
 
 func (de DiskEngine) NewStorage(bundle *pathbuilder.Bundle) (BundleStorage, error) {
-	path := filepath.Join(de.Path, bundle.Group.Bundle)
+	path := filepath.Join(de.Path, bundle.Path.Bundle)
 
 	if _, err := os.Stat(path); err == nil {
 		if err := os.RemoveAll(path); err != nil {

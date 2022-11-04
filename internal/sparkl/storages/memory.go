@@ -47,7 +47,7 @@ func (bs *Memory) Add(uri wisski.URI, path []wisski.URI) error {
 	}
 
 	for _, bundle := range bs.bundle.ChildBundles {
-		entity.Children[bundle.Group.ID] = make([]wisski.Entity, 0, bundle.Group.MakeCardinality())
+		entity.Children[bundle.Path.ID] = make([]wisski.Entity, 0, bundle.Path.MakeCardinality())
 	}
 
 	bs.Entities = append(bs.Entities, entity)

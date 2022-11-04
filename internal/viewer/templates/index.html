@@ -16,8 +16,8 @@
     <ul>
         {{ range .Bundles }}
             <li>
-                <a href="/bundle/{{ .Group.ID }}">
-                    {{ .Group.Name }}
+                <a href="/bundle/{{ .Path.ID }}">
+                    {{ .Path.Name }}
                 </a>
             </li>
         {{ end }}

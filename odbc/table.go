@@ -3,8 +3,8 @@ package odbc
 import (
 	"encoding/xml"
 
-	"github.com/tkw1536/FAU-CDI/drincw/internal/xmltypes"
 	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder"
+	"github.com/tkw1536/FAU-CDI/drincw/pkg/xmltypes"
 )
 
 type Table struct {
@@ -25,7 +25,7 @@ type Table struct {
 
 func newTable(bundle pathbuilder.Bundle) (t Table) {
 	t.Select = "*" // TODO: Generate something here
-	t.Name = bundle.Group.ID
+	t.Name = bundle.Path.ID
 
 	t.Append = ""
 	t.Delimiter = ";"
@@ -58,8 +58,8 @@ type Bundle struct {
 }
 
 func newBundle(bundle pathbuilder.Bundle) (b Bundle) {
-	b.ID = bundle.Group.Bundle
-	b.Comment = " " + bundle.Group.Name + " "
+	b.ID = bundle.Path.Bundle
+	b.Comment = " " + bundle.Path.Name + " "
 
 	b.BundlesAndFields = newBundlesAndFields(bundle)
 	return

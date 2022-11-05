@@ -34,14 +34,14 @@ type BundleStorage interface {
 	// to this bundle.
 	//
 	// Calls to add for a specific bundle storage are serialized.
-	Add(uri wisski.URI, path []wisski.URI) error
+	Add(uri wisski.URI, path []wisski.URI, triples []wisski.Triple) error
 
 	// AddFieldValue adds a value to the given field for the entity with the given uri.
 	//
 	// Concurrent calls to distinct fields may take place, however within each field calls are always syncronized.
 	//
 	// A non-existing parent should return ErrNoEntity.
-	AddFieldValue(uri wisski.URI, field string, value any, path []wisski.URI) error
+	AddFieldValue(uri wisski.URI, field string, value any, path []wisski.URI, triples []wisski.Triple) error
 
 	// RegisterChildStorage register the given storage as a BundleStorage for the child bundle.
 	// The Storage should delete the reference to the child storage when it is closed.

@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/tkw1536/FAU-CDI/drincw/internal/wisski"
+	"github.com/tkw1536/FAU-CDI/drincw/pkg/igraph"
 )
 
 // sEntityPool is a pool of stored entities
@@ -23,8 +24,9 @@ var bufferPool = sync.Pool{
 
 // sEntity represents a stored entity that does not hold references to child entitites
 type sEntity struct {
-	URI  wisski.URI   // URI of this entity
-	Path []wisski.URI // the path of this entity
+	URI     wisski.URI      // URI of this entity
+	Path    []wisski.URI    // the path of this entity
+	Triples []wisski.Triple // the triples that make up the entity
 
 	Fields   map[string][]wisski.FieldValue // values for specific fields
 	Children map[string][]wisski.URI        // child entities
@@ -34,6 +36,7 @@ type sEntity struct {
 func (s *sEntity) Reset() {
 	s.Path = nil
 	s.Children = nil
+	s.Triples = nil
 	s.Fields = nil
 	s.URI = ""
 }
@@ -76,6 +79,9 @@ func (s *sEntity) Decode(data []byte) error {
 
 func init() {
 	gob.Register(wisski.URI(""))
+	gob.Register(igraph.Role(0))
+
 	gob.Register(wisski.FieldValue{})
+	gob.Register(wisski.Triple{})
 	gob.Register(sEntity{})
 }

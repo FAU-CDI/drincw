@@ -1,4 +1,5 @@
 {{ $globals := .Globals }}
+{{ $entity := .Entity }}
 
 <table class="entity_table">
     <thead>
@@ -11,7 +12,16 @@
         </tr>
     </thead>
     <tbody>
-        {{ $entity := .Entity }}
+        <tr>
+            <td colspan="5">
+                <div class="showable" data-placeholder="Show Triples">
+                    {{ template "viewer_render_triples.html" combine "Globals" $globals "Triples" $entity.Triples }}
+                </div>
+            </td>
+        </tr>
+    </tbody>
+    <tbody>
+
 
         {{ range $field := .Bundle.Fields }}
         {{ $name := $field.ID }}
@@ -43,9 +53,7 @@
             </td>
             <td class="break">
                 <div class="showable">
-                    {{ range $value.Triples $field }}
-                    {{ . }}<br />
-                    {{ end }}
+                    {{ template "viewer_render_triples.html" combine "Globals" $globals "Triples" $value.Triples }}
                 </div>
             </td>
         </tr>

@@ -33,11 +33,12 @@ type Memory struct {
 }
 
 // Add adds an entity to this BundleSlice
-func (bs *Memory) Add(uri wisski.URI, path []wisski.URI) error {
+func (bs *Memory) Add(uri wisski.URI, path []wisski.URI, triples []wisski.Triple) error {
 	bs.lookup[uri] = len(bs.Entities)
 	entity := wisski.Entity{
 		URI:      uri,
 		Path:     path,
+		Triples:  triples,
 		Fields:   make(map[string][]wisski.FieldValue, len(bs.bundle.ChildFields)),
 		Children: make(map[string][]wisski.Entity, len(bs.bundle.ChildBundles)),
 	}
@@ -54,7 +55,7 @@ func (bs *Memory) Add(uri wisski.URI, path []wisski.URI) error {
 	return nil
 }
 
-func (bs *Memory) AddFieldValue(uri wisski.URI, field string, value any, path []wisski.URI) error {
+func (bs *Memory) AddFieldValue(uri wisski.URI, field string, value any, path []wisski.URI, triples []wisski.Triple) error {
 	id, ok := bs.lookup[uri]
 	if !ok {
 		return ErrNoEntity
@@ -64,8 +65,9 @@ func (bs *Memory) AddFieldValue(uri wisski.URI, field string, value any, path []
 	defer bs.addField.Unlock()
 
 	bs.Entities[id].Fields[field] = append(bs.Entities[id].Fields[field], wisski.FieldValue{
-		Value: value,
-		Path:  path,
+		Value:   value,
+		Path:    path,
+		Triples: triples,
 	})
 
 	return nil

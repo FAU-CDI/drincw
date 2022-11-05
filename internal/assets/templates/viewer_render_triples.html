@@ -1,0 +1,19 @@
+{{ range .Triples }}
+<p>
+    {{ if eq .Role 0 }}
+        <code class="uri">{{ .Subject }}</code>
+        <code class="uri">{{ .Predicate }}</code>
+        <code class="uri">{{ .Object }}</code>
+    {{ else if eq .Role 1 }}
+        <code class="uri">{{ .Subject }}</code>
+        <code class="uri">{{ .Predicate }}</code>
+        <code class="uri">{{ .Object }}</code>
+        (inverted)
+    {{ else }}
+        <code class="uri">{{ .Subject }}</code>
+        <code class="uri">{{ .Predicate }}</code>
+        <code>{{ .Datum }}</code>
+    {{ end }}
+</p>
+
+{{ end }}

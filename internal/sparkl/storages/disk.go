@@ -146,25 +146,27 @@ func (ds *Disk) update(uri wisski.URI, update func(*sEntity) error) error {
 }
 
 // Add adds an entity to this BundleSlice
-func (ds *Disk) Add(uri wisski.URI, path []wisski.URI) error {
+func (ds *Disk) Add(uri wisski.URI, path []wisski.URI, triples []wisski.Triple) error {
 	atomic.AddInt64(&ds.count, 1)
 	return ds.put(func(se *sEntity) error {
 		se.URI = uri
 		se.Path = path
+		se.Triples = triples
 		se.Fields = make(map[string][]wisski.FieldValue)
 		se.Children = make(map[string][]wisski.URI)
 		return nil
 	})
 }
 
-func (ds *Disk) AddFieldValue(uri wisski.URI, field string, value any, path []wisski.URI) error {
+func (ds *Disk) AddFieldValue(uri wisski.URI, field string, value any, path []wisski.URI, triples []wisski.Triple) error {
 	return ds.update(uri, func(se *sEntity) error {
 		if se.Fields == nil {
 			se.Fields = make(map[string][]wisski.FieldValue)
 		}
 		se.Fields[field] = append(se.Fields[field], wisski.FieldValue{
-			Value: value,
-			Path:  path,
+			Value:   value,
+			Path:    path,
+			Triples: triples,
 		})
 		return nil
 	})
@@ -234,6 +236,7 @@ func (ds *Disk) Load(uri wisski.URI) (entity wisski.Entity, err error) {
 		// copy simple fields
 		entity.URI = se.URI
 		entity.Path = se.Path
+		entity.Triples = se.Triples
 		entity.Fields = se.Fields
 
 		// load all the child entities

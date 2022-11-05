@@ -165,7 +165,7 @@ func (set *Paths[Label, Datum]) makePath(elem element) (path Path[Label, Datum])
 	e := &elem
 	for {
 		path.nodeIDs = append(path.nodeIDs, e.Node)
-		path.tripleIDs = append(path.tripleIDs, elem.Triple)
+		path.tripleIDs = append(path.tripleIDs, e.Triple)
 		e = e.Parent
 		if e == nil {
 			break

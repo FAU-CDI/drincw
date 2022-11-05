@@ -139,7 +139,11 @@ func (context *Context) Store(bundle *pathbuilder.Bundle) BundleStorage {
 				if context.reportError(err) {
 					return err
 				}
-				storage.Add(nodes[entityURIIndex], nodes)
+				triples, err := path.Triples()
+				if context.reportError(err) {
+					return err
+				}
+				storage.Add(nodes[entityURIIndex], nodes, triples)
 			}
 
 			return paths.Err()
@@ -161,6 +165,8 @@ func (context *Context) Store(bundle *pathbuilder.Bundle) BundleStorage {
 					path := paths.Datum()
 					nodes, err := path.Nodes()
 					context.reportError(err)
+					triples, err := path.Triples()
+					context.reportError(err)
 
 					datum, hasDatum, err := path.Datum()
 					context.reportError(err)
@@ -170,7 +176,7 @@ func (context *Context) Store(bundle *pathbuilder.Bundle) BundleStorage {
 					}
 					uri := nodes[entityURIIndex]
 
-					err = storage.AddFieldValue(uri, field.ID, datum, nodes)
+					err = storage.AddFieldValue(uri, field.ID, datum, nodes, triples)
 					if err != storages.ErrNoEntity {
 						context.reportError(err)
 					}

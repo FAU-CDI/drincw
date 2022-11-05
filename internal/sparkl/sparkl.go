@@ -20,9 +20,10 @@ type (
 	MemoryEngine = igraph.MemoryEngine[URI, any]
 	DiskEngine   = igraph.DiskEngine[URI, any]
 
-	Index = igraph.IGraph[URI, any] // Index represents an index of a RDF Graph
-	Paths = igraph.Paths[URI, any]  // Set of Paths inside the index
-	Path  = igraph.Path[URI, any]   // Singel Path in the index
+	Triple = igraph.Triple[URI, any] // Triple inside the index
+	Index  = igraph.IGraph[URI, any] // Index represents an index of a RDF Graph
+	Paths  = igraph.Paths[URI, any]  // Set of Paths inside the index
+	Path   = igraph.Path[URI, any]   // Singel Path in the index
 )
 
 // Predicates represent special predicates

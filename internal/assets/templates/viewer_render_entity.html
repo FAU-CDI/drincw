@@ -6,7 +6,7 @@
         <tr>
             <th>Name</th>
             <th>Type</th>
-            <th>Card</th>
+            <th>Count</th>
             <th>Value(s)</th>
         </tr>
     </thead>
@@ -35,7 +35,10 @@
                 {{ $field.FieldType }}
             </td>
             <td class="collapse" {{ if ne $l 0 }}rowspan="{{ $l }}" {{end}}>
-                {{ $field.Cardinality }}
+                {{ len $values }}
+                <small>
+                    (Cardinality {{ $field.Cardinality }})
+                </small>
             </td>
 
             {{ if eq $l 0 }}

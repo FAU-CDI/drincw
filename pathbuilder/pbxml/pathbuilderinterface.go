@@ -27,7 +27,7 @@ func newPathbuilder(pb pathbuilder.Pathbuilder) (x pathbuilderInterface) {
 }
 
 func (xml pathbuilderInterface) Pathbuilder() pathbuilder.Pathbuilder {
-	pb := pathbuilder.Pathbuilder(map[string]*pathbuilder.Bundle{})
+	pb := pathbuilder.NewPathbuilder()
 	for _, path := range xml.Paths {
 		if !path.Enabled {
 			continue

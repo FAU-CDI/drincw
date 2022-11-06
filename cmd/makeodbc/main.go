@@ -75,7 +75,7 @@ func writeXML(odbc odbc.Server) {
 }
 
 func writeSQL(name string, pb pathbuilder.Pathbuilder, odbc odbc.Server) {
-	bundle := pb[name]
+	bundle := pb.Get(name)
 	if bundle == nil {
 		log.Fatalf("no such bundle: %s", name)
 	}

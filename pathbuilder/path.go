@@ -54,7 +54,7 @@ func (p Path) MachineName() string {
 
 // Paths recursively returns all paths in this bundle
 func (pb Pathbuilder) Paths() []Path {
-	paths := make([]Path, 0, len(pb))
+	paths := make([]Path, 0, len(pb.bundles))
 	for _, b := range pb.Bundles() {
 		paths = append(paths, b.Paths()...)
 	}

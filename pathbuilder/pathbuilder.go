@@ -9,12 +9,20 @@ import (
 //
 // A Pathbuilder consists of an order collection of bundles.
 // A singular bundle can be accessed using it's identifier.
-type Pathbuilder map[string]*Bundle
+type Pathbuilder struct {
+	bundles map[string]*Bundle
+}
+
+func NewPathbuilder() Pathbuilder {
+	return Pathbuilder{
+		bundles: make(map[string]*Bundle),
+	}
+}
 
 // Bundles returns an ordered list of bundles in this Pathbuilder
 func (pb Pathbuilder) Bundles() []*Bundle {
-	bundles := make([]*Bundle, 0, len(pb))
-	for _, bundle := range pb {
+	bundles := make([]*Bundle, 0, len(pb.bundles))
+	for _, bundle := range pb.bundles {
 		if !bundle.IsToplevel() {
 			continue
 		}
@@ -39,10 +47,7 @@ func (pb Pathbuilder) Bundles() []*Bundle {
 
 // Get returns the bundle with the given id
 func (pb Pathbuilder) Get(id string) *Bundle {
-	if id == "" {
-		return nil
-	}
-	bundle, ok := pb[id]
+	bundle, ok := pb.bundles[id]
 	if !ok {
 		return nil
 	}
@@ -52,7 +57,7 @@ func (pb Pathbuilder) Get(id string) *Bundle {
 // Bundle returns the bundle with the given machine name.
 // If such a bundle does not exist, returns nil.
 func (pb Pathbuilder) Bundle(machine string) *Bundle {
-	for _, bundle := range pb {
+	for _, bundle := range pb.Bundles() {
 		if bundle.MachineName() == machine {
 			return bundle
 		}
@@ -65,11 +70,11 @@ func (pb Pathbuilder) GetOrCreate(id string) *Bundle {
 	if id == "" {
 		return nil
 	}
-	bundle, ok := pb[id]
+	bundle, ok := pb.bundles[id]
 	if !ok {
 		bundle = new(Bundle)
-		bundle.order = len(pb)
-		pb[id] = bundle
+		bundle.order = len(pb.bundles)
+		pb.bundles[id] = bundle
 	}
 	return bundle
 }

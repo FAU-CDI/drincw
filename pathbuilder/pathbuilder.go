@@ -49,6 +49,17 @@ func (pb Pathbuilder) Get(id string) *Bundle {
 	return bundle
 }
 
+// Bundle returns the bundle with the given machine name.
+// If such a bundle does not exist, returns nil.
+func (pb Pathbuilder) Bundle(machine string) *Bundle {
+	for _, bundle := range pb {
+		if bundle.MachineName() == machine {
+			return bundle
+		}
+	}
+	return nil
+}
+
 // GetOrCreate either gets or creates a bundle
 func (pb Pathbuilder) GetOrCreate(id string) *Bundle {
 	if id == "" {

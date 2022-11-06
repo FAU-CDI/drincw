@@ -40,7 +40,10 @@ func (p Path) MakeCardinality() int {
 	return p.Cardinality
 }
 
-// MachineName returns the machine name of this path
+// MachineName returns the machine name of this path.
+//
+// When this bundle defines a group, then the machine name is the bundle.
+// When this bundle is not a group, it is the field name.
 func (p Path) MachineName() string {
 	if p.IsGroup {
 		return p.Bundle

@@ -21,39 +21,62 @@ func (stats Stats) String() string {
 
 // IndexTriple represents a triple stored inside the index
 type IndexTriple struct {
-	Role             // Why was this triple stored?
-	Items [3]imap.ID // What were the original items in this triple?
+	Role              // Why was this triple stored?
+	Items  [3]imap.ID // What were the *original* items in this triple
+	SItems [3]imap.ID // What were the *semantic* items in this triple
 }
 
 func MarshalTriple(triple IndexTriple) ([]byte, error) {
-	result := make([]byte, 3*imap.IDLen+1)
-	triple.Items[0].Encode(result[:imap.IDLen])
-	triple.Items[1].Encode(result[imap.IDLen : 2*imap.IDLen])
-	triple.Items[2].Encode(result[2*imap.IDLen:])
-	result[len(result)-1] = byte(triple.Role)
+	result := make([]byte, 6*imap.IDLen+1)
+	imap.MarshalIDs(
+		result[1:],
+		triple.Items[0],
+		triple.Items[1],
+		triple.Items[2],
+		triple.SItems[0],
+		triple.SItems[1],
+		triple.SItems[2],
+	)
+	result[0] = byte(triple.Role)
 	return result, nil
 }
 
 var errDecodeTriple = errors.New("DecodeTriple: src too short")
 
 func UnmarshalTriple(dest *IndexTriple, src []byte) error {
-	if len(src) < 3*imap.IDLen+1 {
+	if len(src) < 6*imap.IDLen+1 {
 		return errDecodeTriple
 	}
-	dest.Items[0].Decode(src[:imap.IDLen])
-	dest.Items[1].Decode(src[imap.IDLen : 2*imap.IDLen])
-	dest.Items[2].Decode(src[2*imap.IDLen:])
-	dest.Role = Role(src[3*imap.IDLen])
+	dest.Role = Role(src[0])
+	imap.UnmarshalIDs(
+		src[1:],
+		&(dest.Items[0]),
+		&(dest.Items[1]),
+		&(dest.Items[2]),
+		&(dest.SItems[0]),
+		&(dest.SItems[1]),
+		&(dest.SItems[2]),
+	)
 	return nil
 }
 
-// Triple represents a resolve triple
+// Triple represents a triple found inside a graph
 type Triple[Label comparable, Datum any] struct {
+	// ID uniquely identifies this triple.
+	// Two Triples are identical iff their IDs are identical.
+	ID imap.ID
+
 	Role Role
 
-	Subject, Predicate, Object Label
+	Subject, Predicate, Object    Label
+	SSubject, SPredicate, SObject Label // the "semantic" version of the datum
 
 	Datum Datum
+}
+
+// Inferred returns if this triple has been infered
+func (triple Triple[Label, Datum]) Inferred() bool {
+	return triple.Role == Inverse
 }
 
 // Role represents the role of the triple

@@ -23,7 +23,7 @@ func NewBuilder(pb pathbuilder.Pathbuilder) Builder {
 	bundles := pb.Bundles()
 	b := make(map[string]TableBuilder, len(bundles))
 	for _, bundle := range bundles {
-		b[bundle.Path.ID] = NewTableBuilder(*bundle)
+		b[bundle.MachineName()] = NewTableBuilder(*bundle)
 	}
 	return b
 }
@@ -61,7 +61,7 @@ type TableBuilder struct {
 // Any further details are an implementation detail, and should not be relied upon by the caller.
 func NewTableBuilder(bundle pathbuilder.Bundle) TableBuilder {
 	tb := TableBuilder{}
-	tb.TableName = bundle.Path.ID
+	tb.TableName = bundle.MachineName()
 	tb.ID = "id"
 
 	fields := bundle.AllFields()
@@ -70,7 +70,7 @@ func NewTableBuilder(bundle pathbuilder.Bundle) TableBuilder {
 		if !field.Enabled {
 			continue
 		}
-		tb.Fields[field.Path.ID] = &ColumnSelector{Identifier(field.Path.ID)}
+		tb.Fields[field.MachineName()] = &ColumnSelector{Identifier(field.MachineName())}
 	}
 
 	return tb

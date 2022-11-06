@@ -16,7 +16,7 @@
     {{ $l := len .URIS }}
     <p>{{ $l }} {{ if eq $l 1 }}Entity{{ else }}Entities{{ end }}</p>
     <ul>
-        {{ $bundle := .Bundle.Path.ID }}
+        {{ $bundle := .Bundle.MachineName }}
         {{ range .URIS }}
             <li>
                 <a href="/entity/{{ $bundle }}?uri={{ . }}">

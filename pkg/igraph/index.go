@@ -28,8 +28,7 @@ type IGraph[Label comparable, Datum any] struct {
 	// data holds mappings between internal IDs and data
 	data imap.Storage[imap.ID, Datum]
 
-	// inverses holds inverse mappings (if any)
-	inverses imap.Storage[imap.ID, imap.ID]
+	inverses imap.Storage[imap.ID, imap.ID] // inverse ids for a given id
 
 	// the triple indexes, forward and backward
 	psoIndex ThreeStorage
@@ -66,13 +65,25 @@ func (index *IGraph[Label, Datum]) Triple(id imap.ID) (triple Triple[Label, Datu
 	if err != nil {
 		return triple, err
 	}
+	triple.SSubject, err = index.labels.Reverse(t.SItems[0])
+	if err != nil {
+		return triple, err
+	}
 
 	triple.Predicate, err = index.labels.Reverse(t.Items[1])
 	if err != nil {
 		return triple, err
 	}
+	triple.SPredicate, err = index.labels.Reverse(t.SItems[1])
+	if err != nil {
+		return triple, err
+	}
 
 	triple.Object, err = index.labels.Reverse(t.Items[2])
+	if err != nil {
+		return triple, err
+	}
+	triple.SObject, err = index.labels.Reverse(t.SItems[2])
 	if err != nil {
 		return triple, err
 	}
@@ -82,17 +93,24 @@ func (index *IGraph[Label, Datum]) Triple(id imap.ID) (triple Triple[Label, Datu
 		return triple, err
 	}
 
+	triple.ID = id
 	return triple, nil
 }
 
 // Reset resets this index and prepares all internal structures for use.
-func (index *IGraph[Label, Datum]) Reset(engine Engine[Label, Datum]) error {
-	if err := index.Close(); err != nil {
+func (index *IGraph[Label, Datum]) Reset(engine Engine[Label, Datum]) (err error) {
+	if err = index.Close(); err != nil {
 		return err
 	}
 
 	var closers []io.Closer
-	var err error
+	defer func() {
+		if err != nil {
+			for _, closer := range closers {
+				closer.Close()
+			}
+		}
+	}()
 
 	if err := index.labels.Reset(engine); err != nil {
 		return err
@@ -101,46 +119,31 @@ func (index *IGraph[Label, Datum]) Reset(engine Engine[Label, Datum]) error {
 
 	index.data, err = engine.Data()
 	if err != nil {
-		for _, closer := range closers {
-			closer.Close()
-		}
-		return err
+		return
 	}
 	closers = append(closers, index.data)
 
 	index.inverses, err = engine.Inverses()
 	if err != nil {
-		for _, closer := range closers {
-			closer.Close()
-		}
-		return err
+		return
 	}
 	closers = append(closers, index.inverses)
 
 	index.psoIndex, err = engine.PSOIndex()
 	if err != nil {
-		for _, closer := range closers {
-			closer.Close()
-		}
-		return err
+		return
 	}
 	closers = append(closers, index.psoIndex)
 
 	index.posIndex, err = engine.POSIndex()
 	if err != nil {
-		for _, closer := range closers {
-			closer.Close()
-		}
-		return err
+		return
 	}
 	closers = append(closers, index.posIndex)
 
 	index.triples, err = engine.Triples()
 	if err != nil {
-		for _, closer := range closers {
-			closer.Close()
-		}
-		return err
+		return
 	}
 
 	index.triple.Reset()
@@ -170,8 +173,9 @@ func (index *IGraph[Label, Datum]) AddTriple(subject, predicate, object Label) e
 	// forward id
 	id := index.triple.Inc()
 	index.triples.Set(id, IndexTriple{
-		Role:  Regular,
-		Items: [3]imap.ID{s[1], p[1], o[1]},
+		Role:   Regular,
+		SItems: [3]imap.ID{s[0], p[0], o[0]},
+		Items:  [3]imap.ID{s[1], p[1], o[1]},
 	})
 
 	conflicted, err := index.insert(s[0], p[0], o[0], id)
@@ -190,8 +194,9 @@ func (index *IGraph[Label, Datum]) AddTriple(subject, predicate, object Label) e
 		// reverse id
 		iid := index.triple.Inc()
 		index.triples.Set(iid, IndexTriple{
-			Role:  Inverse,
-			Items: [3]imap.ID{s[1], p[1], o[1]},
+			Role:   Inverse,
+			SItems: [3]imap.ID{s[0], p[0], o[0]},
+			Items:  [3]imap.ID{s[1], p[1], o[1]},
 		})
 
 		conflicted, err := index.insert(o[0], i, s[0], iid)
@@ -230,8 +235,9 @@ func (index *IGraph[Label, Datum]) AddData(subject, predicate Label, object Datu
 	// store the original triple
 	id := index.triple.Inc()
 	index.triples.Set(id, IndexTriple{
-		Role:  Data,
-		Items: [3]imap.ID{s[1], p[1], o},
+		Role:   Data,
+		SItems: [3]imap.ID{s[0], p[0], o},
+		Items:  [3]imap.ID{s[1], p[1], o},
 	})
 
 	conflicted, err := index.insert(s[0], p[0], o, id)

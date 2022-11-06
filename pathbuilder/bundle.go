@@ -27,11 +27,11 @@ func (bundle Bundle) Field(id string) Field {
 	return Field{}
 }
 
-// Bundle returns the bundle with the given ID.
-// If such a bundle does not exists, returns nil
-func (bundle Bundle) Bundle(id string) *Bundle {
+// Bundle returns the bundle with the given machine name.
+// If such a bundle does not exists, returns nil.
+func (bundle Bundle) Bundle(machine string) *Bundle {
 	for _, b := range bundle.ChildBundles {
-		if b.Path.ID == id {
+		if b.MachineName() == machine {
 			return b
 		}
 	}

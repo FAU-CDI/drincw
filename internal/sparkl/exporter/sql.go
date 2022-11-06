@@ -110,15 +110,15 @@ const (
 )
 
 func (*SQL) BundleTable(bundle *pathbuilder.Bundle) string {
-	return bundleTablePrefix + bundle.Path.ID
+	return bundleTablePrefix + bundle.MachineName()
 }
 
 func (*SQL) FieldTable(bundle *pathbuilder.Bundle, field pathbuilder.Field) string {
-	return fieldTablePrefix + bundle.Path.ID + fieldTableInfix + field.ID
+	return fieldTablePrefix + bundle.MachineName() + fieldTableInfix + field.MachineName()
 }
 
 func (*SQL) FieldColumn(field pathbuilder.Field) string {
-	return fieldColumnPrefix + field.ID
+	return fieldColumnPrefix + field.MachineName()
 }
 
 // createBundleTable creates a table for the given bundle
@@ -170,7 +170,7 @@ func (sql *SQL) Add(bundle *pathbuilder.Bundle, entity *wisski.Entity) error {
 		sql.batchLock.Lock()
 		defer sql.batchLock.Unlock()
 
-		sql.batches[bundle.Path.ID] = append(sql.batches[bundle.Path.ID], *entity)
+		sql.batches[bundle.MachineName()] = append(sql.batches[bundle.MachineName()], *entity)
 		shouldFlush = len(sql.batches) >= sql.BatchSize
 	}()
 
@@ -188,11 +188,11 @@ func (sql *SQL) flushBatches(bundle *pathbuilder.Bundle) error {
 		sql.batchLock.Lock()
 		defer sql.batchLock.Unlock()
 
-		count := copy(entities, sql.batches[bundle.Path.ID]) // copy entities to batch
+		count := copy(entities, sql.batches[bundle.MachineName()]) // copy entities to batch
 		entities = entities[:count]
 
-		rest := copy(sql.batches[bundle.Path.ID], sql.batches[bundle.Path.ID][count:]) // slide to the left
-		sql.batches[bundle.Path.ID] = sql.batches[bundle.Path.ID][:rest]               // and remove references to everything else
+		rest := copy(sql.batches[bundle.MachineName()], sql.batches[bundle.MachineName()][count:]) // slide to the left
+		sql.batches[bundle.MachineName()] = sql.batches[bundle.MachineName()][:rest]               // and remove references to everything else
 	}()
 
 	// and do the inserts
@@ -254,7 +254,7 @@ func (sql *SQL) insertFieldTables(bundle *pathbuilder.Bundle, field pathbuilder.
 	columns := []string{uriColumn, valueColumn}
 	values := make([][]any, 0)
 	for _, entity := range entities {
-		for _, value := range entity.Fields[field.ID] {
+		for _, value := range entity.Fields[field.MachineName()] {
 			values = append(values, []any{
 				entity.URI,
 				fmt.Sprintf("%v", value.Value),
@@ -299,7 +299,7 @@ func (sql *SQL) insertBundleTable(bundle *pathbuilder.Bundle, parent wisski.URI,
 
 		// values for the actual fields
 		for _, field := range fields {
-			fvalues := entity.Fields[field.ID]
+			fvalues := entity.Fields[field.MachineName()]
 			if len(fvalues) == 0 {
 				values[i] = append(values[i], nullString)
 				continue
@@ -315,6 +315,6 @@ func (sql *SQL) insertBundleTable(bundle *pathbuilder.Bundle, parent wisski.URI,
 }
 
 func (sql *SQL) insertChildTables(parent wisski.Entity, bundle *pathbuilder.Bundle) error {
-	children := parent.Children[bundle.Path.ID]
+	children := parent.Children[bundle.MachineName()]
 	return sql.insert(bundle, parent.URI, children)
 }

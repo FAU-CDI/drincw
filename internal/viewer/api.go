@@ -1,15 +1,13 @@
 package viewer
 
 import (
-	"log"
-
 	"github.com/tkw1536/FAU-CDI/drincw/internal/sparkl"
 	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder"
 )
 
-// findBundle returns a bundle by id and makes sure the caches for the given bundle as filled.
-func (viewer *Viewer) findBundle(id string) (bundle *pathbuilder.Bundle, ok bool) {
-	bundle = viewer.Pathbuilder.Get(id)
+// findBundle returns a bundle by machine name and makes sure that appropriate caches are filled
+func (viewer *Viewer) findBundle(machine string) (bundle *pathbuilder.Bundle, ok bool) {
+	bundle = viewer.Pathbuilder.Bundle(machine)
 	if bundle == nil {
 		return nil, false
 	}
@@ -17,14 +15,14 @@ func (viewer *Viewer) findBundle(id string) (bundle *pathbuilder.Bundle, ok bool
 	return bundle, true
 }
 
-// findEntity finds an entity by the given bundle id
-func (viewer *Viewer) findEntity(bundleid string, uri sparkl.URI) (bundle *pathbuilder.Bundle, entity *sparkl.Entity, ok bool) {
-	bundle, ok = viewer.findBundle(bundleid)
+// findEntity finds an entity by the given bundle machine name
+func (viewer *Viewer) findEntity(bundle_machine string, uri sparkl.URI) (bundle *pathbuilder.Bundle, entity *sparkl.Entity, ok bool) {
+	bundle, ok = viewer.findBundle(bundle_machine)
 	if !ok {
 		return nil, nil, false
 	}
 
-	entity, ok = viewer.Cache.Entity(uri, bundle.Path.ID)
+	entity, ok = viewer.Cache.Entity(uri, bundle.MachineName())
 	if !ok {
 		return nil, nil, false
 	}
@@ -36,9 +34,11 @@ func (viewer *Viewer) getBundles() (bundles []*pathbuilder.Bundle, ok bool) {
 	names := viewer.Cache.BundleNames
 	bundles = make([]*pathbuilder.Bundle, 0, len(names))
 	for _, name := range names {
-		bundle := viewer.Pathbuilder.Get(name)
+		bundle := viewer.Pathbuilder.Bundle(name)
 		if bundle == nil {
-			log.Println("nil bundle", name)
+			// If this happens, something in the pathbuilder is very corrupt.
+			// This should never happen.
+			// you should never hit this case.
 			continue
 		}
 		bundles = append(bundles, bundle)
@@ -54,7 +54,7 @@ func (viewer *Viewer) getEntityURIs(id string) (bundle *pathbuilder.Bundle, uris
 		return nil, nil, false
 	}
 
-	entities := viewer.Cache.BEIndex[bundle.Path.ID]
+	entities := viewer.Cache.BEIndex[bundle.MachineName()]
 	uris = make([]sparkl.URI, len(entities))
 	for i, entity := range entities {
 		uris[i] = entity.URI

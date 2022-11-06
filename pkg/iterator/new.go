@@ -41,9 +41,9 @@ func Map[Element1, Element2 any](source Iterator[Element1], f func(Element1) Ele
 	})
 }
 
-// Pipe creates a new iterator that calls pipe for every element returend by source.
+// Connect creates a new iterator that calls f for every element returend by source.
 // If the pipe function returns true, iteration over the original elements stops.
-func Pipe[Element1, Element2 any](source Iterator[Element1], pipe func(element Element1, sender Generator[Element2]) (closed bool)) Iterator[Element2] {
+func Connect[Element1, Element2 any](source Iterator[Element1], f func(element Element1, sender Generator[Element2]) (closed bool)) Iterator[Element2] {
 	return New(func(sender Generator[Element2]) {
 		// close the source
 		defer source.Close()
@@ -59,7 +59,7 @@ func Pipe[Element1, Element2 any](source Iterator[Element1], pipe func(element E
 		}()
 
 		for source.Next() {
-			if pipe(source.Datum(), sender) {
+			if f(source.Datum(), sender) {
 				break
 			}
 			if sender.Returned() {
@@ -69,7 +69,20 @@ func Pipe[Element1, Element2 any](source Iterator[Element1], pipe func(element E
 	})
 }
 
-// Drain iterates over values in it until no more values are returned.
+// Pipe pipes elements from src into dst.
+// If any error occurs in src, the same error is sent to dst.
+//
+// The boolean indicates if the caller should continue running.
+func Pipe[Element any](dst Generator[Element], src Iterator[Element]) bool {
+	for src.Next() {
+		if dst.Yield(src.Datum()) {
+			return true
+		}
+	}
+	return dst.YieldError(src.Err())
+}
+
+// Drain iterates all values in it until no more values are returned.
 // All returned values are stored in a slice which is returned to the user.
 func Drain[Element any](it Iterator[Element]) ([]Element, error) {
 	defer it.Close()

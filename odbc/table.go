@@ -25,7 +25,7 @@ type Table struct {
 
 func newTable(bundle pathbuilder.Bundle) (t Table) {
 	t.Select = "*" // TODO: Generate something here
-	t.Name = bundle.Path.ID
+	t.Name = bundle.MachineName()
 
 	t.Append = ""
 	t.Delimiter = ";"

@@ -80,7 +80,7 @@ var errAborted = errors.New("paths: aborted")
 
 // expand expands the nodes in this query by adding a link to each element found in the index
 func (set *Paths[URI, Datum]) expand(p imap.ID) error {
-	set.elements = iterator.Pipe(set.elements, func(subject element, sender iterator.Generator[element]) (stop bool) {
+	set.elements = iterator.Connect(set.elements, func(subject element, sender iterator.Generator[element]) (stop bool) {
 		err := set.index.psoIndex.Fetch(p, subject.Node, func(object imap.ID, l imap.ID) error {
 			if sender.Yield(element{
 				Node:   object,
@@ -117,7 +117,7 @@ func (set *Paths[URI, Datum]) Ending(predicate URI, object URI) error {
 
 // restrict restricts the set of nodes by those mapped in the index
 func (set *Paths[URI, Datum]) restrict(p, o imap.ID) error {
-	set.elements = iterator.Pipe(set.elements, func(subject element, sender iterator.Generator[element]) bool {
+	set.elements = iterator.Connect(set.elements, func(subject element, sender iterator.Generator[element]) bool {
 		has, err := set.index.posIndex.Has(p, o, subject.Node)
 		if err != nil {
 			sender.YieldError(err)

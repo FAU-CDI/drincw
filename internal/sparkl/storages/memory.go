@@ -44,11 +44,11 @@ func (bs *Memory) Add(uri wisski.URI, path []wisski.URI, triples []wisski.Triple
 	}
 
 	for _, field := range bs.bundle.ChildFields {
-		entity.Fields[field.ID] = make([]wisski.FieldValue, 0, field.MakeCardinality())
+		entity.Fields[field.MachineName()] = make([]wisski.FieldValue, 0, field.MakeCardinality())
 	}
 
 	for _, bundle := range bs.bundle.ChildBundles {
-		entity.Children[bundle.Path.ID] = make([]wisski.Entity, 0, bundle.Path.MakeCardinality())
+		entity.Children[bundle.MachineName()] = make([]wisski.Entity, 0, bundle.Path.MakeCardinality())
 	}
 
 	bs.Entities = append(bs.Entities, entity)

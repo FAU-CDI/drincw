@@ -107,6 +107,10 @@ img {
     margin-left: 1em;
 }
 
-.showable {
+.showable .toggle {
     cursor: pointer;
+}
+
+code.highlight {
+    text-decoration: underline;
 }

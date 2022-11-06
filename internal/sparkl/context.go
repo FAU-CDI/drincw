@@ -176,7 +176,7 @@ func (context *Context) Store(bundle *pathbuilder.Bundle) BundleStorage {
 					}
 					uri := nodes[entityURIIndex]
 
-					err = storage.AddFieldValue(uri, field.ID, datum, nodes, triples)
+					err = storage.AddFieldValue(uri, field.MachineName(), datum, nodes, triples)
 					if err != storages.ErrNoEntity {
 						context.reportError(err)
 					}
@@ -195,7 +195,7 @@ func (context *Context) Store(bundle *pathbuilder.Bundle) BundleStorage {
 				return
 			}
 
-			err := storage.RegisterChildStorage(bundle.Path.ID, cstorages[i])
+			err := storage.RegisterChildStorage(bundle.MachineName(), cstorages[i])
 			context.reportError(err)
 		}
 
@@ -216,7 +216,7 @@ func (context *Context) Store(bundle *pathbuilder.Bundle) BundleStorage {
 					children := cstorage.Get(entityURIIndex)
 					for children.Next() {
 						child := children.Datum()
-						err := storage.AddChild(child.Parent, bundle.Path.ID, child.URI)
+						err := storage.AddChild(child.Parent, bundle.MachineName(), child.URI)
 						if err != storages.ErrNoEntity {
 							context.reportError(err)
 						}

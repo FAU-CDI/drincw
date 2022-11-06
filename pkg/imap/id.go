@@ -113,13 +113,30 @@ func (id *ID) Decode(src []byte) {
 	}
 }
 
+var errMarshal = errors.New("MarshalIDs: invalid length")
+
+// MarshalIDs is like EncodeIDs, but also takes a []byte to write to
+func MarshalIDs(dst []byte, ids ...ID) error {
+	if len(dst) < len(ids)*IDLen {
+		return errMarshal
+	}
+	for i := 0; i < len(ids); i++ {
+		ids[i].Encode(dst[i*IDLen:])
+	}
+	return nil
+}
+
+// MarshalID is like MarshalIDs, but takes takes only a single value
+func MarshalID(value ID) ([]byte, error) {
+	dest := make([]byte, IDLen)
+	return dest, MarshalIDs(dest, value)
+}
+
 // EncodeIDs encodes IDs into a new slice of bytes.
 // Each id is encoded sequentially using [Encode].
 func EncodeIDs(ids ...ID) []byte {
 	bytes := make([]byte, len(ids)*IDLen)
-	for i := 0; i < len(ids); i++ {
-		ids[i].Encode(bytes[i*IDLen:])
-	}
+	MarshalIDs(bytes, ids...)
 	return bytes
 }
 
@@ -139,14 +156,6 @@ func DecodeID(src []byte, index int) (id ID) {
 	return
 }
 
-// MarshalID behaves like [value.Encode], but allocates a new slice
-// and returns nil error.
-func MarshalID(value ID) ([]byte, error) {
-	dest := make([]byte, IDLen)
-	value.Encode(dest)
-	return dest, nil
-}
-
 // MarshalIDPair is like MarshalID but takes two ids
 func MarshalIDPair(values [2]ID) ([]byte, error) {
 	return EncodeIDs(values[0], values[1]), nil
@@ -164,12 +173,18 @@ func UnmarshalID(dest *ID, src []byte) error {
 	return nil
 }
 
-// UnmarshalIDPair is like UnmarshalID but takes two ids
-func UnmarshalIDPair(dest *[2]ID, src []byte) error {
-	if len(src) < 2*IDLen {
+// UnmarshalIDs is like UnmarshalID but decodes into every destination passed.
+func UnmarshalIDs(src []byte, dests ...*ID) error {
+	if len(src) < len(dests)*IDLen {
 		return errUnmarshal
 	}
-	dest[0].Decode(src[:IDLen])
-	dest[1].Decode(src[IDLen:])
+	for i, dest := range dests {
+		dest.Decode(src[i*IDLen:])
+	}
 	return nil
+}
+
+// UnmarshalIDPair is like UnmarshalID but takes two ids.
+func UnmarshalIDPair(dest *[2]ID, src []byte) error {
+	return UnmarshalIDs(src, &(*dest)[0], &(*dest)[1])
 }

@@ -9,7 +9,7 @@
 
 {{ define "nav" }}
     <a href="/">Bundles</a> &gt;
-    <a href="/bundle/{{ .Bundle.Path.ID }}">Bundle {{ .Bundle.Path.Name }}</a> &gt;
+    <a href="/bundle/{{ .Bundle.MachineName }}">Bundle {{ .Bundle.Path.Name }}</a> &gt;
     <b>Entity {{ .Entity.URI }}</b>
 {{ end }}
 
@@ -22,7 +22,8 @@
     <h2>Sub Bundles</h2>
     {{ range $name, $values := .Entity.Children }}
         {{ $cbundle := $bundle.Bundle $name }}
-        <h3>{{ $name }}</h3>
+        <h3>{{ $cbundle.Name }}</h3>
+
         {{ range $values }}
             {{ template "viewer_render_entity.html" combine "Globals" $globals "Entity" . "Bundle" $cbundle }}
         {{ end }}

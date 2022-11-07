@@ -45,7 +45,7 @@ func Load(src string) (pb pathbuilder.Pathbuilder, err error) {
 
 // Marshal marshals a pathbuilder as XML
 func Marshal(pb pathbuilder.Pathbuilder) ([]byte, error) {
-	return xml.Marshal(New(pb))
+	return xml.Marshal(New(pb).data)
 }
 
 // Unmarshal unmarshals a pathbuilder from XML

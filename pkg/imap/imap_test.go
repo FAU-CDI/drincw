@@ -10,7 +10,7 @@ import (
 func ExampleIMap() {
 
 	var mp IMap[string]
-	mp.Reset(MemoryEngine[string]{})
+	mp.Reset(&MemoryEngine[string]{})
 
 	lid := func(prefix string) func(id ID, err error) {
 		return func(id ID, err error) {

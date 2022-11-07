@@ -50,7 +50,7 @@ func ParsePredicateString(target *[]URI, value string) {
 // When path is the empty string, stores data in memory.
 func NewEngine(path string) Engine {
 	if path == "" {
-		return MemoryEngine{}
+		return &MemoryEngine{}
 	}
 
 	var de DiskEngine

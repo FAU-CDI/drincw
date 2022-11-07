@@ -1,7 +1,11 @@
 package sparkl
 
 import (
+	"bytes"
+	"encoding/gob"
+
 	"github.com/tkw1536/FAU-CDI/drincw/internal/wisski"
+	"github.com/tkw1536/FAU-CDI/drincw/pkg/imap"
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
 )
@@ -9,70 +13,160 @@ import (
 // Cache represents an easily accessible cache of WissKIObjects.
 // It is held entirely in memory.
 type Cache struct {
-	// mappings from bundle id to contained entities
-	BEIndex map[string][]Entity
+	beIndex map[string][]Entity        // mappings from bundles to entities
+	biIndex map[string]map[imap.ID]int // index into beIndex by uri
+	ebIndex map[imap.ID]string         // index from entity uri into bundle
 
-	// names of all bundles
-	BundleNames []string
+	bundleNames []string // names of all bundles
 
-	// SameAs map between entities
-	SameAs map[URI]URI
+	sameAs  map[imap.ID]imap.ID   // canonical name mappings from entities
+	aliasOf map[imap.ID][]imap.ID // opposite of sameAs
 
-	// Inverse of the SameAsMap
-	Alias map[URI][]URI
+	engine imap.MemoryEngine[URI] // the engine used for the imap
+	uris   imap.IMap[URI]         // holds mappings between ids and uris
+}
 
-	// Lookup from canonical entitiy URIs to indexes in the corresponding BIIndex
-	BIIndex map[string]map[URI]int
+func (cache *Cache) MarshalBinary() ([]byte, error) {
+	var buffer bytes.Buffer
+	encoder := gob.NewEncoder(&buffer)
 
-	// index from entities into bundles
-	EBIndex map[URI]string
+	for _, obj := range []any{
+		cache.beIndex,
+		cache.biIndex,
+		cache.ebIndex,
+		cache.bundleNames,
+		cache.sameAs,
+		cache.aliasOf,
+		cache.engine.FStorage,
+		cache.engine.RStorage,
+	} {
+		if err := encoder.Encode(obj); err != nil {
+			buffer.Reset()
+			return nil, err
+		}
+	}
+
+	return buffer.Bytes(), nil
+}
+
+func (cache *Cache) UnmarshalBinary(data []byte) error {
+	reader := bytes.NewReader(data)
+	defer reader.Reset(nil)
+
+	decoder := gob.NewDecoder(reader)
+
+	for _, obj := range []any{
+		&cache.beIndex,
+		&cache.biIndex,
+		&cache.ebIndex,
+		&cache.bundleNames,
+		&cache.sameAs,
+		&cache.aliasOf,
+		&cache.engine.FStorage,
+		&cache.engine.RStorage,
+	} {
+		if err := decoder.Decode(obj); err != nil {
+			return err
+		}
+	}
+
+	return cache.uris.Reset(&cache.engine)
+}
+
+func (cache Cache) Entities(bundle_machine string) []Entity {
+	return cache.beIndex[bundle_machine]
+}
+
+func (cache Cache) BundleNames() []string {
+	return cache.bundleNames
 }
 
 // TODO: Do we want to use an IMap here?
 
 // NewCache creates a new cache from a bundle-entity-map
-func NewCache(Data map[string][]wisski.Entity, SameAs map[URI]URI) (c Cache) {
+func NewCache(Data map[string][]wisski.Entity, SameAs map[URI]URI) (c Cache, err error) {
+	// reset the uris
+	c.uris.Reset(&c.engine)
+
 	// store the bundle-entity index
-	c.BEIndex = Data
-	c.BIIndex = make(map[string]map[URI]int, len(c.BEIndex))
-	c.EBIndex = make(map[URI]string)
-	for bundle, entities := range c.BEIndex {
-		c.BIIndex[bundle] = make(map[URI]int, len(entities))
+	c.beIndex = Data
+	c.biIndex = make(map[string]map[imap.ID]int, len(c.beIndex))
+	c.ebIndex = make(map[imap.ID]string)
+	for bundle, entities := range c.beIndex {
+		c.biIndex[bundle] = make(map[imap.ID]int, len(entities))
 		for i, entity := range entities {
-			c.BIIndex[bundle][entity.URI] = i
-			c.EBIndex[entity.URI] = bundle
+			id, err := c.uris.Add(entity.URI)
+			if err != nil {
+				return c, err
+			}
+			c.biIndex[bundle][id[0]] = i
+			c.ebIndex[id[0]] = bundle
 		}
 	}
 
-	c.BundleNames = maps.Keys(c.BEIndex)
-	slices.Sort(c.BundleNames)
+	c.bundleNames = maps.Keys(c.beIndex)
+	slices.Sort(c.bundleNames)
 
 	// setup same-as and same-as-in
-	c.SameAs = SameAs
-	c.Alias = make(map[URI][]URI, len(c.SameAs))
-	for alias, canon := range c.SameAs {
-		c.Alias[canon] = append(c.Alias[canon], alias)
+	c.sameAs = make(map[imap.ID]imap.ID, len(SameAs))
+	c.aliasOf = make(map[imap.ID][]imap.ID, len(c.sameAs))
+	for alias, canon := range SameAs {
+		aliass, err := c.uris.Add(alias)
+		if err != nil {
+			return c, err
+		}
+		canons, err := c.uris.Add(canon)
+		if err != nil {
+			return c, err
+		}
+
+		c.sameAs[aliass[0]] = canons[0]
+		c.aliasOf[canons[0]] = append(c.aliasOf[canons[0]], aliass[0])
 	}
 
-	return c
+	return c, nil
+}
+
+func (c Cache) canonical(uri URI) imap.ID {
+	id, err := c.uris.Forward(uri)
+	if err != nil {
+		return id
+	}
+	if cid, ok := c.sameAs[id]; ok {
+		return cid
+	}
+	return id
 }
 
 // Canonical returns the canonical version of the given uri
 func (c Cache) Canonical(uri URI) URI {
-	if canon, ok := c.SameAs[uri]; ok {
-		return canon
-	}
-	return uri
+	canon, _ := c.uris.Reverse(c.canonical(uri))
+	return canon
 }
 
 // Aliases returns the Aliases of the given URI, excluding itself
 func (c Cache) Aliases(uri URI) []URI {
-	return c.Alias[uri]
+	id, err := c.uris.Forward(uri)
+	if err != nil {
+		return nil
+	}
+
+	aids := c.aliasOf[id]
+	aliases := make([]URI, 0, len(aids))
+	for _, id := range aids {
+		alias, err := c.uris.Reverse(id)
+		if err != nil {
+			continue
+		}
+		aliases = append(aliases, alias)
+	}
+	return aliases
 }
 
 // Bundle returns the bundle of the given uri, if any
 func (c Cache) Bundle(uri URI) (string, bool) {
-	bundle, ok := c.EBIndex[c.Canonical(uri)]
+	cid := c.canonical(uri)
+	bundle, ok := c.ebIndex[cid]
 	return bundle, ok
 }
 
@@ -89,9 +183,9 @@ func (c Cache) FirstBundle(uris ...URI) (uri URI, bundle string, ok bool) {
 
 // Entity looks up the given entity
 func (c Cache) Entity(uri URI, bundle string) (*Entity, bool) {
-	index, ok := c.BIIndex[bundle][c.Canonical(uri)]
+	index, ok := c.biIndex[bundle][c.canonical(uri)]
 	if !ok {
 		return nil, false
 	}
-	return &c.BEIndex[bundle][index], true
+	return &c.beIndex[bundle][index], true
 }

@@ -9,16 +9,11 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"runtime/debug"
 
 	"github.com/tkw1536/FAU-CDI/drincw"
 	"github.com/tkw1536/FAU-CDI/drincw/internal/sparkl"
-	"github.com/tkw1536/FAU-CDI/drincw/internal/sparkl/storages"
 	"github.com/tkw1536/FAU-CDI/drincw/internal/viewer"
 	"github.com/tkw1536/FAU-CDI/drincw/internal/wisski"
-	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder"
-	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder/pbxml"
-	"github.com/tkw1536/FAU-CDI/drincw/pkg/imap"
 	"github.com/tkw1536/FAU-CDI/drincw/pkg/perf"
 )
 
@@ -27,98 +22,53 @@ func main() {
 		go listenDebug()
 	}
 
-	if len(nArgs) != 2 {
-		log.Print("Usage: tasted [-help] [...flags] /path/to/pathbuilder /path/to/nquads")
+	if len(nArgs) == 0 || len(nArgs) > 2 {
+		log.Print("Usage: tasted [-help] [...flags] [/path/to/pathbuilder /path/to/nquads | /path/to/export]")
 		flag.PrintDefaults()
 		os.Exit(1)
 	}
 
+	var listener net.Listener
+	var err error
+
 	// start listening, so that even during loading we are not performing that badly
-	listener, err := net.Listen("tcp", addr)
+	if export == "" {
+		listener, err = net.Listen("tcp", addr)
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.Println("listening on", addr)
+	}
+
+	var glass Glass
+	if len(nArgs) == 2 {
+		sparkl.ParsePredicateString(&flags.Predicates.SameAs, sameAs)
+		sparkl.ParsePredicateString(&flags.Predicates.InverseOf, inverseOf)
+
+		glass, err = Create(nArgs[0], nArgs[1], cache, flags)
+	} else {
+		glass, err = Import(nArgs[0])
+	}
 	if err != nil {
-		log.Fatal(err)
-	}
-	log.Println("listening on", addr)
-
-	// read the pathbuilder
-	var pb pathbuilder.Pathbuilder
-	var pbPerf perf.Diff
-	{
-		start := perf.Now()
-		pb, err = pbxml.Load(nArgs[0])
-		pbPerf = perf.Since(start)
-
-		if err != nil {
-			log.Fatalf("Unable to load Pathbuilder: %s", err)
-		}
-		log.Printf("loaded pathbuilder, took %s", pbPerf)
+		return
 	}
 
-	sparkl.ParsePredicateString(&flags.Predicates.SameAs, sameAs)
-	sparkl.ParsePredicateString(&flags.Predicates.InverseOf, inverseOf)
-
-	// make an engine
-	engine := sparkl.NewEngine(cache)
-	bEngine := storages.NewBundleEngine(cache)
-	if cache != "" {
-		log.Printf("caching data on-disk at %s", cache)
+	// create an export if requested
+	if export != "" {
+		log.Printf("exporting to %s", export)
+		Export(export, glass)
+		return
 	}
 
-	// build an index
-	var index *sparkl.Index
-	var indexPerf perf.Diff
-	{
-		start := perf.Now()
-		index, err = sparkl.LoadIndex(nArgs[1], flags.Predicates, engine)
-		indexPerf = perf.Since(start)
-
-		if err != nil {
-			log.Fatalf("Unable to build index: %s", err)
-		}
-		defer index.Close()
-
-		log.Printf("built index, stats %s, took %s", index.Stats(), indexPerf)
-	}
-
-	// generate bundles
-	var bundles map[string][]sparkl.Entity
-	var bundlesPerf perf.Diff
-	{
-		start := perf.Now()
-		bundles, err = sparkl.LoadPathbuilder(&pb, index, bEngine)
-		if err != nil {
-			log.Fatalf("Unable to load pathbuilder: %s", err)
-		}
-		bundlesPerf = perf.Since(start)
-		log.Printf("extracted bundles, took %s", bundlesPerf)
-	}
-
-	// generate cache
-	var cache sparkl.Cache
-	var cachePerf perf.Diff
-	{
-		start := perf.Now()
-
-		identities := make(imap.MemoryStorage[sparkl.URI, sparkl.URI])
-		index.IdentityMap(&identities)
-		cache = sparkl.NewCache(bundles, identities)
-
-		cachePerf = perf.Since(start)
-		log.Printf("built cache, took %s", cachePerf)
-	}
-
-	index.Close()        // We close the index early, because it's no longer needed
-	debug.FreeOSMemory() // force returning memory to the os
-
-	// and finally make a viewer handler
+	// otherwise create a viewer
 	var handler viewer.Viewer
 	var handlerPerf perf.Diff
 	{
 		start := perf.Now()
 
 		handler = viewer.Viewer{
-			Cache:       &cache,
-			Pathbuilder: &pb,
+			Cache:       glass.Cache,
+			Pathbuilder: &glass.pathbuilder,
 			RenderFlags: flags,
 		}
 		handler.Prepare()
@@ -140,6 +90,7 @@ var sameAs string = string(wisski.SameAs)
 var inverseOf string = string(wisski.InverseOf)
 
 var cache string
+var export string
 var debugServer string
 
 func init() {
@@ -160,6 +111,7 @@ func init() {
 	flag.StringVar(&inverseOf, "inverseof", inverseOf, "InverseOf Properties")
 	flag.StringVar(&cache, "cache", cache, "During indexing, cache data in the given directory as opposed to memory")
 	flag.StringVar(&debugServer, "debug-listen", debugServer, "start a profiling server on the given address")
+	flag.StringVar(&export, "export", export, "export completed index to path and exit")
 
 	flag.Parse()
 	nArgs = flag.Args()

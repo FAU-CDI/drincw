@@ -41,6 +41,11 @@ type Diff struct {
 	Bytes int64
 }
 
+func (diff Diff) SetBytes(bytes int64) Diff {
+	diff.Bytes = bytes
+	return diff
+}
+
 func (diff Diff) String() string {
 	return fmt.Sprintf("%s, %s", diff.Time, human(diff.Bytes))
 }

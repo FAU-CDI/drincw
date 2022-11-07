@@ -31,7 +31,7 @@ func (viewer *Viewer) findEntity(bundle_machine string, uri sparkl.URI) (bundle 
 }
 
 func (viewer *Viewer) getBundles() (bundles []*pathbuilder.Bundle, ok bool) {
-	names := viewer.Cache.BundleNames
+	names := viewer.Cache.BundleNames()
 	bundles = make([]*pathbuilder.Bundle, 0, len(names))
 	for _, name := range names {
 		bundle := viewer.Pathbuilder.Bundle(name)
@@ -54,7 +54,7 @@ func (viewer *Viewer) getEntityURIs(id string) (bundle *pathbuilder.Bundle, uris
 		return nil, nil, false
 	}
 
-	entities := viewer.Cache.BEIndex[bundle.MachineName()]
+	entities := viewer.Cache.Entities(bundle.MachineName())
 	uris = make([]sparkl.URI, len(entities))
 	for i, entity := range entities {
 		uris[i] = entity.URI

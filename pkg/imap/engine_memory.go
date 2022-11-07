@@ -1,16 +1,23 @@
 package imap
 
 // MemoryEngine represents an engine that stores storages in memory
-type MemoryEngine[Label comparable] struct{}
-
-func (MemoryEngine[Label]) Forward() (Storage[Label, [2]ID], error) {
-	ms := make(MemoryStorage[Label, [2]ID])
-	return &ms, nil
+type MemoryEngine[Label comparable] struct {
+	FStorage MemoryStorage[Label, [2]ID]
+	RStorage MemoryStorage[ID, Label]
 }
 
-func (MemoryEngine[Label]) Reverse() (Storage[ID, Label], error) {
-	ms := make(MemoryStorage[ID, Label])
-	return &ms, nil
+func (me *MemoryEngine[Label]) Forward() (Storage[Label, [2]ID], error) {
+	if me.FStorage == nil {
+		me.FStorage = make(MemoryStorage[Label, [2]ID])
+	}
+	return &me.FStorage, nil
+}
+
+func (me *MemoryEngine[Label]) Reverse() (Storage[ID, Label], error) {
+	if me.RStorage == nil {
+		me.RStorage = make(MemoryStorage[ID, Label])
+	}
+	return &me.RStorage, nil
 }
 
 // MemoryStorage implements Storage as an in-memory map

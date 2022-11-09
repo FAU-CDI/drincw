@@ -1,11 +1,11 @@
 package sparkl
 
 import (
-	"bytes"
 	"encoding/gob"
 
 	"github.com/tkw1536/FAU-CDI/drincw/internal/wisski"
 	"github.com/tkw1536/FAU-CDI/drincw/pkg/imap"
+	"github.com/tkw1536/FAU-CDI/drincw/pkg/sgob"
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
 )
@@ -26,10 +26,8 @@ type Cache struct {
 	uris   imap.IMap[URI]         // holds mappings between ids and uris
 }
 
-func (cache *Cache) MarshalBinary() ([]byte, error) {
-	var buffer bytes.Buffer
-	encoder := gob.NewEncoder(&buffer)
-
+// EncodeTo encodes this cache object to the given gob.Encoder.
+func (cache *Cache) EncodeTo(encoder *gob.Encoder) error {
 	for _, obj := range []any{
 		cache.beIndex,
 		cache.biIndex,
@@ -40,21 +38,15 @@ func (cache *Cache) MarshalBinary() ([]byte, error) {
 		cache.engine.FStorage,
 		cache.engine.RStorage,
 	} {
-		if err := encoder.Encode(obj); err != nil {
-			buffer.Reset()
-			return nil, err
+		if err := sgob.Encode(encoder, obj); err != nil {
+			return err
 		}
 	}
 
-	return buffer.Bytes(), nil
+	return nil
 }
 
-func (cache *Cache) UnmarshalBinary(data []byte) error {
-	reader := bytes.NewReader(data)
-	defer reader.Reset(nil)
-
-	decoder := gob.NewDecoder(reader)
-
+func (cache *Cache) DecodeFrom(decoder *gob.Decoder) error {
 	for _, obj := range []any{
 		&cache.beIndex,
 		&cache.biIndex,
@@ -65,7 +57,7 @@ func (cache *Cache) UnmarshalBinary(data []byte) error {
 		&cache.engine.FStorage,
 		&cache.engine.RStorage,
 	} {
-		if err := decoder.Decode(obj); err != nil {
+		if err := sgob.Decode(decoder, obj); err != nil {
 			return err
 		}
 	}

@@ -42,9 +42,23 @@ func (p Path) MakeCardinality() int {
 
 // MachineName returns the machine name of this path.
 //
-// When this bundle defines a group, then the machine name is the bundle.
-// When this bundle is not a group, it is the field name.
-func (p Path) MachineName() string {
+// The machine name is an identifier that is guaranteed to be unique among the respective bundle, but not globally.
+// If a valid path, the machine name is not the empty string.
+func (p Path) MachineName() (machine string) {
+	// NOTE(twiesing): MachineName is used in a lot of URL contexts and database table names.
+	// As such it should "look nice", meaning it should not just be a random hash.
+
+	if p.ID != "" {
+		// ID contains a nice readable name
+		// so we use it first
+		return p.ID
+	}
+
+	if p.UUID != "" {
+		// globally unique
+		return p.UUID
+	}
+
 	if p.IsGroup {
 		return p.Bundle
 	} else {

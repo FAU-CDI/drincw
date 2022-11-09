@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"runtime/debug"
+	"time"
 
 	"github.com/dustin/go-humanize"
 	"github.com/tkw1536/FAU-CDI/drincw/internal/sparkl"
@@ -17,20 +18,68 @@ import (
 	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder/pbxml"
 	"github.com/tkw1536/FAU-CDI/drincw/pkg/imap"
 	"github.com/tkw1536/FAU-CDI/drincw/pkg/perf"
+	"github.com/tkw1536/FAU-CDI/drincw/pkg/sgob"
 )
 
 const tastedVersion = 1
 
 // Glass represents a stand-alone representation of a WissKI
 type Glass struct {
-	Version int
-
-	pathbuilder pathbuilder.Pathbuilder
-	PBXML       []byte // Pathbuilder holds the xml-serialized form of the pathbuilder
+	Pathbuilder pathbuilder.Pathbuilder
 
 	Flags viewer.RenderFlags
 
 	Cache *sparkl.Cache
+}
+
+func (glass *Glass) EncodeTo(encoder *gob.Encoder) error {
+	// encode the pathbuilder as xml
+	pbxml, err := pbxml.Marshal(glass.Pathbuilder)
+	if err != nil {
+		return err
+	}
+
+	// encode all the fields
+	for _, obj := range []any{
+		tastedVersion,
+		pbxml,
+		glass.Flags,
+	} {
+		if err := sgob.Encode(encoder, obj); err != nil {
+			return err
+		}
+	}
+
+	// encode the paypload
+	return glass.Cache.EncodeTo(encoder)
+}
+
+func (glass *Glass) DecodeFrom(decoder *gob.Decoder) (err error) {
+	var version int
+	var xml []byte
+	for _, obj := range []any{
+		&version,
+		&xml,
+		&glass.Flags,
+	} {
+		if err := sgob.Decode(decoder, obj); err != nil {
+			return err
+		}
+	}
+
+	// decode the xml again
+	glass.Pathbuilder, err = pbxml.Unmarshal(xml)
+	if err != nil {
+		log.Fatalf("Unable to unmarshal export: %s", err)
+		return err
+	}
+
+	if version != tastedVersion {
+		return errInvalidVersion
+	}
+
+	glass.Cache = new(sparkl.Cache)
+	return glass.Cache.DecodeFrom(decoder)
 }
 
 func Create(pathbuilderPath string, nquadsPath string, cacheDir string, flags viewer.RenderFlags) (glass Glass, err error) {
@@ -38,7 +87,7 @@ func Create(pathbuilderPath string, nquadsPath string, cacheDir string, flags vi
 	var pbPerf perf.Diff
 	{
 		start := perf.Now()
-		glass.pathbuilder, err = pbxml.Load(pathbuilderPath)
+		glass.Pathbuilder, err = pbxml.Load(pathbuilderPath)
 		pbPerf = perf.Since(start)
 
 		if err != nil {
@@ -77,7 +126,7 @@ func Create(pathbuilderPath string, nquadsPath string, cacheDir string, flags vi
 	var bundlesPerf perf.Diff
 	{
 		start := perf.Now()
-		bundles, err = sparkl.LoadPathbuilder(&glass.pathbuilder, index, bEngine)
+		bundles, err = sparkl.LoadPathbuilder(&glass.Pathbuilder, index, bEngine)
 		if err != nil {
 			log.Fatalf("Unable to load pathbuilder: %s", err)
 		}
@@ -112,18 +161,6 @@ func Create(pathbuilderPath string, nquadsPath string, cacheDir string, flags vi
 
 // Export writes a glass to disk
 func Export(path string, glass Glass) (err error) {
-	glass.Version = tastedVersion
-
-	{
-		start := perf.Now()
-		glass.PBXML, err = pbxml.Marshal(glass.pathbuilder)
-		if err != nil {
-			log.Fatalf("Unable to create export: %s", err)
-			return err
-		}
-		log.Printf("serialized pathbuilder, took %s", perf.Since(start))
-	}
-
 	f, err := os.Create(path)
 	if err != nil {
 		log.Fatalf("Unable to create export: %s", err)
@@ -138,8 +175,8 @@ func Export(path string, glass Glass) (err error) {
 			Writer:   f,
 			Progress: os.Stderr,
 		}
-
-		err = gob.NewEncoder(counter).Encode(glass)
+		err = glass.EncodeTo(gob.NewEncoder(counter))
+		counter.Flush(true)
 		os.Stderr.WriteString("\r")
 		if err != nil {
 			log.Fatalf("Unable to encode export: %s", err)
@@ -154,6 +191,8 @@ var errInvalidVersion = errors.New("Glass Export: Invalid version")
 
 // Import loads a glass from disk
 func Import(path string) (glass Glass, err error) {
+	defer debug.FreeOSMemory() // force clearing free memory
+
 	f, err := os.Open(path)
 	if err != nil {
 		log.Fatalf("Unable to open export: %s", err)
@@ -161,24 +200,20 @@ func Import(path string) (glass Glass, err error) {
 	}
 	defer f.Close()
 
-	// decode the tasted struct
-	err = gob.NewDecoder(f).Decode(&glass)
-	if err != nil {
-		log.Fatalf("Unable to decode export: %s", err)
-		return
-	}
+	{
+		start := perf.Now()
 
-	// check that the version is correct
-	if glass.Version != tastedVersion {
-		log.Fatalf("Unable to decode export: %s", errInvalidVersion)
-		return glass, errInvalidVersion
-	}
-
-	// decode the xml again
-	glass.pathbuilder, err = pbxml.Unmarshal(glass.PBXML)
-	if err != nil {
-		log.Fatalf("Unable to unmarshal export: %s", err)
-		return glass, err
+		counter := &ProgressReader{
+			Reader:   f,
+			Progress: os.Stderr,
+		}
+		err = glass.DecodeFrom(gob.NewDecoder(counter))
+		counter.Flush(true)
+		os.Stderr.WriteString("\r")
+		if err != nil {
+			log.Fatalf("Unable to decode export: %s", err)
+		}
+		log.Printf("read export, took %s", perf.Since(start).SetBytes(counter.Bytes))
 	}
 
 	return
@@ -186,12 +221,45 @@ func Import(path string) (glass Glass, err error) {
 
 type ProgressWriter struct {
 	io.Writer
-	Progress io.Writer
-	Bytes    int64
+	Bytes int64
+
+	lastFlush time.Time
+	Progress  io.Writer
 }
 
 func (cw *ProgressWriter) Write(bytes []byte) (int, error) {
 	cw.Bytes += int64(len(bytes))
 	fmt.Fprintf(cw.Progress, "\r Wrote %s", humanize.Bytes(uint64(cw.Bytes)))
 	return cw.Writer.Write(bytes)
+}
+
+func (cw *ProgressWriter) Flush(force bool) {
+	if force || time.Since(cw.lastFlush) > flushInterval {
+		cw.lastFlush = time.Now()
+		fmt.Fprintf(cw.Progress, "\r Read %s", humanize.Bytes(uint64(cw.Bytes)))
+	}
+}
+
+type ProgressReader struct {
+	io.Reader
+	Bytes int64
+
+	lastFlush time.Time
+	Progress  io.Writer
+}
+
+func (cr *ProgressReader) Read(bytes []byte) (int, error) {
+	count, err := cr.Reader.Read(bytes)
+	cr.Bytes += int64(count)
+	cr.Flush(false)
+	return count, err
+}
+
+const flushInterval = time.Second / 30
+
+func (cr *ProgressReader) Flush(force bool) {
+	if force || time.Since(cr.lastFlush) > flushInterval {
+		cr.lastFlush = time.Now()
+		fmt.Fprintf(cr.Progress, "\r Read %s", humanize.Bytes(uint64(cr.Bytes)))
+	}
 }

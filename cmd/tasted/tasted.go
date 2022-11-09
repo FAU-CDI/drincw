@@ -68,7 +68,7 @@ func main() {
 
 		handler = viewer.Viewer{
 			Cache:       glass.Cache,
-			Pathbuilder: &glass.pathbuilder,
+			Pathbuilder: &glass.Pathbuilder,
 			RenderFlags: flags,
 		}
 		handler.Prepare()

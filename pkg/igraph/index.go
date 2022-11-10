@@ -46,13 +46,14 @@ func (index *IGraph[Label, Datum]) Stats() Stats {
 
 // TripleCount returns the total number of (distinct) triples in this graph.
 // Triples which have been identified will only count once.
-func (index *IGraph[Label, Datum]) TripleCount() (count int64, err error) {
+func (index *IGraph[Label, Datum]) TripleCount() (count uint64, err error) {
 	if index == nil {
 		return 0, nil
 	}
-	return index.psoIndex.Count()
+	return index.triples.Count()
 }
 
+// Triple returns the triple with the given
 func (index *IGraph[Label, Datum]) Triple(id imap.ID) (triple Triple[Label, Datum], err error) {
 	t, _, err := index.triples.Get(id)
 	if err != nil {

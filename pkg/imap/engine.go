@@ -37,4 +37,7 @@ type Storage[Key comparable, Value any] interface {
 	//
 	// There is no guarantee on order.
 	Iterate(f func(Key, Value) error) error
+
+	// Count counts the number of elements in this store
+	Count() (uint64, error)
 }

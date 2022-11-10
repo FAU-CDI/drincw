@@ -199,3 +199,16 @@ func (ds *DiskStorage[Key, Value]) Close() error {
 	ds.DB = nil
 	return err
 }
+
+// Count returns the number of objects in this DiskStorage.
+func (ds *DiskStorage[Key, Value]) Count() (count uint64, err error) {
+	it := ds.DB.NewIterator(nil, nil)
+	for it.Next() {
+		count++
+	}
+	err = it.Error()
+	if err != nil {
+		count = 0
+	}
+	return
+}

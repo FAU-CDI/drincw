@@ -1,16 +1,13 @@
 package main
 
 import (
+	"bufio"
 	"encoding/gob"
 	"errors"
-	"fmt"
-	"io"
 	"log"
 	"os"
 	"runtime/debug"
-	"time"
 
-	"github.com/dustin/go-humanize"
 	"github.com/tkw1536/FAU-CDI/drincw/internal/sparkl"
 	"github.com/tkw1536/FAU-CDI/drincw/internal/sparkl/storages"
 	"github.com/tkw1536/FAU-CDI/drincw/internal/viewer"
@@ -18,6 +15,7 @@ import (
 	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder/pbxml"
 	"github.com/tkw1536/FAU-CDI/drincw/pkg/imap"
 	"github.com/tkw1536/FAU-CDI/drincw/pkg/perf"
+	"github.com/tkw1536/FAU-CDI/drincw/pkg/progress"
 	"github.com/tkw1536/FAU-CDI/drincw/pkg/sgob"
 )
 
@@ -168,11 +166,14 @@ func Export(path string, glass Glass) (err error) {
 	}
 	defer f.Close()
 
+	writer := bufio.NewWriter(f)
+	defer writer.Flush()
+
 	{
 		start := perf.Now()
 
-		counter := &ProgressWriter{
-			Writer:   f,
+		counter := &progress.Writer{
+			Writer:   writer,
 			Progress: os.Stderr,
 		}
 		err = glass.EncodeTo(gob.NewEncoder(counter))
@@ -203,8 +204,8 @@ func Import(path string) (glass Glass, err error) {
 	{
 		start := perf.Now()
 
-		counter := &ProgressReader{
-			Reader:   f,
+		counter := &progress.Reader{
+			Reader:   bufio.NewReader(f),
 			Progress: os.Stderr,
 		}
 		err = glass.DecodeFrom(gob.NewDecoder(counter))
@@ -217,49 +218,4 @@ func Import(path string) (glass Glass, err error) {
 	}
 
 	return
-}
-
-type ProgressWriter struct {
-	io.Writer
-	Bytes int64
-
-	lastFlush time.Time
-	Progress  io.Writer
-}
-
-func (cw *ProgressWriter) Write(bytes []byte) (int, error) {
-	cw.Bytes += int64(len(bytes))
-	fmt.Fprintf(cw.Progress, "\r Wrote %s", humanize.Bytes(uint64(cw.Bytes)))
-	return cw.Writer.Write(bytes)
-}
-
-func (cw *ProgressWriter) Flush(force bool) {
-	if force || time.Since(cw.lastFlush) > flushInterval {
-		cw.lastFlush = time.Now()
-		fmt.Fprintf(cw.Progress, "\r Read %s", humanize.Bytes(uint64(cw.Bytes)))
-	}
-}
-
-type ProgressReader struct {
-	io.Reader
-	Bytes int64
-
-	lastFlush time.Time
-	Progress  io.Writer
-}
-
-func (cr *ProgressReader) Read(bytes []byte) (int, error) {
-	count, err := cr.Reader.Read(bytes)
-	cr.Bytes += int64(count)
-	cr.Flush(false)
-	return count, err
-}
-
-const flushInterval = time.Second / 30
-
-func (cr *ProgressReader) Flush(force bool) {
-	if force || time.Since(cr.lastFlush) > flushInterval {
-		cr.lastFlush = time.Now()
-		fmt.Fprintf(cr.Progress, "\r Read %s", humanize.Bytes(uint64(cr.Bytes)))
-	}
 }

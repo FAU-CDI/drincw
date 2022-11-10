@@ -66,3 +66,7 @@ func (ims *MemoryStorage[Key, Value]) Close() error {
 	*ims = nil
 	return nil
 }
+
+func (ims *MemoryStorage[Key, Value]) Count() (uint64, error) {
+	return uint64(len(*ims)), nil
+}

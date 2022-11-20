@@ -16,7 +16,7 @@ type DiskEngine[Label comparable] struct {
 	UnmarshalLabel func(dest *Label, src []byte) error
 }
 
-func (de DiskEngine[Label]) Forward() (Storage[Label, [2]ID], error) {
+func (de DiskEngine[Label]) Forward() (KeyValueStore[Label, [2]ID], error) {
 	forward := filepath.Join(de.Path, "forward.pogrep")
 
 	ds, err := NewDiskStorage[Label, [2]ID](forward)
@@ -35,7 +35,7 @@ func (de DiskEngine[Label]) Forward() (Storage[Label, [2]ID], error) {
 	return ds, nil
 }
 
-func (de DiskEngine[Label]) Reverse() (Storage[ID, Label], error) {
+func (de DiskEngine[Label]) Reverse() (KeyValueStore[ID, Label], error) {
 	reverse := filepath.Join(de.Path, "reverse.leveldb")
 
 	ds, err := NewDiskStorage[ID, Label](reverse)

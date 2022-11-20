@@ -11,15 +11,15 @@ type MemoryEngine[Label comparable, Datum any] struct {
 	imap.MemoryEngine[Label]
 }
 
-func (MemoryEngine[Label, Datum]) Data() (imap.Storage[imap.ID, Datum], error) {
+func (MemoryEngine[Label, Datum]) Data() (imap.KeyValueStore[imap.ID, Datum], error) {
 	ms := make(imap.MemoryStorage[imap.ID, Datum])
 	return &ms, nil
 }
-func (MemoryEngine[Label, Datum]) Triples() (imap.Storage[imap.ID, IndexTriple], error) {
+func (MemoryEngine[Label, Datum]) Triples() (imap.KeyValueStore[imap.ID, IndexTriple], error) {
 	ms := make(imap.MemoryStorage[imap.ID, IndexTriple])
 	return &ms, nil
 }
-func (MemoryEngine[Label, Datum]) Inverses() (imap.Storage[imap.ID, imap.ID], error) {
+func (MemoryEngine[Label, Datum]) Inverses() (imap.KeyValueStore[imap.ID, imap.ID], error) {
 	ms := make(imap.MemoryStorage[imap.ID, imap.ID])
 	return &ms, nil
 }

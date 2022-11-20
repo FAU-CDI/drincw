@@ -6,14 +6,14 @@ type MemoryEngine[Label comparable] struct {
 	RStorage MemoryStorage[ID, Label]
 }
 
-func (me *MemoryEngine[Label]) Forward() (Storage[Label, [2]ID], error) {
+func (me *MemoryEngine[Label]) Forward() (KeyValueStore[Label, [2]ID], error) {
 	if me.FStorage == nil {
 		me.FStorage = make(MemoryStorage[Label, [2]ID])
 	}
 	return &me.FStorage, nil
 }
 
-func (me *MemoryEngine[Label]) Reverse() (Storage[ID, Label], error) {
+func (me *MemoryEngine[Label]) Reverse() (KeyValueStore[ID, Label], error) {
 	if me.RStorage == nil {
 		me.RStorage = make(MemoryStorage[ID, Label])
 	}

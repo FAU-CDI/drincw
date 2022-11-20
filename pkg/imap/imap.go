@@ -11,8 +11,8 @@ import (
 type IMap[Label comparable] struct {
 	// forward holds a mapping from labels to a pair of identifiers
 	// the first being the canonical identifier, the second being the original identifier
-	forward Storage[Label, [2]ID]
-	reverse Storage[ID, Label]
+	forward KeyValueStore[Label, [2]ID]
+	reverse KeyValueStore[ID, Label]
 
 	id ID // last id inserted
 }
@@ -160,7 +160,7 @@ func (mp *IMap[Label]) Reverse(id ID) (Label, error) {
 // Concretely a pair (L1, L2) is written to storage iff
 //
 //	mp.Reverse(mp.Forward(L1)) == L2 && L1 != L2
-func (mp *IMap[Label]) IdentityMap(storage Storage[Label, Label]) error {
+func (mp *IMap[Label]) IdentityMap(storage KeyValueStore[Label, Label]) error {
 	// TODO: Do we really want this right now
 	return mp.forward.Iterate(func(label Label, id [2]ID) error {
 		value, err := mp.reverse.GetZero(id[0])

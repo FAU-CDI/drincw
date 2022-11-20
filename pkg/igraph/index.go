@@ -26,9 +26,9 @@ type IGraph[Label comparable, Datum any] struct {
 	labels imap.IMap[Label]
 
 	// data holds mappings between internal IDs and data
-	data imap.Storage[imap.ID, Datum]
+	data imap.KeyValueStore[imap.ID, Datum]
 
-	inverses imap.Storage[imap.ID, imap.ID] // inverse ids for a given id
+	inverses imap.KeyValueStore[imap.ID, imap.ID] // inverse ids for a given id
 
 	// the triple indexes, forward and backward
 	psoIndex ThreeStorage
@@ -36,7 +36,7 @@ type IGraph[Label comparable, Datum any] struct {
 
 	// the id for a given triple
 	triple  imap.ID
-	triples imap.Storage[imap.ID, IndexTriple]
+	triples imap.KeyValueStore[imap.ID, IndexTriple]
 }
 
 // Stats returns statistics from this graph
@@ -338,7 +338,7 @@ func (index *IGraph[Label, Datum]) MarkInverse(left, right Label) error {
 
 // IdentityMap writes all Labels for which has a semantically equivalent label.
 // See [imap.Storage.IdentityMap].
-func (index *IGraph[Label, Datum]) IdentityMap(storage imap.Storage[Label, Label]) error {
+func (index *IGraph[Label, Datum]) IdentityMap(storage imap.KeyValueStore[Label, Label]) error {
 	return index.labels.IdentityMap(storage)
 }
 

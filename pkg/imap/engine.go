@@ -1,18 +1,17 @@
 package imap
 
-import "io"
-
 // Engine creates Storages for an IMap
 type Engine[Label comparable] interface {
-	Forward() (Storage[Label, [2]ID], error)
-	Reverse() (Storage[ID, Label], error)
+	Forward() (KeyValueStore[Label, [2]ID], error)
+	Reverse() (KeyValueStore[ID, Label], error)
 }
 
-// Storage represents a storage for an imap instance.
+// KeyValueStore is something that holds a set of key-value pairs.
 //
-// Must be able to handle multiple reading operations concurrently.
-type Storage[Key comparable, Value any] interface {
-	io.Closer
+// Key-Value stores support various read and write operations
+type KeyValueStore[Key comparable, Value any] interface {
+	// Close closes this key
+	Close() error
 
 	// Set sets the given key to the given value
 	Set(key Key, value Value) error

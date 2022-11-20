@@ -1,4 +1,12 @@
-// Package sgob strams a list or map of gob-encoded values
+// Package sgob wraps the gob package to stream encoding of lists and maps of objects.
+//
+// By default, the [gob] package encodes a large slice of map into a buffer and then makes a single Write call
+// to the underlying buffer.
+// This has the disadvantage that large objects have to be encoded entirely in memory before being written to the stream.
+//
+// This package works around this restriction by allowing top-level slices and maps to be encoded piece by piece, meaning
+// that each object is first encoded in memory and then written to the stream.
+// A disadvantage is that the corresponding decode also has to be performed using this package.
 package sgob
 
 import (
@@ -7,14 +15,17 @@ import (
 	"reflect"
 )
 
+// Encode encodes object into the given encoder.
 func Encode(encoder *gob.Encoder, obj any) error {
 	return EncodeValue(encoder, reflect.ValueOf(obj))
 }
 
+// Decode decodes object from this decoder.
 func Decode(decoder *gob.Decoder, obj any) error {
 	return DecodeValue(decoder, reflect.ValueOf(obj))
 }
 
+// EncodeValue is like Encode, but takes a relect.Value.
 func EncodeValue(encoder *gob.Encoder, value reflect.Value) error {
 	switch value.Type().Kind() {
 	case reflect.Map:
@@ -26,6 +37,7 @@ func EncodeValue(encoder *gob.Encoder, value reflect.Value) error {
 	}
 }
 
+// DecodeValue is like Decode, but takes a relect.Value.
 func DecodeValue(decoder *gob.Decoder, value reflect.Value) error {
 	tp := value.Type()
 	if tp.Kind() != reflect.Pointer {

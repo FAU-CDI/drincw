@@ -1,12 +1,16 @@
-// Package xmltypes contains common types marshaled to xml
+// Package xmltypes contains several types that encode differently in XML.
+// Each of the types in this package contain four functions.
+//
+// - Get returns the encoded value.
+// - Set sets using an encoded value.
+// - MarshalXML and UnmarshalXML marshal to / from xml.
 package xmltypes
 
 import "encoding/xml"
 
-// StringWithZero is like string, but marshals the empty string as "0"
+// StringWithZero is like string, but marshals the empty string as "0".
 type StringWithZero string
 
-// Get gets the value as a string
 func (s StringWithZero) Get() string {
 	if s == "" {
 		return "0"
@@ -14,7 +18,6 @@ func (s StringWithZero) Get() string {
 	return string(s)
 }
 
-// Set sets the value from a string
 func (s *StringWithZero) Set(v string) {
 	if v == "0" {
 		*s = ""
@@ -24,22 +27,17 @@ func (s *StringWithZero) Set(v string) {
 }
 
 func (s StringWithZero) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
-	return e.EncodeElement(s.Get(), start)
+	return marshal[string](s, e, start)
 }
 
 func (s *StringWithZero) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
-	var value string
-	if err := d.DecodeElement(&value, &start); err != nil {
-		return err
-	}
-	s.Set(value)
-	return nil
+	return unmarshal[string](s, d, start)
 }
 
-// BoolAsString is like bool, but marshals as either "TRUE" or "FALSE"
+// BoolAsInt is a boolean that is marshaled as a string in xml.
+// "TRUE" represents true, any other string represents false.
 type BoolAsString bool
 
-// Get gets the value as an integer
 func (b BoolAsString) Get() string {
 	if b {
 		return "TRUE"
@@ -47,28 +45,23 @@ func (b BoolAsString) Get() string {
 	return "FALSE"
 }
 
-// Set sets the BoolAsString to contain a string value
 func (b *BoolAsString) Set(v string) {
 	*b = (v == "TRUE")
 }
 
 func (b BoolAsString) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
-	return e.EncodeElement(b.Get(), start)
+	return marshal[string](b, e, start)
 }
 
 func (b *BoolAsString) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
-	var value string
-	if err := d.DecodeElement(&value, &start); err != nil {
-		return err
-	}
-	b.Set(value)
-	return nil
+	return unmarshal[string](b, d, start)
 }
 
-// BoolAsInt is like bool, but marshals as 0 (false) or 1 (true)
+// BoolAsInt is a boolean that is marshaled as an integer in xml.
+// 0 represents false, any other number represents true.
 type BoolAsInt bool
 
-// Get gets the value as an integer
+// Get returns this boolean as an integer
 func (b BoolAsInt) Get() int {
 	if b {
 		return 1
@@ -76,20 +69,29 @@ func (b BoolAsInt) Get() int {
 	return 0
 }
 
-// Set sets the BoolAsInt to contain an integer value
 func (b *BoolAsInt) Set(v int) {
 	*b = (v != 0)
 }
 
 func (b BoolAsInt) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
-	return e.EncodeElement(b.Get(), start)
+	return marshal[int](b, e, start)
 }
 
 func (b *BoolAsInt) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
-	var value int
+	return unmarshal[int](b, d, start)
+}
+
+// marshal and unmarshal implement xml.Marshal and xml.Unmarshal respectively.
+
+func marshal[T any](w interface{ Get() T }, e *xml.Encoder, start xml.StartElement) error {
+	return e.EncodeElement(w.Get(), start)
+}
+
+func unmarshal[T any](w interface{ Set(T) }, d *xml.Decoder, start xml.StartElement) error {
+	var value T
 	if err := d.DecodeElement(&value, &start); err != nil {
 		return err
 	}
-	b.Set(value)
+	w.Set(value)
 	return nil
 }

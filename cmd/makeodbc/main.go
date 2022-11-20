@@ -10,10 +10,10 @@ import (
 	"os"
 
 	"github.com/tkw1536/FAU-CDI/drincw"
+	"github.com/tkw1536/FAU-CDI/drincw/internal/sql"
 	"github.com/tkw1536/FAU-CDI/drincw/odbc"
 	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder"
 	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder/pbxml"
-	"github.com/tkw1536/FAU-CDI/drincw/sql"
 	"muzzammil.xyz/jsonc"
 )
 
@@ -42,7 +42,7 @@ func main() {
 		builder = sql.NewBuilder(pb)
 	}
 
-	odbcs := odbc.MakeServer(pb)
+	odbcs := odbc.NewServer(pb)
 	if err := builder.Apply(&odbcs); err != nil {
 		log.Fatalf("Unable to apply builder: %s", err)
 	}

@@ -12,10 +12,10 @@ import (
 
 	"github.com/ncruces/zenity"
 	"github.com/tkw1536/FAU-CDI/drincw"
+	"github.com/tkw1536/FAU-CDI/drincw/internal/sql"
 	"github.com/tkw1536/FAU-CDI/drincw/odbc"
 	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder"
 	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder/pbxml"
-	"github.com/tkw1536/FAU-CDI/drincw/sql"
 	"muzzammil.xyz/jsonc"
 )
 
@@ -29,7 +29,7 @@ func main() {
 		return
 	}
 
-	odbcs := odbc.MakeServer(pb)
+	odbcs := odbc.NewServer(pb)
 	if err := builder.Apply(&odbcs); err != nil {
 		zenity.Error(fmt.Sprintf("Unable to apply builder: %s", err))
 	}

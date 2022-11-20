@@ -23,8 +23,8 @@ type Server struct {
 	Tables []Table
 }
 
-// MakeServer generates a new Server from a pathbuilder
-func MakeServer(pb pathbuilder.Pathbuilder) (s Server) {
+// NewServer generates a new server from a pathbuilder
+func NewServer(pb pathbuilder.Pathbuilder) (s Server) {
 	s.URL = "localhost"
 	s.Database = ""
 	s.Port = 3306

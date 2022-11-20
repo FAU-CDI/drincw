@@ -14,9 +14,9 @@ import (
 
 	"github.com/tkw1536/FAU-CDI/drincw"
 	"github.com/tkw1536/FAU-CDI/drincw/internal/assets"
+	"github.com/tkw1536/FAU-CDI/drincw/internal/sql"
 	"github.com/tkw1536/FAU-CDI/drincw/odbc"
 	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder/pbxml"
-	"github.com/tkw1536/FAU-CDI/drincw/sql"
 )
 
 func main() {
@@ -48,7 +48,7 @@ func main() {
 
 		// create the odbc
 		builder := sql.NewBuilder(pb)
-		odbcs := odbc.MakeServer(pb)
+		odbcs := odbc.NewServer(pb)
 		err = builder.Apply(&odbcs)
 		if isError(err, w, "") {
 			return

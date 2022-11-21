@@ -7,7 +7,12 @@ import (
 	"testing"
 )
 
-// graphTest performs a test for a given engine
+// graphTest implements an integration test for an IGraph with the given engine.
+//
+// It first constructs a graph with O(N) nodes, and forms various connections.
+// It makes use of both inverses and identical relationships.
+//
+// It then forms a single query against this graph, ensuring that the correct result set is returned.
 func graphTest(t *testing.T, engine Engine[int, string], N int) {
 
 	var g IGraph[int, string]

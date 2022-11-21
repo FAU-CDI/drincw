@@ -173,8 +173,10 @@ func Export(path string, glass Glass) (err error) {
 		start := perf.Now()
 
 		counter := &progress.Writer{
-			Writer:   writer,
-			Progress: os.Stderr,
+			Writer: writer,
+
+			FlushInterval: progress.DefaultFlushInterval,
+			Progress:      os.Stderr,
 		}
 		err = glass.EncodeTo(gob.NewEncoder(counter))
 		counter.Flush(true)
@@ -205,8 +207,10 @@ func Import(path string) (glass Glass, err error) {
 		start := perf.Now()
 
 		counter := &progress.Reader{
-			Reader:   bufio.NewReader(f),
-			Progress: os.Stderr,
+			Reader: bufio.NewReader(f),
+
+			FlushInterval: progress.DefaultFlushInterval,
+			Progress:      os.Stderr,
 		}
 		err = glass.DecodeFrom(gob.NewDecoder(counter))
 		counter.Flush(true)

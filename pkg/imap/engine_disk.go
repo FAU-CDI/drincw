@@ -17,7 +17,7 @@ type DiskEngine[Label comparable] struct {
 }
 
 func (de DiskEngine[Label]) Forward() (KeyValueStore[Label, [2]ID], error) {
-	forward := filepath.Join(de.Path, "forward.pogrep")
+	forward := filepath.Join(de.Path, "forward.leveldb")
 
 	ds, err := NewDiskStorage[Label, [2]ID](forward)
 	if err != nil {

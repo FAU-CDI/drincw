@@ -21,9 +21,9 @@ const IDLen = len(ID{})
 
 // Valid checks if this ID is valid
 func (id ID) Valid() bool {
+	// NOTE(twiesing): We start this loop from the back as a performance optimisation
+	// because most IDs are expected to be small, so most of them will be faster
 	for i := IDLen - 1; i >= 0; i-- {
-		// we start this loop at the back
-		// because most likely the id is going to be at the small end
 		if id[i] != 0 {
 			return true
 		}

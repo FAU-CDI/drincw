@@ -1,10 +1,11 @@
 # Drincw
 
 Drincw (pronounced like `drink`) stands for "Drink Really Is Not Copying WissKI".
-It's a quick tool to help with importing and displaying data to and from a [WissKI](http://wiss-ki.eu/) instance. 
+It's a tool to display data from a [WissKI](http://wiss-ki.eu/) instance and help importing data.
 
 #### Why the name?
-Cause this project really isn't copying WissKI, it's a tool on top. 
+Cause this project really isn't copying WissKI or intended to fully replace it.
+It is an auxiliary tool on top. 
 
 *Work in progress*
 

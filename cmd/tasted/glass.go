@@ -1,7 +1,7 @@
 package main
 
 import (
-	"bufio"
+	"compress/gzip"
 	"encoding/gob"
 	"errors"
 	"log"
@@ -166,7 +166,11 @@ func Export(path string, glass Glass) (err error) {
 	}
 	defer f.Close()
 
-	writer := bufio.NewWriter(f)
+	writer, err := gzip.NewWriterLevel(f, gzip.BestCompression)
+	if err != nil {
+		log.Fatalf("Unable to create export: %s", err)
+		return err
+	}
 	defer writer.Flush()
 
 	{
@@ -203,11 +207,17 @@ func Import(path string) (glass Glass, err error) {
 	}
 	defer f.Close()
 
+	reader, err := gzip.NewReader(f)
+	if err != nil {
+		log.Fatalf("Unable to open export: %s", err)
+		return
+	}
+
 	{
 		start := perf.Now()
 
 		counter := &progress.Reader{
-			Reader: bufio.NewReader(f),
+			Reader: reader,
 
 			FlushInterval: progress.DefaultFlushInterval,
 			Progress:      os.Stderr,

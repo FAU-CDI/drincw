@@ -40,9 +40,9 @@ func (index *IGraph[Label, Datum]) PathsStarting(predicate, object Label) (*Path
 	return index.newQuery(func(sender iterator.Generator[element]) {
 		err := index.posIndex.Fetch(p, o, func(s imap.ID, l imap.ID) error {
 			if sender.Yield(element{
-				Node:   s,
-				Triple: l,
-				Parent: nil,
+				Node:    s,
+				Triples: []imap.ID{l},
+				Parent:  nil,
 			}) {
 				return errAborted
 			}
@@ -83,9 +83,9 @@ func (set *Paths[URI, Datum]) expand(p imap.ID) error {
 	set.elements = iterator.Connect(set.elements, func(subject element, sender iterator.Generator[element]) (stop bool) {
 		err := set.index.psoIndex.Fetch(p, subject.Node, func(object imap.ID, l imap.ID) error {
 			if sender.Yield(element{
-				Node:   object,
-				Triple: l,
-				Parent: &subject,
+				Node:    object,
+				Triples: []imap.ID{l},
+				Parent:  &subject,
 			}) {
 				return errAborted
 			}
@@ -118,7 +118,7 @@ func (set *Paths[URI, Datum]) Ending(predicate URI, object URI) error {
 // restrict restricts the set of nodes by those mapped in the index
 func (set *Paths[URI, Datum]) restrict(p, o imap.ID) error {
 	set.elements = iterator.Connect(set.elements, func(subject element, sender iterator.Generator[element]) bool {
-		has, err := set.index.posIndex.Has(p, o, subject.Node)
+		tid, has, err := set.index.posIndex.Has(p, o, subject.Node)
 		if err != nil {
 			sender.YieldError(err)
 			return true
@@ -126,6 +126,8 @@ func (set *Paths[URI, Datum]) restrict(p, o imap.ID) error {
 		if !has {
 			return false
 		}
+
+		subject.Triples = append(subject.Triples, tid)
 		return sender.Yield(subject)
 	})
 	set.size = -1
@@ -165,7 +167,7 @@ func (set *Paths[Label, Datum]) makePath(elem element) (path Path[Label, Datum])
 	e := &elem
 	for {
 		path.nodeIDs = append(path.nodeIDs, e.Node)
-		path.tripleIDs = append(path.tripleIDs, e.Triple)
+		path.tripleIDs = append(path.tripleIDs, e.Triples...)
 		e = e.Parent
 		if e == nil {
 			break
@@ -176,9 +178,12 @@ func (set *Paths[Label, Datum]) makePath(elem element) (path Path[Label, Datum])
 	for i := len(path.nodeIDs)/2 - 1; i >= 0; i-- {
 		opp := len(path.nodeIDs) - 1 - i
 		path.nodeIDs[i], path.nodeIDs[opp] = path.nodeIDs[opp], path.nodeIDs[i]
-		path.tripleIDs[i], path.tripleIDs[opp] = path.tripleIDs[opp], path.tripleIDs[i]
 	}
 
+	for i := len(path.tripleIDs)/2 - 1; i >= 0; i-- {
+		opp := len(path.tripleIDs) - 1 - i
+		path.tripleIDs[i], path.tripleIDs[opp] = path.tripleIDs[opp], path.tripleIDs[i]
+	}
 	return path
 }
 
@@ -188,7 +193,7 @@ type element struct {
 	Node imap.ID
 
 	// triple this label had (if applicable)
-	Triple imap.ID
+	Triples []imap.ID
 
 	// previous element of this path (if any)
 	Parent *element
@@ -299,7 +304,8 @@ func (path *Path[Label, Datum]) processEdges() {
 	})
 }
 
-// Triples returns the triples this path consists of
+// Triples returns the triples that this Path consists of.
+// Triples are guaranteed to be returned in query order, that is in the order they were required for the query to be fullfilled.
 func (path *Path[Label, Datum]) Triples() ([]Triple[Label, Datum], error) {
 	path.processTriples()
 	return path.triples, path.errTriples

@@ -100,13 +100,14 @@ func (tlm ThreeHash) Fetch(a, b imap.ID, f func(c imap.ID, l imap.ID) error) err
 	return nil
 }
 
-func (tlm ThreeHash) Has(a, b, c imap.ID) (bool, error) {
+func (tlm ThreeHash) Has(a, b, c imap.ID) (imap.ID, bool, error) {
 	three := tlm[a][b]
 	if three == nil {
-		return false, nil
+		var invalid imap.ID
+		return invalid, false, nil
 	}
-	_, ok := three.Data[c]
-	return ok, nil
+	l, ok := three.Data[c]
+	return l, ok, nil
 }
 
 func (tlm *ThreeHash) Close() error {

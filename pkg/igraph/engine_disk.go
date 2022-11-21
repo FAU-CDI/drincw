@@ -159,8 +159,18 @@ func (tlm *ThreeDiskHash) Fetch(a, b imap.ID, f func(c imap.ID, l imap.ID) error
 	return nil
 }
 
-func (tlm *ThreeDiskHash) Has(a, b, c imap.ID) (bool, error) {
-	return tlm.DB.Has(imap.EncodeIDs(a, b, c), nil)
+func (tlm *ThreeDiskHash) Has(a, b, c imap.ID) (id imap.ID, ok bool, err error) {
+	value, err := tlm.DB.Get(imap.EncodeIDs(a, b, c), nil)
+	if err == errors.ErrNotFound {
+		var invalid imap.ID
+		return invalid, false, nil
+	}
+
+	err = imap.UnmarshalID(&id, value)
+	if err != nil {
+		return id, false, err
+	}
+	return id, true, nil
 }
 
 func (tlm *ThreeDiskHash) Close() (err error) {

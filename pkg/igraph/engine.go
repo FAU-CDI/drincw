@@ -37,6 +37,6 @@ type ThreeStorage interface {
 	// If an error occurs, iteration stops and is returned to the caller
 	Fetch(a, b imap.ID, f func(c imap.ID, l imap.ID) error) error
 
-	// Has checks if the given mapping exists
-	Has(a, b, c imap.ID) (bool, error)
+	// Has checks if the given mapping exists and returns the label (if any)
+	Has(a, b, c imap.ID) (imap.ID, bool, error)
 }

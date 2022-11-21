@@ -196,7 +196,7 @@ func (index *IGraph[Label, Datum]) AddTriple(subject, predicate, object Label) e
 		iid := index.triple.Inc()
 		index.triples.Set(iid, IndexTriple{
 			Role:   Inverse,
-			SItems: [3]imap.ID{s[0], p[0], o[0]},
+			SItems: [3]imap.ID{o[0], i, s[0]},
 			Items:  [3]imap.ID{s[1], p[1], o[1]},
 		})
 
@@ -297,10 +297,10 @@ func (index *IGraph[Label, Datum]) insert(subject, predicate, object imap.ID, la
 	return conflicted1 || conflicted2, err
 }
 
-// MarkIdentical identifies the left and right subject and right labels.
-// See [imap.IMap.Identifity].
-func (index *IGraph[Label, Datum]) MarkIdentical(left, right Label) error {
-	_, err := index.labels.MarkIdentical(left, right)
+// MarkIdentical identifies the new and old labels.
+// See [imap.IMap.MarkIdentical].
+func (index *IGraph[Label, Datum]) MarkIdentical(new, old Label) error {
+	_, err := index.labels.MarkIdentical(new, old)
 	return err
 }
 

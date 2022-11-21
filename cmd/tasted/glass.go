@@ -107,7 +107,12 @@ func Create(pathbuilderPath string, nquadsPath string, cacheDir string, flags vi
 	var indexPerf perf.Diff
 	{
 		start := perf.Now()
-		index, err = sparkl.LoadIndex(nquadsPath, flags.Predicates, engine)
+		index, err = sparkl.LoadIndex(nquadsPath, flags.Predicates, engine, &progress.Progress{
+			Rewritable: progress.Rewritable{
+				FlushInterval: progress.DefaultFlushInterval,
+				Writer:        os.Stderr,
+			},
+		})
 		indexPerf = perf.Since(start)
 
 		if err != nil {
@@ -179,8 +184,10 @@ func Export(path string, glass Glass) (err error) {
 		counter := &progress.Writer{
 			Writer: writer,
 
-			FlushInterval: progress.DefaultFlushInterval,
-			Progress:      os.Stderr,
+			Rewritable: progress.Rewritable{
+				FlushInterval: progress.DefaultFlushInterval,
+				Writer:        os.Stderr,
+			},
 		}
 		err = glass.EncodeTo(gob.NewEncoder(counter))
 		counter.Flush(true)
@@ -219,8 +226,10 @@ func Import(path string) (glass Glass, err error) {
 		counter := &progress.Reader{
 			Reader: reader,
 
-			FlushInterval: progress.DefaultFlushInterval,
-			Progress:      os.Stderr,
+			Rewritable: progress.Rewritable{
+				FlushInterval: progress.DefaultFlushInterval,
+				Writer:        os.Stderr,
+			},
 		}
 		err = glass.DecodeFrom(gob.NewDecoder(counter))
 		counter.Flush(true)

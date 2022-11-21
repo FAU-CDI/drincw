@@ -4,23 +4,25 @@ package sparkl
 import (
 	"io"
 	"os"
+
+	"github.com/tkw1536/FAU-CDI/drincw/pkg/progress"
 )
 
 // LoadIndex is like MakeIndex, but reads nquads from the given path.
 // When err != nil, the caller must eventually close the index.
-func LoadIndex(path string, predicates Predicates, engine Engine) (*Index, error) {
+func LoadIndex(path string, predicates Predicates, engine Engine, p *progress.Progress) (*Index, error) {
 	reader, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}
 	defer reader.Close()
 
-	return MakeIndex(&QuadSource{Reader: reader}, predicates, engine)
+	return MakeIndex(&QuadSource{Reader: reader}, predicates, engine, p)
 }
 
 // MakeIndex creates a new Index from the given source.
 // When err != nil, the caller must eventually close the index.
-func MakeIndex(source Source, predicates Predicates, engine Engine) (*Index, error) {
+func MakeIndex(source Source, predicates Predicates, engine Engine, p *progress.Progress) (*Index, error) {
 	// create a new index
 	var index Index
 	if err := index.Reset(engine); err != nil {
@@ -28,21 +30,26 @@ func MakeIndex(source Source, predicates Predicates, engine Engine) (*Index, err
 	}
 
 	// read the "same as" triples first
-	if err := indexSameAs(source, &index, predicates.SameAs); err != nil {
+	total, err := indexSameAs(source, &index, predicates.SameAs, p)
+	if err != nil {
 		index.Close()
 		return nil, err
 	}
 
 	// read the "inverse" triples next
-	if err := indexInverseOf(source, &index, predicates.InverseOf); err != nil {
+	if err := indexInverseOf(source, &index, predicates.InverseOf, total, p); err != nil {
 		index.Close()
 		return nil, err
 	}
 
 	// and then read all the other data
-	if err := indexData(source, &index); err != nil {
+	if err := indexData(source, &index, total, p); err != nil {
 		index.Close()
 		return nil, err
+	}
+
+	if p != nil {
+		p.Close()
 	}
 
 	// and finalize the index
@@ -50,18 +57,15 @@ func MakeIndex(source Source, predicates Predicates, engine Engine) (*Index, err
 		index.Close()
 		return nil, err
 	}
+
 	return &index, nil
 }
 
 // indexSameAs inserts SameAs pairs into the index
-func indexSameAs(source Source, index *Index, sameAsPredicates []URI) error {
-	if len(sameAsPredicates) == 0 {
-		return nil
-	}
-
-	err := source.Open()
+func indexSameAs(source Source, index *Index, sameAsPredicates []URI, p *progress.Progress) (count int, err error) {
+	err = source.Open()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	defer source.Close()
 
@@ -72,11 +76,15 @@ func indexSameAs(source Source, index *Index, sameAsPredicates []URI) error {
 
 	for {
 		tok := source.Next()
+		if p != nil {
+			count++
+			p.Set("Scan 1/3: SameAs   ", count, count)
+		}
 		switch {
 		case tok.Err == io.EOF:
-			return nil
+			return count, nil
 		case tok.Err != nil:
-			return tok.Err
+			return 0, tok.Err
 		case !tok.HasDatum:
 			if _, ok := sameAss[tok.Predicate]; ok {
 				index.MarkIdentical(tok.Subject, tok.Object)
@@ -86,7 +94,7 @@ func indexSameAs(source Source, index *Index, sameAsPredicates []URI) error {
 }
 
 // indexInverseOf inserts InverseOf pairs into the index
-func indexInverseOf(source Source, index *Index, inversePredicates []URI) error {
+func indexInverseOf(source Source, index *Index, inversePredicates []URI, total int, p *progress.Progress) error {
 	if len(inversePredicates) == 0 {
 		return nil
 	}
@@ -102,8 +110,13 @@ func indexInverseOf(source Source, index *Index, inversePredicates []URI) error 
 		inverses[inverse] = struct{}{}
 	}
 
+	var counter int
 	for {
 		tok := source.Next()
+		if p != nil {
+			counter++
+			p.Set("Scan 2/3: InverseOf", counter, total)
+		}
 		switch {
 		case tok.Err == io.EOF:
 			return nil
@@ -118,15 +131,20 @@ func indexInverseOf(source Source, index *Index, inversePredicates []URI) error 
 }
 
 // indexData inserts data into the index
-func indexData(source Source, index *Index) error {
+func indexData(source Source, index *Index, total int, p *progress.Progress) error {
 	err := source.Open()
 	if err != nil {
 		return err
 	}
 	defer source.Close()
 
+	var counter int
 	for {
 		tok := source.Next()
+		if p != nil {
+			counter++
+			p.Set("Scan 3/3: Triples  ", counter, total)
+		}
 		switch {
 		case tok.Err == io.EOF:
 			return nil

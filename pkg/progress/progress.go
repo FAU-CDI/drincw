@@ -4,6 +4,8 @@ package progress
 import (
 	"fmt"
 	"io"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/dustin/go-humanize"
@@ -14,25 +16,14 @@ type Reader struct {
 	io.Reader       // Reader to read from
 	Bytes     int64 // total number of bytes read (so far)
 
-	FlushInterval time.Duration // minimum time between flushes of the progress
-	lastFlush     time.Time     // last time we flushed
-
-	Progress io.Writer // Progress output to write to
+	Rewritable
 }
 
 func (cr *Reader) Read(bytes []byte) (int, error) {
 	count, err := cr.Reader.Read(bytes)
 	cr.Bytes += int64(count)
-	cr.Flush(false)
+	cr.Rewritable.Write(fmt.Sprintf("Read %s", humanize.Bytes(uint64(cr.Bytes))))
 	return count, err
-}
-
-// Flush flushes the progress to Progress
-func (cr *Reader) Flush(force bool) {
-	if force || time.Since(cr.lastFlush) > cr.FlushInterval {
-		cr.lastFlush = time.Now()
-		fmt.Fprintf(cr.Progress, "\rRead %s", humanize.Bytes(uint64(cr.Bytes)))
-	}
 }
 
 // Writer consistently writes the number of bytes written to Progress.
@@ -40,24 +31,66 @@ type Writer struct {
 	io.Writer       // Writer to write to
 	Bytes     int64 // Total number of bytes written
 
-	FlushInterval time.Duration // minimum time between flushes of the progress
-	lastFlush     time.Time
-
-	Progress io.Writer // where to write progress to
+	Rewritable
 }
 
 func (cw *Writer) Write(bytes []byte) (int, error) {
 	cw.Bytes += int64(len(bytes))
-	cw.Flush(false)
+	cw.Rewritable.Write(fmt.Sprintf("Wrote %s", humanize.Bytes(uint64(cw.Bytes))))
 	return cw.Writer.Write(bytes)
-}
-
-func (cw *Writer) Flush(force bool) {
-	if force || time.Since(cw.lastFlush) > cw.FlushInterval {
-		cw.lastFlush = time.Now()
-		fmt.Fprintf(cw.Progress, "\rWrote %s", humanize.Bytes(uint64(cw.Bytes)))
-	}
 }
 
 // DefaultFlushInterval is a reasonable default flush interval
 const DefaultFlushInterval = time.Second / 30
+
+type Rewritable struct {
+	Writer io.Writer
+
+	FlushInterval  time.Duration // minimum time between flushes of the progress
+	lastFlush      time.Time     // last time we flushed
+	longestContent int           // longest content ever flushed
+	content        string        // current content
+}
+
+func (rw *Rewritable) Write(value string) {
+	rw.content = value
+	rw.Flush(false)
+}
+
+func (rw *Rewritable) Flush(force bool) {
+	if !(force || time.Since(rw.lastFlush) > rw.FlushInterval) {
+		return
+	}
+
+	// determine the longest string we ever flushed to the output
+	if len(rw.content) >= rw.longestContent {
+		rw.longestContent = len(rw.content)
+	}
+
+	// add a blanking space behind the content
+	blank := strings.Repeat(" ", rw.longestContent-len(rw.content))
+	fmt.Fprintf(rw.Writer, "\r%s%s", rw.content, blank)
+
+	// and flush the actual data
+	rw.lastFlush = time.Now()
+}
+
+func (rw *Rewritable) Close() {
+	rw.content = ""
+	rw.Flush(true)
+	rw.Writer.Write([]byte("\r"))
+}
+
+type Progress struct {
+	Rewritable
+}
+
+func (progress *Progress) Set(prefix string, count, total int) {
+	totalS := strconv.Itoa(total)
+	countS := strconv.Itoa(count)
+	if len(countS) < len(totalS) {
+		countS = strings.Repeat(" ", len(totalS)-len(countS)) + countS
+	}
+
+	progress.Rewritable.Write(fmt.Sprintf("%s: %s/%s", prefix, countS, totalS))
+}

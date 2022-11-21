@@ -16,6 +16,7 @@ import (
 	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder"
 	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder/pbxml"
 	"github.com/tkw1536/FAU-CDI/drincw/pkg/perf"
+	"github.com/tkw1536/FAU-CDI/drincw/pkg/progress"
 )
 
 func main() {
@@ -60,7 +61,12 @@ func main() {
 	var index *sparkl.Index
 	{
 		start := perf.Now()
-		index, err = sparkl.LoadIndex(nArgs[1], predicates, engine)
+		index, err = sparkl.LoadIndex(nArgs[1], predicates, engine, &progress.Progress{
+			Rewritable: progress.Rewritable{
+				FlushInterval: progress.DefaultFlushInterval,
+				Writer:        os.Stderr,
+			},
+		})
 		indexT := perf.Since(start)
 
 		if err != nil {

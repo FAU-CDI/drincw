@@ -13,8 +13,10 @@ func ExampleReader() {
 	reader := &Reader{
 		Reader: source,
 
-		FlushInterval: 0,
-		Progress:      &progress,
+		Rewritable: Rewritable{
+			FlushInterval: 0,
+			Writer:        &progress,
+		},
 	}
 	reader.Read([]byte("hello"))
 	reader.Read([]byte(" world"))
@@ -32,8 +34,10 @@ func ExampleWriter() {
 	writer := &Writer{
 		Writer: io.Discard,
 
-		FlushInterval: 0,
-		Progress:      &progress,
+		Rewritable: Rewritable{
+			FlushInterval: 0,
+			Writer:        &progress,
+		},
 	}
 	writer.Write([]byte("hello"))
 	writer.Write([]byte(" world"))

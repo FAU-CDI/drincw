@@ -146,7 +146,7 @@ func (set *Paths[Label, Datum]) Size() (int, error) {
 		return 0, err
 	}
 	set.size = len(all)
-	set.elements = iterator.NewFromElements(all)
+	set.elements = iterator.Slice(all)
 	return set.size, nil
 }
 

@@ -4,9 +4,9 @@ package iterator
 //
 // The generator is passed to the function source.
 // Once source returns, the return method on the generator is called if it has not been already.
-func New[Element any](source func(generator Generator[Element])) Iterator[Element] {
-	it := newImpl[Element]()
-	go func(it Generator[Element]) {
+func New[T any](source func(generator Generator[T])) Iterator[T] {
+	it := newImpl[T]()
+	go func(it Generator[T]) {
 		source(it)
 		if !it.Returned() {
 			it.Return()
@@ -15,9 +15,9 @@ func New[Element any](source func(generator Generator[Element])) Iterator[Elemen
 	return it
 }
 
-// NewFromElements creates a new Iterator that yields the given elements.
-func NewFromElements[Element any](elements []Element) Iterator[Element] {
-	return New(func(sender Generator[Element]) {
+// Slice creates a new Iterator that yields elements from the given slice
+func Slice[T any](elements []T) Iterator[T] {
+	return New(func(sender Generator[T]) {
 		defer sender.Return()
 
 		for _, element := range elements {
@@ -41,14 +41,14 @@ func Map[Element1, Element2 any](source Iterator[Element1], f func(Element1) Ele
 	})
 }
 
-// Connect creates a new iterator that calls f for every element returend by source.
+// Connect creates a new iterator that calls f for every element returned by source.
 // If the pipe function returns true, iteration over the original elements stops.
 func Connect[Element1, Element2 any](source Iterator[Element1], f func(element Element1, sender Generator[Element2]) (closed bool)) Iterator[Element2] {
 	return New(func(sender Generator[Element2]) {
 		// close the source
 		defer source.Close()
 
-		// close the sender if we already have
+		// close the sender unless we already have
 		defer func() {
 			if sender.Returned() {
 				return
@@ -83,7 +83,7 @@ func Pipe[Element any](dst Generator[Element], src Iterator[Element]) bool {
 }
 
 // Drain iterates all values in it until no more values are returned.
-// All returned values are stored in a slice which is returned to the user.
+// All returned values are stored in a slice which is returned to the caller.
 func Drain[Element any](it Iterator[Element]) ([]Element, error) {
 	defer it.Close()
 

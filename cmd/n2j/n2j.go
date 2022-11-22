@@ -25,7 +25,7 @@ func main() {
 	}
 
 	if len(nArgs) != 2 {
-		log.Print("Usage: n2r [-help] [...flags] /path/to/pathbuilder /path/to/nquads")
+		log.Print("Usage: n2j [-help] [...flags] /path/to/pathbuilder /path/to/nquads")
 		flag.PrintDefaults()
 		os.Exit(1)
 	}

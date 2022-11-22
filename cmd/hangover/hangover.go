@@ -23,7 +23,7 @@ func main() {
 	}
 
 	if len(nArgs) == 0 || len(nArgs) > 2 {
-		log.Print("Usage: tasted [-help] [...flags] [/path/to/pathbuilder /path/to/nquads | /path/to/export]")
+		log.Print("Usage: hangover [-help] [...flags] [/path/to/pathbuilder /path/to/nquads | /path/to/export]")
 		flag.PrintDefaults()
 		os.Exit(1)
 	}

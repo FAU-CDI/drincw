@@ -92,5 +92,9 @@ func (progress *Progress) Set(prefix string, count, total int) {
 		countS = strings.Repeat(" ", len(totalS)-len(countS)) + countS
 	}
 
-	progress.Rewritable.Write(fmt.Sprintf("%s: %s/%s", prefix, countS, totalS))
+	if countS < totalS {
+		progress.Rewritable.Write(fmt.Sprintf("%s: %s/%s", prefix, countS, totalS))
+	} else {
+		progress.Rewritable.Write(fmt.Sprintf("%s: %s", prefix, countS))
+	}
 }

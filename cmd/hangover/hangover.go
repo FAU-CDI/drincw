@@ -11,6 +11,7 @@ import (
 	"os"
 
 	"github.com/tkw1536/FAU-CDI/drincw"
+	"github.com/tkw1536/FAU-CDI/drincw/internal/glass"
 	"github.com/tkw1536/FAU-CDI/drincw/internal/sparkl"
 	"github.com/tkw1536/FAU-CDI/drincw/internal/viewer"
 	"github.com/tkw1536/FAU-CDI/drincw/internal/wisski"
@@ -40,14 +41,14 @@ func main() {
 		log.Println("listening on", addr)
 	}
 
-	var glass Glass
+	var drincw glass.Glass
 	if len(nArgs) == 2 {
 		sparkl.ParsePredicateString(&flags.Predicates.SameAs, sameAs)
 		sparkl.ParsePredicateString(&flags.Predicates.InverseOf, inverseOf)
 
-		glass, err = Create(nArgs[0], nArgs[1], cache, flags)
+		drincw, err = glass.Create(nArgs[0], nArgs[1], cache, flags, os.Stderr)
 	} else {
-		glass, err = Import(nArgs[0])
+		drincw, err = glass.Import(nArgs[0], os.Stderr)
 	}
 	if err != nil {
 		return
@@ -56,7 +57,7 @@ func main() {
 	// create an export if requested
 	if export != "" {
 		log.Printf("exporting to %s", export)
-		Export(export, glass)
+		glass.Export(export, drincw, os.Stderr)
 		return
 	}
 
@@ -67,8 +68,8 @@ func main() {
 		start := perf.Now()
 
 		handler = viewer.Viewer{
-			Cache:       glass.Cache,
-			Pathbuilder: &glass.Pathbuilder,
+			Cache:       drincw.Cache,
+			Pathbuilder: &drincw.Pathbuilder,
 			RenderFlags: flags,
 		}
 		handler.Prepare()

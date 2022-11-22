@@ -1,9 +1,11 @@
-package main
+// Package glass provides Glass
+package glass
 
 import (
 	"compress/gzip"
 	"encoding/gob"
 	"errors"
+	"io"
 	"log"
 	"os"
 	"runtime/debug"
@@ -19,7 +21,7 @@ import (
 	"github.com/tkw1536/FAU-CDI/drincw/pkg/sgob"
 )
 
-const tastedVersion = 1
+const GlassVersion = 1
 
 // Glass represents a stand-alone representation of a WissKI
 type Glass struct {
@@ -30,6 +32,7 @@ type Glass struct {
 	Cache *sparkl.Cache
 }
 
+// EncodeTo encodes a glass to a given encoder
 func (glass *Glass) EncodeTo(encoder *gob.Encoder) error {
 	// encode the pathbuilder as xml
 	pbxml, err := pbxml.Marshal(glass.Pathbuilder)
@@ -39,7 +42,7 @@ func (glass *Glass) EncodeTo(encoder *gob.Encoder) error {
 
 	// encode all the fields
 	for _, obj := range []any{
-		tastedVersion,
+		GlassVersion,
 		pbxml,
 		glass.Flags,
 	} {
@@ -52,6 +55,7 @@ func (glass *Glass) EncodeTo(encoder *gob.Encoder) error {
 	return glass.Cache.EncodeTo(encoder)
 }
 
+// DecodeFrom decodes a glass from the given decoder
 func (glass *Glass) DecodeFrom(decoder *gob.Decoder) (err error) {
 	var version int
 	var xml []byte
@@ -68,11 +72,10 @@ func (glass *Glass) DecodeFrom(decoder *gob.Decoder) (err error) {
 	// decode the xml again
 	glass.Pathbuilder, err = pbxml.Unmarshal(xml)
 	if err != nil {
-		log.Fatalf("Unable to unmarshal export: %s", err)
 		return err
 	}
 
-	if version != tastedVersion {
+	if version != GlassVersion {
 		return errInvalidVersion
 	}
 
@@ -80,17 +83,21 @@ func (glass *Glass) DecodeFrom(decoder *gob.Decoder) (err error) {
 	return glass.Cache.DecodeFrom(decoder)
 }
 
-func Create(pathbuilderPath string, nquadsPath string, cacheDir string, flags viewer.RenderFlags) (glass Glass, err error) {
+// Create creates a new glass from the given pathbbuilder and nquads.
+// output is written to output.
+func Create(pathbuilderPath string, nquadsPath string, cacheDir string, flags viewer.RenderFlags, output io.Writer) (drincw Glass, err error) {
+	log := log.New(output, "", log.LstdFlags)
+
 	// read the pathbuilder
 	var pbPerf perf.Diff
 	{
 		start := perf.Now()
-		glass.Pathbuilder, err = pbxml.Load(pathbuilderPath)
+		drincw.Pathbuilder, err = pbxml.Load(pathbuilderPath)
 		pbPerf = perf.Since(start)
 
 		if err != nil {
 			log.Fatalf("Unable to load Pathbuilder: %s", err)
-			return glass, err
+			return drincw, err
 		}
 		log.Printf("loaded pathbuilder, took %s", pbPerf)
 	}
@@ -110,14 +117,14 @@ func Create(pathbuilderPath string, nquadsPath string, cacheDir string, flags vi
 		index, err = sparkl.LoadIndex(nquadsPath, flags.Predicates, engine, &progress.Progress{
 			Rewritable: progress.Rewritable{
 				FlushInterval: progress.DefaultFlushInterval,
-				Writer:        os.Stderr,
+				Writer:        output,
 			},
 		})
 		indexPerf = perf.Since(start)
 
 		if err != nil {
 			log.Fatalf("Unable to build index: %s", err)
-			return glass, err
+			return drincw, err
 		}
 		defer index.Close()
 
@@ -129,7 +136,7 @@ func Create(pathbuilderPath string, nquadsPath string, cacheDir string, flags vi
 	var bundlesPerf perf.Diff
 	{
 		start := perf.Now()
-		bundles, err = sparkl.LoadPathbuilder(&glass.Pathbuilder, index, bEngine)
+		bundles, err = sparkl.LoadPathbuilder(&drincw.Pathbuilder, index, bEngine)
 		if err != nil {
 			log.Fatalf("Unable to load pathbuilder: %s", err)
 		}
@@ -149,7 +156,7 @@ func Create(pathbuilderPath string, nquadsPath string, cacheDir string, flags vi
 		if err != nil {
 			log.Fatalf("unable to build cache: %s", err)
 		}
-		glass.Cache = &cache
+		drincw.Cache = &cache
 
 		cachePerf = perf.Since(start)
 		log.Printf("built cache, took %s", cachePerf)
@@ -158,12 +165,14 @@ func Create(pathbuilderPath string, nquadsPath string, cacheDir string, flags vi
 	index.Close()        // We close the index early, because it's no longer needed
 	debug.FreeOSMemory() // force returning memory to the os
 
-	glass.Flags = flags
-	return glass, nil
+	drincw.Flags = flags
+	return drincw, nil
 }
 
-// Export writes a glass to disk
-func Export(path string, glass Glass) (err error) {
+// Export writes a glass to the given path
+func Export(path string, drincw Glass, output io.Writer) (err error) {
+	log := log.New(output, "", log.LstdFlags)
+
 	f, err := os.Create(path)
 	if err != nil {
 		log.Fatalf("Unable to create export: %s", err)
@@ -186,10 +195,10 @@ func Export(path string, glass Glass) (err error) {
 
 			Rewritable: progress.Rewritable{
 				FlushInterval: progress.DefaultFlushInterval,
-				Writer:        os.Stderr,
+				Writer:        output,
 			},
 		}
-		err = glass.EncodeTo(gob.NewEncoder(counter))
+		err = drincw.EncodeTo(gob.NewEncoder(counter))
 		counter.Flush(true)
 		os.Stderr.WriteString("\r")
 		if err != nil {
@@ -204,7 +213,9 @@ func Export(path string, glass Glass) (err error) {
 var errInvalidVersion = errors.New("Glass Export: Invalid version")
 
 // Import loads a glass from disk
-func Import(path string) (glass Glass, err error) {
+func Import(path string, output io.Writer) (drincw Glass, err error) {
+	log := log.New(output, "", log.LstdFlags)
+
 	defer debug.FreeOSMemory() // force clearing free memory
 
 	f, err := os.Open(path)
@@ -231,7 +242,7 @@ func Import(path string) (glass Glass, err error) {
 				Writer:        os.Stderr,
 			},
 		}
-		err = glass.DecodeFrom(gob.NewDecoder(counter))
+		err = drincw.DecodeFrom(gob.NewDecoder(counter))
 		counter.Flush(true)
 		os.Stderr.WriteString("\r")
 		if err != nil {

@@ -1,6 +1,6 @@
 # Drincw
 
-Drincw (pronounced like `drink`) stands for "Drink Really Is Not Copying WissKI".
+Drincw (pronounced like `drink`) stands for "Drincw Really Is Not Copying WissKI".
 It's a set of tools to display data from a [WissKI](http://wiss-ki.eu/) instance and help importing data.
 
 It contains two kinds of tools:

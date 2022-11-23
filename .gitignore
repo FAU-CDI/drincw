@@ -10,4 +10,4 @@ internal/assets/.entry-cache
 internal/assets/node_modules
 internal/assets/yarn-error.log
 
-dist/
+/dist/

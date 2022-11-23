@@ -61,6 +61,7 @@ console.log(' Done.')
 
 process.stdout.write('Bundleing assets ...')
 const bundler = new Parcel({
+    //env: process.env,
     entries: entries.map(e => e.src),
     defaultConfig: '@parcel/config-default',
     shouldDisableCache: true,

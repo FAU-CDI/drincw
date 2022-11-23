@@ -1,4 +1,4 @@
-// Command tasted implements a very simple WissKI Viewer
+// Command hangover implements a WissKI Viewer
 package main
 
 import (

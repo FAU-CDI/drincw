@@ -38,7 +38,7 @@ var contextTemplateFuncs = template.FuncMap{
 //go:embed templates/bundle.html
 var bundleHTML string
 
-var bundleTemplate = assets.Assetstasted.MustParseShared(
+var bundleTemplate = assets.Assetshangover.MustParseShared(
 	"bundle.html",
 	bundleHTML,
 	contextTemplateFuncs,
@@ -47,7 +47,7 @@ var bundleTemplate = assets.Assetstasted.MustParseShared(
 //go:embed templates/entity.html
 var entityHTML string
 
-var entityTemplate = assets.Assetstasted.MustParseShared(
+var entityTemplate = assets.Assetshangover.MustParseShared(
 	"entity.html",
 	entityHTML,
 	contextTemplateFuncs,
@@ -56,7 +56,7 @@ var entityTemplate = assets.Assetstasted.MustParseShared(
 //go:embed templates/index.html
 var indexHTML string
 
-var indexTemplate *template.Template = assets.Assetstasted.MustParseShared(
+var indexTemplate *template.Template = assets.Assetshangover.MustParseShared(
 	"index.html",
 	indexHTML,
 	contextTemplateFuncs,
@@ -65,7 +65,7 @@ var indexTemplate *template.Template = assets.Assetstasted.MustParseShared(
 //go:embed templates/pathbuilder.html
 var pathbuilderHTML string
 
-var pbTemplate *template.Template = assets.Assetstasted.MustParseShared(
+var pbTemplate *template.Template = assets.Assetshangover.MustParseShared(
 	"pathbuilder.html",
 	pathbuilderHTML,
 	contextTemplateFuncs,

@@ -8,8 +8,8 @@ var Assetsodbc = Assets{
 	Styles:  `<link rel="stylesheet" href="/assets/odbc.0acd24a7.css">`,	
 }
 
-// Assetstasted contains assets for the 'tasted' entrypoint.
-var Assetstasted = Assets{
-	Scripts: `<script type="module" src="/assets/odbc.38d394c2.js"></script><script src="/assets/odbc.2845d50f.js" nomodule="" defer></script><script type="module" src="/assets/tasted.b56ed8cb.js"></script><script src="/assets/tasted.726809f4.js" nomodule="" defer></script>`,
-	Styles:  `<link rel="stylesheet" href="/assets/tasted.b145512e.css">`,	
+// Assetshangover contains assets for the 'hangover' entrypoint.
+var Assetshangover = Assets{
+	Scripts: `<script type="module" src="/assets/odbc.38d394c2.js"></script><script src="/assets/odbc.2845d50f.js" nomodule="" defer></script><script type="module" src="/assets/hangover.b56ed8cb.js"></script><script src="/assets/hangover.726809f4.js" nomodule="" defer></script>`,
+	Styles:  `<link rel="stylesheet" href="/assets/hangover.b145512e.css">`,	
 }

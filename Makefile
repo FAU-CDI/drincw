@@ -1,6 +1,6 @@
 COMMANDS = addict hangover makeodbc n2j odbcd pbfmt
 DIST = $(COMMANDS:%=dist/%)
-.PHONY = $(DIST) all dist deps clean
+.PHONY = $(DIST) all dist deps clean test
 
 LINUX_AMD64 = $(COMMANDS:%=dist/%_linux_amd64)
 DARWIN = $(COMMANDS:%=dist/%_darwin)
@@ -32,6 +32,9 @@ clean:
 
 generate:
 	go generate ./...
+
+test:
+	go test ./...
 
 deps: internal/assets/node_modules
 	go get ./...

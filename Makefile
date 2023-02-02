@@ -1,6 +1,6 @@
 COMMANDS = addict hangover makeodbc n2j odbcd pbfmt
 DIST = $(COMMANDS:%=dist/%)
-.PHONY = $(DIST) all dist deps clean test
+.PHONY = $(DIST) all dist deps godeps clean test
 
 LINUX_AMD64 = $(COMMANDS:%=dist/%_linux_amd64)
 DARWIN = $(COMMANDS:%=dist/%_darwin)
@@ -36,7 +36,8 @@ generate:
 test:
 	go test ./...
 
-deps: internal/assets/node_modules
+deps: godeps internal/assets/node_modules
+godeps:
 	go get ./...
 	go mod tidy
 	go install github.com/tkw1536/lipo@latest

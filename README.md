@@ -21,14 +21,15 @@ It is an auxiliary tool on top.
 ### from source
 
 1. Install [Go](https://go.dev/), Version 1.18 or newer
-2. Clone this repository somewhere.
-3. Fetch dependencies using standard go tools:
+2. Install [Yarn](https://yarnpkg.com/) (to build some frontends)
+3. Clone this repository somewhere.
+4. Fetch dependencies:
 
 ```bash
-go get ./...
+make deps
 ```
 
-4. Use the `Makefile` to build dependencies into the `dist` directory:
+5. Use the `Makefile` to build dependencies into the `dist` directory:
 
 ```bash
 make all

@@ -1,4 +1,4 @@
-COMMANDS = addict hangover makeodbc n2j odbcd pbfmt
+COMMANDS = addict hangover makeodbc n2j odbcd pbfmt ps2
 DIST = $(COMMANDS:%=dist/%)
 .PHONY = $(DIST) all dist deps godeps clean test
 

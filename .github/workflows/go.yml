@@ -54,3 +54,6 @@ jobs:
             dist/pbfmt_darwin
             dist/pbfmt_linux_amd64
             dist/pbfmt_windows_amd64.exe
+            dist/ps2_darwin
+            dist/ps2_linux_amd64
+            dist/ps2_windows_amd64.exe

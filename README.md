@@ -169,6 +169,15 @@ cd cmd/odbcd && yarn install && yarn dev
 go run -tags debug ./cmd/odbcd
 ```
 
+
+#### ps2 - generate sparql queries for a field
+
+Generate a simple sparql query to view values of a single field.
+
+```bash
+ps2 path/to/pathbuilder.xml name-of-some-path
+```
+
 ## Deployment
 
 

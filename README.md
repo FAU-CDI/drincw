@@ -80,7 +80,7 @@ n2j stands for `NQuads 2 JSON` and can convert a WissKI export into json (or mor
 Like `hangover`, it takes both a pathbuilder and export as an argument.
 By default, it produces a single `.json` file on standard output.
 
-Further options supports a various set of other options, which can be found using  `hangover -help`.
+Further options supports a various set of other options, which can be found using  `n2j -help`.
 
 ### WissKI Import
 

@@ -39,6 +39,10 @@ jobs:
             dist/addict_darwin
             dist/addict_linux_amd64
             dist/addict_windows_amd64.exe
+            dist/dummysql_darwin
+            dist/dummysql_darwin_arm64
+            dist/dummysql_linux_amd64
+            dist/dummysql_windows_amd64.exe
             dist/hangover_darwin
             dist/hangover_linux_amd64
             dist/hangover_windows_amd64.exe

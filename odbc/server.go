@@ -20,7 +20,7 @@ type Server struct {
 	User     string `xml:"user"`
 	Password string `xml:"password"`
 
-	Tables []Table
+	Tables []Table `xml:"table"`
 }
 
 // NewServer generates a new server from a pathbuilder

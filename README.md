@@ -147,6 +147,11 @@ makeodbc -sql my_bundle_name path/to/pathbuilder.xml
 makeodbc -sql my_bundle_name -load-selectors path/to/selectors.json  path/to/pathbuilder.xml
 ```
 
+```bash
+# alternatively do this directly on the generated odbc
+dummysql /path/to/odbc.xml tablename
+```
+
 #### addict - gui for makeodbc
 
 An experimental gui for makeodbc.

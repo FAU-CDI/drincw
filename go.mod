@@ -6,6 +6,7 @@ require (
 	github.com/cayleygraph/quad v1.2.4
 	github.com/dustin/go-humanize v1.0.0
 	github.com/glebarez/go-sqlite v1.19.2
+	github.com/go-sql-driver/mysql v1.7.0
 	github.com/gorilla/mux v1.8.0
 	github.com/huandu/go-sqlbuilder v1.16.0
 	github.com/ncruces/zenity v0.7.12

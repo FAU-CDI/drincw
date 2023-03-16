@@ -24,6 +24,10 @@ func main() {
 		defer profile.Start(profile.ProfilePath(debugProfile)).Stop()
 	}
 
+	if mysql != "" && sqlite != "" {
+		log.Fatal("both -sqlite and -mysql were given")
+	}
+
 	if len(nArgs) != 2 {
 		log.Print("Usage: n2j [-help] [...flags] /path/to/pathbuilder /path/to/nquads")
 		flag.PrintDefaults()
@@ -78,8 +82,10 @@ func main() {
 	}
 
 	switch {
+	case mysql != "":
+		doSQL(&pb, index, bEngine, "mysql", mysql)
 	case sqlite != "":
-		doSqlite(&pb, index, bEngine)
+		doSQL(&pb, index, bEngine, "sqlite", sqlite)
 	default:
 		doJSON(&pb, index, bEngine)
 	}
@@ -94,7 +100,10 @@ var inverseOf = string(wisski.InverseOf)
 var debugProfile = ""
 
 var sqlite string
-var sqliteFieldTables bool
+var mysql string
+
+var sqlSeperator string = ","
+var sqlFieldTables bool
 
 func init() {
 	var legalFlag bool = false
@@ -105,7 +114,10 @@ func init() {
 
 	flag.StringVar(&cache, "cache", cache, "During indexing, cache data in the given directory as opposed to memory")
 	flag.StringVar(&sqlite, "sqlite", sqlite, "Export an sqlite database to the given path")
-	flag.BoolVar(&sqliteFieldTables, "sqlite-field-tables", sqliteFieldTables, "Store values for fields in seperate tables")
+	flag.StringVar(&sqlite, "mysql", mysql, "Export a mysql database. Use a connection string of the form `username:password@host/database`")
+
+	flag.StringVar(&sqlSeperator, "sql-seperator", sqlSeperator, "Use seperator on multi-valued fields")
+	flag.BoolVar(&sqlFieldTables, "sql-field-tables", sqlFieldTables, "Store values for fields in seperate tables")
 
 	flag.StringVar(&debugProfile, "debug-profile", debugProfile, "write out a debugging profile to the given path")
 

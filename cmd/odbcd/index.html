@@ -15,9 +15,11 @@
     <p>
         This page provides a free service for anyone to quickly generate an <code>.odbc</code> file from a <a href="https://wiss-ki.eu/documentation/data-modeling/pathbuilder" rel="noreferrer noopener">WissKI Pathbuilder</a> <a href="https://wiss-ki.eu/documentation/pathbuilder/export-import-pathbuilder" rel="noreferrer noopener">XML export</a>.
         To use it, first paste the pathbuilder xml below, or
+        <span>
         <input type="file" id="uploadfile" style="display:none;" />
-        <label for="img"><button id="fakebutton">load one from a file</button></label>
+        <label for="uploadfile"><button id="fakebutton">load one from a file</button></label>
         </span>.
+        You may also optionally configure selectors, by opening the selectors section below.
         Then click on the <code>Generate ODBC</code> button below.
         <span id="filestatus"></span>
     </p>
@@ -36,6 +38,24 @@
 
         <input type="submit" value="Generate ODBC" />
     </form>
+
+    <details>
+        <summary>Selectors (optional)</summary>
+        <p>
+           You can optionally load a selectors file by pasting it below,
+            <span>
+                <input type="file" id="uploadselectors" style="display:none;" />
+                <label for="uploadselectors"><button id="selectorbutton">loading one from a file</button></label>
+            </span>
+            or
+            <span>
+                <button id="selector-load">have the server generate one based on the pathbuilder</button>
+            </span>.
+            You can also <button id="selector-empty">delete selectors</button>.
+            <span id="selectorstatus"></span>
+        </p>
+        <textarea id="selectors" rows="10"></textarea>
+    </details>
 
     <h2>Result</h2>
     <p>

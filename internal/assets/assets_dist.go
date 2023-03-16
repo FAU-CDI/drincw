@@ -4,7 +4,7 @@ package assets
 
 // Assetsodbc contains assets for the 'odbc' entrypoint.
 var Assetsodbc = Assets{
-	Scripts: `<script type="module" src="/assets/odbc.38d394c2.js"></script><script src="/assets/odbc.2845d50f.js" nomodule="" defer></script><script type="module" src="/assets/odbc.7987c1f7.js"></script><script src="/assets/odbc.625563bd.js" nomodule="" defer></script>`,
+	Scripts: `<script type="module" src="/assets/odbc.38d394c2.js"></script><script src="/assets/odbc.2845d50f.js" nomodule="" defer></script><script type="module" src="/assets/odbc.07ea4a36.js"></script><script src="/assets/odbc.1ce8c8fb.js" nomodule="" defer></script>`,
 	Styles:  `<link rel="stylesheet" href="/assets/odbc.0acd24a7.css">`,	
 }
 

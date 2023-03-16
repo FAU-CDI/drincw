@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"encoding/xml"
 	"flag"
 	"fmt"
@@ -8,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"text/template"
 
 	_ "embed"
@@ -17,11 +19,18 @@ import (
 	"github.com/tkw1536/FAU-CDI/drincw/internal/sql"
 	"github.com/tkw1536/FAU-CDI/drincw/odbc"
 	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder/pbxml"
+	"muzzammil.xyz/jsonc"
 )
 
 func main() {
 
-	http.HandleFunc("/", indexTemplate)
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/" {
+			http.NotFound(w, r)
+			return
+		}
+		indexTemplate(w, r)
+	})
 	http.HandleFunc("/robots.txt", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain")
 		w.WriteHeader(http.StatusOK)
@@ -29,7 +38,7 @@ func main() {
 	})
 	http.Handle("/assets/", assets.AssetHandler)
 
-	http.HandleFunc("/api/v1/makeodbc", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/api/v2/makeselectors", func(w http.ResponseWriter, r *http.Request) {
 		if isNotPost(w, r) {
 			return
 		}
@@ -46,8 +55,48 @@ func main() {
 			return
 		}
 
+		builder := sql.NewBuilder(pb)
+		bytes, err := json.MarshalIndent(builder, "", "    ")
+		if isError(err, w, "unable to marshal selectors") {
+			return
+		}
+
+		w.Header().Set("Content-Type", "text/plain")
+		io.WriteString(w, string(sql.MARSHAL_COMMENT_PREFIX)+"\n")
+		io.WriteString(w, string(bytes)+"\n")
+	})
+
+	http.HandleFunc("/api/v2/makeodbc", func(w http.ResponseWriter, r *http.Request) {
+		if isNotPost(w, r) {
+			return
+		}
+
+		// read the body from the request
+		content, err := io.ReadAll(r.Body)
+		if isError(err, w, "unable to read request body") {
+			return
+		}
+
+		// read the (pathbuilder, selectors) slice
+		var params [2]string
+		if err := json.Unmarshal(content, &params); isError(err, w, "unable to read request body") {
+			return
+		}
+
+		// unmarshal some xml
+		pb, err := pbxml.Unmarshal([]byte(params[0]))
+		if isError(err, w, "unable to parse pathbuilder") {
+			return
+		}
+
 		// create the odbc
 		builder := sql.NewBuilder(pb)
+		if len(strings.TrimSpace(params[1])) > 0 {
+			if err := jsonc.Unmarshal([]byte(params[1]), &builder); isError(err, w, "unable to load selectors") {
+				return
+			}
+		}
+
 		odbcs := odbc.NewServer(pb)
 		err = builder.Apply(&odbcs)
 		if isError(err, w, "") {

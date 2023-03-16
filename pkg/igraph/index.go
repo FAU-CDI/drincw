@@ -31,8 +31,8 @@ type IGraph[Label comparable, Datum any] struct {
 	inverses imap.KeyValueStore[imap.ID, imap.ID] // inverse ids for a given id
 
 	// the triple indexes, forward and backward
-	psoIndex ThreeStorage
-	posIndex ThreeStorage
+	psoIndex ThreeStorage // <predicate> <subject> <object>
+	posIndex ThreeStorage // <predicate> <object> <subject>
 
 	// the id for a given triple
 	triple  imap.ID

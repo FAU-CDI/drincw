@@ -99,18 +99,14 @@ func (id ID) String() string {
 // as using appropriate calls [Less].
 func (id ID) Encode(dest []byte) {
 	_ = dest[IDLen-1] // boundary hint to compiler
-	for i := 0; i < IDLen; i++ {
-		dest[i] = id[i]
-	}
+	copy(dest[:], id[:])
 }
 
 // Decode sets this id to be the values that has been decoded from src.
 // src must be of at least size IDLen, or a runtime panic occurs.
 func (id *ID) Decode(src []byte) {
 	_ = src[IDLen-1] // boundary hint to compiler
-	for i := 0; i < IDLen; i++ {
-		(*id)[i] = src[i]
-	}
+	copy((*id)[:], src[:])
 }
 
 var errMarshal = errors.New("MarshalIDs: invalid length")

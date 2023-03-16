@@ -11,7 +11,7 @@ require (
 	github.com/ncruces/zenity v0.7.12
 	github.com/pkg/profile v1.7.0
 	github.com/syndtr/goleveldb v1.0.0
-	golang.org/x/exp v0.0.0-20221019170559-20944726eadf
+	golang.org/x/exp v0.0.0-20230213192124-5e25df0256eb
 	golang.org/x/net v0.0.0-20210805182204-aaa1db679c0d
 	muzzammil.xyz/jsonc v0.0.0-20201229145248-615b0916ca38
 )
@@ -29,7 +29,7 @@ require (
 	github.com/randall77/makefat v0.0.0-20210315173500-7ddd0e42c844 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20200410134404-eec4a21b6bb0 // indirect
 	golang.org/x/image v0.0.0-20220601225756-64ec528b34cd // indirect
-	golang.org/x/sys v0.1.0 // indirect
+	golang.org/x/sys v0.5.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	modernc.org/libc v1.20.3 // indirect
 	modernc.org/mathutil v1.5.0 // indirect

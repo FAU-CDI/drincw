@@ -7,6 +7,7 @@ import (
 
 	"github.com/tkw1536/FAU-CDI/drincw/odbc"
 	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder"
+	"golang.org/x/exp/slices"
 )
 
 // Builder provides a correspondance between bundle ids and TableBuilder.
@@ -32,17 +33,26 @@ func NewBuilder(pb pathbuilder.Pathbuilder) Builder {
 // Tables that do not have any correspondance will be removed from server.
 func (b Builder) Apply(server *odbc.Server) error {
 	tables := make([]odbc.Table, 0, len(server.Tables))
+	orders := make(map[string]int, len(server.Tables))
 	for _, table := range server.Tables {
 		bb, ok := b[table.Name]
 		if !ok {
 			continue
 		}
+		orders[bb.TableName] = bb.Order
 		if err := bb.Apply(&table); err != nil {
 			return err
 		}
 		tables = append(tables, table)
 	}
+
+	// re-sort the tables by the provided order
+	slices.SortStableFunc(tables, func(x, y odbc.Table) bool {
+		return orders[x.Name] < orders[y.Name]
+	})
+
 	server.Tables = tables
+
 	return nil
 }
 
@@ -51,6 +61,7 @@ type TableBuilder struct {
 	TableName string // name of the table to use
 	ID        string // name of the column for ID
 	Disinct   bool   // should we select distinct fields?
+	Order     int    // order of different tables
 
 	Fields map[string]Selector // Selectors for each bundle
 }

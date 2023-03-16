@@ -14,6 +14,7 @@ type tableBuilderJSON struct {
 	ID        string            `json:"id"`
 	Distinct  bool              `json:"distinct"`
 	Fields    map[string]string `json:"fields"`
+	Order     int               `json:"order,omitempty"`
 }
 
 // MarshalJSON marshals the given table builder as JSON
@@ -23,6 +24,7 @@ func (tb TableBuilder) MarshalJSON() ([]byte, error) {
 		ID:        tb.ID,
 		Distinct:  tb.Disinct,
 		Fields:    make(map[string]string, len(tb.Fields)),
+		Order:     tb.Order,
 	}
 
 	var err error
@@ -45,6 +47,7 @@ func (tb *TableBuilder) UnmarshalJSON(data []byte) error {
 
 	tb.TableName = jb.TableName
 	tb.ID = jb.ID
+	tb.Order = jb.Order
 	tb.Disinct = jb.Distinct
 	tb.Fields = make(map[string]Selector, len(jb.Fields))
 
@@ -75,6 +78,8 @@ var MARSHAL_COMMENT_PREFIX = `
 	Supported Fields:
 
 {{examples}}
+
+	Aditionally, tables may be reordered (lowest first) by adding an integer "Order" key to each table.
 */
 `
 

@@ -174,6 +174,7 @@ cd cmd/odbcd && yarn install && yarn dev
 go run -tags debug ./cmd/odbcd
 ```
 
+An example instance is running at https://odbc.kwarc.info/. 
 
 #### ps2 - generate sparql queries for a field
 

@@ -1,10 +1,14 @@
 // Package iterator provides Generic Iterator and Generator Interfaces.
 package iterator
 
-import "context"
+import (
+	"context"
+	"runtime"
+)
 
 // Iterator represents an object that can be iterated over.
-// It is not safe for concurrent access.
+// Iterator methods are not safe for concurrent access by multiple goroutines.
+// However, the matching generator methods may be accessed concurrently.
 //
 // A user of an iterator must ensure that the iterator is closed.
 // A user should furthermore use the Err() method to check if an error occured.
@@ -46,7 +50,10 @@ type Generator[T any] interface {
 	Yield(datum T) bool
 
 	// YieldError yields an error to the receiving end.
-	// The return value indiciates if the corresponding Iterator requested cancellation or error is not nil.
+	// Calling YieldError(nil) has no effect.
+	//
+	// If the receiving end of this iterator requested cancellation, the return value is true.
+	// Otherwise, if the return value indicates if error is nil.
 	YieldError(err error) bool
 
 	// Returned indicates if the Return method was called.
@@ -74,11 +81,13 @@ type impl[T any] struct {
 
 func newImpl[T any]() *impl[T] {
 	context, cancel := context.WithCancel(context.Background())
-	return &impl[T]{
+	obj := &impl[T]{
 		context:  context,
 		cancel:   cancel,
 		messages: make(chan message[T]),
 	}
+	runtime.SetFinalizer(obj, (*impl[T]).Close)
+	return obj
 }
 
 type message[T any] struct {
@@ -112,6 +121,7 @@ func (it *impl[T]) Datum() T {
 
 // Close closes the iterator
 func (it *impl[T]) Close() error {
+	runtime.SetFinalizer(it, nil) // no more need to finalize!
 	it.cancel()
 	return nil
 }

@@ -7,7 +7,7 @@ import (
 
 	"github.com/FAU-CDI/drincw/internal/wisski"
 	"github.com/FAU-CDI/drincw/pathbuilder"
-	"github.com/FAU-CDI/drincw/pkg/iterator"
+	"github.com/tkw1536/pkglib/iterator"
 )
 
 // BundleEngine is a function that initializes and returns a new BundleStorage

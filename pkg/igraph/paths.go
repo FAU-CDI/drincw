@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	"github.com/FAU-CDI/drincw/pkg/imap"
-	"github.com/FAU-CDI/drincw/pkg/iterator"
+	"github.com/tkw1536/pkglib/iterator"
 )
 
 // Paths represents a set of paths in a related GraphIndex.

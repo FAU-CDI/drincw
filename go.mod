@@ -12,6 +12,7 @@ require (
 	github.com/ncruces/zenity v0.7.12
 	github.com/pkg/profile v1.7.0
 	github.com/syndtr/goleveldb v1.0.0
+	github.com/tkw1536/pkglib v0.0.0-20230329090519-46189031eeae
 	golang.org/x/exp v0.0.0-20230213192124-5e25df0256eb
 	golang.org/x/net v0.0.0-20210805182204-aaa1db679c0d
 	muzzammil.xyz/jsonc v0.0.0-20201229145248-615b0916ca38

@@ -9,7 +9,7 @@ import (
 	"github.com/FAU-CDI/drincw/internal/sparkl/storages"
 	"github.com/FAU-CDI/drincw/internal/wisski"
 	"github.com/FAU-CDI/drincw/pathbuilder"
-	"github.com/FAU-CDI/drincw/pkg/iterator"
+	"github.com/tkw1536/pkglib/iterator"
 )
 
 // StoreBundle loads all entities from the given bundle into a new storage, which is then returned.

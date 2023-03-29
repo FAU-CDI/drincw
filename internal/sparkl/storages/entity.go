@@ -5,8 +5,8 @@ import (
 	"encoding/gob"
 	"sync"
 
-	"github.com/tkw1536/FAU-CDI/drincw/internal/wisski"
-	"github.com/tkw1536/FAU-CDI/drincw/pkg/igraph"
+	"github.com/FAU-CDI/drincw/internal/wisski"
+	"github.com/FAU-CDI/drincw/pkg/igraph"
 )
 
 // sEntityPool is a pool of stored entities

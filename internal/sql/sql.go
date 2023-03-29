@@ -4,7 +4,7 @@ package sql
 import (
 	"fmt"
 
-	"github.com/tkw1536/FAU-CDI/drincw/odbc"
+	"github.com/FAU-CDI/drincw/odbc"
 )
 
 // ForTable generates an sql statement used by the importer with the given table

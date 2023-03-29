@@ -7,10 +7,10 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/FAU-CDI/drincw/internal/assets"
+	"github.com/FAU-CDI/drincw/internal/sparkl"
+	"github.com/FAU-CDI/drincw/pathbuilder"
 	"github.com/gorilla/mux"
-	"github.com/tkw1536/FAU-CDI/drincw/internal/assets"
-	"github.com/tkw1536/FAU-CDI/drincw/internal/sparkl"
-	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder"
 )
 
 // Viewer implements an [http.Handler] that displays WissKI Entities.

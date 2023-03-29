@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/FAU-CDI/drincw/internal/sparkl"
 	"github.com/gorilla/mux"
-	"github.com/tkw1536/FAU-CDI/drincw/internal/sparkl"
 )
 
 func (viewer *Viewer) jsonIndex(w http.ResponseWriter, r *http.Request) {

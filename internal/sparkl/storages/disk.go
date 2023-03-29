@@ -6,11 +6,11 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/FAU-CDI/drincw/internal/wisski"
+	"github.com/FAU-CDI/drincw/pathbuilder"
+	"github.com/FAU-CDI/drincw/pkg/iterator"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/errors"
-	"github.com/tkw1536/FAU-CDI/drincw/internal/wisski"
-	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder"
-	"github.com/tkw1536/FAU-CDI/drincw/pkg/iterator"
 )
 
 type DiskEngine struct {

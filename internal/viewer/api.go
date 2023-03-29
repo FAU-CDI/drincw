@@ -1,8 +1,8 @@
 package viewer
 
 import (
-	"github.com/tkw1536/FAU-CDI/drincw/internal/sparkl"
-	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder"
+	"github.com/FAU-CDI/drincw/internal/sparkl"
+	"github.com/FAU-CDI/drincw/pathbuilder"
 )
 
 // findBundle returns a bundle by machine name and makes sure that appropriate caches are filled

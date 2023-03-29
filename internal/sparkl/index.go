@@ -5,7 +5,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/tkw1536/FAU-CDI/drincw/pkg/progress"
+	"github.com/FAU-CDI/drincw/pkg/progress"
 )
 
 // LoadIndex is like MakeIndex, but reads nquads from the given path.

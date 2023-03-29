@@ -7,9 +7,9 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/FAU-CDI/drincw/internal/wisski"
+	"github.com/FAU-CDI/drincw/pathbuilder"
 	"github.com/huandu/go-sqlbuilder"
-	"github.com/tkw1536/FAU-CDI/drincw/internal/wisski"
-	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder"
 )
 
 // SQL implements an exporter for storing data inside an sql database.

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"io"
 
-	"github.com/tkw1536/FAU-CDI/drincw/pkg/imap"
+	"github.com/FAU-CDI/drincw/pkg/imap"
 )
 
 // IGraph represents a searchable index of a directed labeled graph with optionally attached Data.

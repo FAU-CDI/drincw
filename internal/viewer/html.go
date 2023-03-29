@@ -10,11 +10,11 @@ import (
 
 	_ "embed"
 
+	"github.com/FAU-CDI/drincw/internal/assets"
+	"github.com/FAU-CDI/drincw/internal/sparkl"
+	"github.com/FAU-CDI/drincw/pathbuilder"
+	"github.com/FAU-CDI/drincw/pkg/htmlx"
 	"github.com/gorilla/mux"
-	"github.com/tkw1536/FAU-CDI/drincw/internal/assets"
-	"github.com/tkw1536/FAU-CDI/drincw/internal/sparkl"
-	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder"
-	"github.com/tkw1536/FAU-CDI/drincw/pkg/htmlx"
 )
 
 var contextTemplateFuncs = template.FuncMap{

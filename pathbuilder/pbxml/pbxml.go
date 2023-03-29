@@ -4,8 +4,8 @@ package pbxml
 import (
 	"encoding/xml"
 
-	"github.com/tkw1536/FAU-CDI/drincw/internal/source"
-	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder"
+	"github.com/FAU-CDI/drincw/internal/source"
+	"github.com/FAU-CDI/drincw/pathbuilder"
 )
 
 // XMLPathbuilder is an XML representation of a Pathbuilder

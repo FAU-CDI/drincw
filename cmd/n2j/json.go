@@ -5,10 +5,10 @@ import (
 	"log"
 	"os"
 
-	"github.com/tkw1536/FAU-CDI/drincw/internal/sparkl"
-	"github.com/tkw1536/FAU-CDI/drincw/internal/sparkl/storages"
-	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder"
-	"github.com/tkw1536/FAU-CDI/drincw/pkg/perf"
+	"github.com/FAU-CDI/drincw/internal/sparkl"
+	"github.com/FAU-CDI/drincw/internal/sparkl/storages"
+	"github.com/FAU-CDI/drincw/pathbuilder"
+	"github.com/FAU-CDI/drincw/pkg/perf"
 )
 
 func doJSON(pb *pathbuilder.Pathbuilder, index *sparkl.Index, bEngine storages.BundleEngine) {

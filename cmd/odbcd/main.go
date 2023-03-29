@@ -14,11 +14,11 @@ import (
 
 	_ "embed"
 
-	"github.com/tkw1536/FAU-CDI/drincw"
-	"github.com/tkw1536/FAU-CDI/drincw/internal/assets"
-	"github.com/tkw1536/FAU-CDI/drincw/internal/sql"
-	"github.com/tkw1536/FAU-CDI/drincw/odbc"
-	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder/pbxml"
+	"github.com/FAU-CDI/drincw"
+	"github.com/FAU-CDI/drincw/internal/assets"
+	"github.com/FAU-CDI/drincw/internal/sql"
+	"github.com/FAU-CDI/drincw/odbc"
+	"github.com/FAU-CDI/drincw/pathbuilder/pbxml"
 	"muzzammil.xyz/jsonc"
 )
 

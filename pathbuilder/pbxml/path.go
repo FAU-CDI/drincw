@@ -3,8 +3,8 @@ package pbxml
 import (
 	"encoding/xml"
 
-	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder"
-	"github.com/tkw1536/FAU-CDI/drincw/pkg/xmltypes"
+	"github.com/FAU-CDI/drincw/pathbuilder"
+	"github.com/FAU-CDI/drincw/pkg/xmltypes"
 )
 
 // path represents the "path" element of pathbuilder xml

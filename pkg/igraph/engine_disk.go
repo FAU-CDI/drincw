@@ -4,10 +4,10 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/FAU-CDI/drincw/pkg/imap"
 	"github.com/syndtr/goleveldb/leveldb"
 	"github.com/syndtr/goleveldb/leveldb/errors"
 	"github.com/syndtr/goleveldb/leveldb/util"
-	"github.com/tkw1536/FAU-CDI/drincw/pkg/imap"
 )
 
 // DiskEngine represents an engine that stores everything on disk

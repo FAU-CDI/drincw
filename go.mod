@@ -1,4 +1,4 @@
-module github.com/tkw1536/FAU-CDI/drincw
+module github.com/FAU-CDI/drincw
 
 go 1.18
 

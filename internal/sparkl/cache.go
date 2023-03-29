@@ -3,9 +3,9 @@ package sparkl
 import (
 	"encoding/gob"
 
-	"github.com/tkw1536/FAU-CDI/drincw/internal/wisski"
-	"github.com/tkw1536/FAU-CDI/drincw/pkg/imap"
-	"github.com/tkw1536/FAU-CDI/drincw/pkg/sgob"
+	"github.com/FAU-CDI/drincw/internal/wisski"
+	"github.com/FAU-CDI/drincw/pkg/imap"
+	"github.com/FAU-CDI/drincw/pkg/sgob"
 	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
 )

@@ -6,8 +6,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/tkw1536/FAU-CDI/drincw/internal/sql"
-	"github.com/tkw1536/FAU-CDI/drincw/odbc"
+	"github.com/FAU-CDI/drincw/internal/sql"
+	"github.com/FAU-CDI/drincw/odbc"
 )
 
 func main() {

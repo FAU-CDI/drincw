@@ -8,9 +8,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/tkw1536/FAU-CDI/drincw"
-	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder"
-	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder/pbxml"
+	"github.com/FAU-CDI/drincw"
+	"github.com/FAU-CDI/drincw/pathbuilder"
+	"github.com/FAU-CDI/drincw/pathbuilder/pbxml"
 )
 
 func main() {

@@ -4,9 +4,9 @@ package sparkl
 import (
 	"strings"
 
-	"github.com/tkw1536/FAU-CDI/drincw/internal/sparkl/storages"
-	"github.com/tkw1536/FAU-CDI/drincw/internal/wisski"
-	"github.com/tkw1536/FAU-CDI/drincw/pkg/igraph"
+	"github.com/FAU-CDI/drincw/internal/sparkl/storages"
+	"github.com/FAU-CDI/drincw/internal/wisski"
+	"github.com/FAU-CDI/drincw/pkg/igraph"
 )
 
 type (

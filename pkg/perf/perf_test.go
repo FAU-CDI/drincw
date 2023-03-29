@@ -5,7 +5,7 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/tkw1536/FAU-CDI/drincw/pkg/perf"
+	"github.com/FAU-CDI/drincw/pkg/perf"
 )
 
 // An example of capturing performance metrics

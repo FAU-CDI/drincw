@@ -3,8 +3,8 @@ package exporter
 import (
 	"io"
 
-	"github.com/tkw1536/FAU-CDI/drincw/internal/wisski"
-	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder"
+	"github.com/FAU-CDI/drincw/internal/wisski"
+	"github.com/FAU-CDI/drincw/pathbuilder"
 )
 
 // Exporter handles WissKI Entities

@@ -10,15 +10,15 @@ import (
 	"os"
 	"runtime/debug"
 
-	"github.com/tkw1536/FAU-CDI/drincw/internal/sparkl"
-	"github.com/tkw1536/FAU-CDI/drincw/internal/sparkl/storages"
-	"github.com/tkw1536/FAU-CDI/drincw/internal/viewer"
-	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder"
-	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder/pbxml"
-	"github.com/tkw1536/FAU-CDI/drincw/pkg/imap"
-	"github.com/tkw1536/FAU-CDI/drincw/pkg/perf"
-	"github.com/tkw1536/FAU-CDI/drincw/pkg/progress"
-	"github.com/tkw1536/FAU-CDI/drincw/pkg/sgob"
+	"github.com/FAU-CDI/drincw/internal/sparkl"
+	"github.com/FAU-CDI/drincw/internal/sparkl/storages"
+	"github.com/FAU-CDI/drincw/internal/viewer"
+	"github.com/FAU-CDI/drincw/pathbuilder"
+	"github.com/FAU-CDI/drincw/pathbuilder/pbxml"
+	"github.com/FAU-CDI/drincw/pkg/imap"
+	"github.com/FAU-CDI/drincw/pkg/perf"
+	"github.com/FAU-CDI/drincw/pkg/progress"
+	"github.com/FAU-CDI/drincw/pkg/sgob"
 )
 
 const GlassVersion = 1

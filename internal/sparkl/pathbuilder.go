@@ -3,10 +3,10 @@ package sparkl
 import (
 	"sync"
 
-	"github.com/tkw1536/FAU-CDI/drincw/internal/sparkl/exporter"
-	"github.com/tkw1536/FAU-CDI/drincw/internal/sparkl/storages"
-	"github.com/tkw1536/FAU-CDI/drincw/internal/wisski"
-	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder"
+	"github.com/FAU-CDI/drincw/internal/sparkl/exporter"
+	"github.com/FAU-CDI/drincw/internal/sparkl/storages"
+	"github.com/FAU-CDI/drincw/internal/wisski"
+	"github.com/FAU-CDI/drincw/pathbuilder"
 )
 
 // Export loads all top-level paths from the given path-builder from the index into the given engine.

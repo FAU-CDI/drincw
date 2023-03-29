@@ -1,7 +1,7 @@
 package wisski
 
 import (
-	"github.com/tkw1536/FAU-CDI/drincw/pkg/igraph"
+	"github.com/FAU-CDI/drincw/pkg/igraph"
 	"golang.org/x/exp/slices"
 )
 

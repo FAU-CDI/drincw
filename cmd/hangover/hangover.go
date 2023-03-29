@@ -10,12 +10,12 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/tkw1536/FAU-CDI/drincw"
-	"github.com/tkw1536/FAU-CDI/drincw/internal/glass"
-	"github.com/tkw1536/FAU-CDI/drincw/internal/sparkl"
-	"github.com/tkw1536/FAU-CDI/drincw/internal/viewer"
-	"github.com/tkw1536/FAU-CDI/drincw/internal/wisski"
-	"github.com/tkw1536/FAU-CDI/drincw/pkg/perf"
+	"github.com/FAU-CDI/drincw"
+	"github.com/FAU-CDI/drincw/internal/glass"
+	"github.com/FAU-CDI/drincw/internal/sparkl"
+	"github.com/FAU-CDI/drincw/internal/viewer"
+	"github.com/FAU-CDI/drincw/internal/wisski"
+	"github.com/FAU-CDI/drincw/pkg/perf"
 )
 
 func main() {

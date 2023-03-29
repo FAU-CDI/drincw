@@ -4,13 +4,13 @@ import (
 	"database/sql"
 	"log"
 
+	"github.com/FAU-CDI/drincw/internal/sparkl"
+	"github.com/FAU-CDI/drincw/internal/sparkl/exporter"
+	"github.com/FAU-CDI/drincw/internal/sparkl/storages"
+	"github.com/FAU-CDI/drincw/pathbuilder"
+	"github.com/FAU-CDI/drincw/pkg/perf"
 	_ "github.com/glebarez/go-sqlite"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/tkw1536/FAU-CDI/drincw/internal/sparkl"
-	"github.com/tkw1536/FAU-CDI/drincw/internal/sparkl/exporter"
-	"github.com/tkw1536/FAU-CDI/drincw/internal/sparkl/storages"
-	"github.com/tkw1536/FAU-CDI/drincw/pathbuilder"
-	"github.com/tkw1536/FAU-CDI/drincw/pkg/perf"
 )
 
 const (

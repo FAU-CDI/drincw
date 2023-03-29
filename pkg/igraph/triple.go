@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/tkw1536/FAU-CDI/drincw/pkg/imap"
+	"github.com/FAU-CDI/drincw/pkg/imap"
 )
 
 // Stats holds statistics about triples in the index

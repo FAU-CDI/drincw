@@ -163,48 +163,68 @@ func (sql *SQL) CreateFieldTable(bundle *pathbuilder.Bundle, field pathbuilder.F
 	return sql.exec(table.Build())
 }
 
-func (sql *SQL) Add(bundle *pathbuilder.Bundle, entity *wisski.Entity) error {
-	var shouldFlush bool
+func (sql *SQL) Add(bundle *pathbuilder.Bundle, entity *wisski.Entity) (err error) {
+	name := bundle.MachineName()
 
-	func() {
+	batch := func() []wisski.Entity {
 		sql.batchLock.Lock()
 		defer sql.batchLock.Unlock()
 
-		sql.batches[bundle.MachineName()] = append(sql.batches[bundle.MachineName()], *entity)
-		shouldFlush = len(sql.batches) >= sql.BatchSize
-	}()
+		// add the current entity to the bundle
+		sql.batches[name] = append(sql.batches[name], *entity)
+		if len(sql.batches[name]) < sql.BatchSize {
+			return nil
+		}
 
-	if shouldFlush {
-		return sql.flushBatches(bundle)
-	}
-
-	return nil
-}
-
-func (sql *SQL) flushBatches(bundle *pathbuilder.Bundle) error {
-	// take all the bundle from the cache
-	entities := make([]wisski.Entity, sql.BatchSize)
-	func() {
-		sql.batchLock.Lock()
-		defer sql.batchLock.Unlock()
-
-		count := copy(entities, sql.batches[bundle.MachineName()]) // copy entities to batch
+		// extracxt current batch
+		entities := make([]wisski.Entity, sql.BatchSize)
+		count := copy(entities, sql.batches[name])
 		entities = entities[:count]
 
-		rest := copy(sql.batches[bundle.MachineName()], sql.batches[bundle.MachineName()][count:]) // slide to the left
-		sql.batches[bundle.MachineName()] = sql.batches[bundle.MachineName()][:rest]               // and remove references to everything else
+		// remove them from the remaining batches
+		rest := copy(sql.batches[name], sql.batches[name][count:]) // slide to the left
+		sql.batches[name] = sql.batches[name][:rest]
+
+		return entities
 	}()
 
-	// and do the inserts
-	if len(entities) > 0 {
-		return sql.insert(bundle, "", entities)
+	// no current batch to insert
+	if len(batch) == 0 {
+		return nil
 	}
 
-	return nil
+	return sql.insert(bundle, "", batch)
 }
 
 func (sql *SQL) End(bundle *pathbuilder.Bundle) error {
-	return sql.flushBatches(bundle)
+	name := bundle.MachineName()
+
+	// extract the remaining entities to be inserted
+	rest := func() []wisski.Entity {
+		sql.batchLock.Lock()
+		defer sql.batchLock.Unlock()
+
+		result := sql.batches[name]
+		delete(sql.batches, name)
+		return result
+	}()
+
+	// split them into batchsize
+	for len(rest) > 0 {
+		batch := rest
+		rest = nil
+		if len(batch) > sql.BatchSize {
+			rest = batch[sql.BatchSize:]
+			batch = batch[:sql.BatchSize]
+		}
+
+		// and insert them all
+		if err := sql.insert(bundle, "", batch); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (sql *SQL) Close() error {

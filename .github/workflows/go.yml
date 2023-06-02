@@ -61,3 +61,6 @@ jobs:
             dist/ps2_darwin
             dist/ps2_linux_amd64
             dist/ps2_windows_amd64.exe
+            dist/pbdot_darwin
+            dist/pbdot_linux_amd64
+            dist/pbdot_windows_amd64.exe

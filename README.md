@@ -184,6 +184,15 @@ Generate a simple sparql query to view values of a single field.
 ps2 path/to/pathbuilder.xml name-of-some-path
 ```
 
+#### pbdot - generate a dot graph from a pathbuilder
+
+This is a (highly experimental) program that renders a bundle into a dot file for graphviz.
+For example to generate an svg image representing a specific bundle (and child bundles) use:
+
+```bash
+echo '{"ecrm":"http://erlangen-crm.org/170309/"}' | pbdot -prefixes - /path/to/pathbuilder.xml bundlename | dot -T svg > output.svg
+```
+
 ## Deployment
 
 

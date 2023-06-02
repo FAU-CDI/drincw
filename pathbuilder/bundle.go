@@ -16,6 +16,16 @@ type Bundle struct {
 	order int // tracks order of this bundle within a pathbuilder
 }
 
+// EqualBundles checks if two bundles are equal.
+// Bundles are equal if they are both nil, or if their machine names are equal.
+func EqualBundles(left, right *Bundle) bool {
+	if left == nil || right == nil {
+		return left == right
+	}
+
+	return left.MachineName() == right.MachineName()
+}
+
 // Field returns the field with the given id.
 // if the field does not exist, it returns the empty field.
 func (bundle Bundle) Field(id string) Field {

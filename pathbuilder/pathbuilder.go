@@ -19,7 +19,7 @@ func NewPathbuilder() Pathbuilder {
 	}
 }
 
-// Bundles returns an ordered list of bundles in this Pathbuilder
+// Bundles returns an ordered list of main bundles in this Pathbuilder
 func (pb Pathbuilder) Bundles() []*Bundle {
 	bundles := make([]*Bundle, 0, len(pb.bundles))
 	for _, bundle := range pb.bundles {
@@ -54,7 +54,7 @@ func (pb Pathbuilder) Get(id string) *Bundle {
 	return bundle
 }
 
-// Bundle returns the bundle with the given machine name.
+// Bundle returns the main bundle with the given machine name.
 // If such a bundle does not exist, returns nil.
 func (pb Pathbuilder) Bundle(machine string) *Bundle {
 	for _, bundle := range pb.Bundles() {
@@ -63,6 +63,12 @@ func (pb Pathbuilder) Bundle(machine string) *Bundle {
 		}
 	}
 	return nil
+}
+
+// FindBundle returns the (main or nested) bundle with the given machine name.
+// If such a bundle does not exist, returns nil.
+func (pb Pathbuilder) FindBundle(machine string) *Bundle {
+	return pb.bundles[machine]
 }
 
 // GetOrCreate either gets or creates a bundle

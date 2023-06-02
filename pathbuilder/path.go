@@ -32,6 +32,16 @@ type Path struct {
 	Description string // Description of this path
 }
 
+const DatatypeEmpty = "empty"
+
+func (p Path) Datatype() string {
+	dp := p.DatatypeProperty
+	if dp == DatatypeEmpty {
+		return ""
+	}
+	return dp
+}
+
 // MakeCardinality returns the cardinality to use for a call to make()
 func (p Path) MakeCardinality() int {
 	if p.Cardinality < 0 {

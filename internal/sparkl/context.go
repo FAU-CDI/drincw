@@ -237,8 +237,7 @@ func (context *Context) Store(bundle *pathbuilder.Bundle) BundleStorage {
 }
 
 const (
-	debugLogAllPaths = false   // turn this on to log all paths being queried
-	datatypeEmpty    = "empty" // a datatype being recalled as "empty"
+	debugLogAllPaths = false // turn this on to log all paths being queried
 )
 
 var debugLogID int64 // id of the current log id
@@ -257,8 +256,8 @@ func extractPath(path pathbuilder.Path, index *Index) iterator.Iterator[Path] {
 
 	// add the datatype property if are not a group
 	// and it is not empty
-	if !path.IsGroup && path.DatatypeProperty != "" && path.DatatypeProperty != datatypeEmpty {
-		uris = append(uris, path.DatatypeProperty)
+	if datatype := path.Datatype(); !path.IsGroup && datatype != "" {
+		uris = append(uris, datatype)
 	}
 
 	// if debugging is enabled, set it up

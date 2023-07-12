@@ -2,6 +2,13 @@ COMMANDS = addict hangover makeodbc n2j odbcd pbfmt ps2 dummysql pbdot
 DIST = $(COMMANDS:%=dist/%)
 .PHONY = $(DIST) all dist deps godeps clean test
 
+# read the gobin variable
+GOBIN = $(shell go env GOBIN)
+GOBIN := $(if $(GOBIN),$(GOBIN),$(shell go env GOPATH)/bin)
+
+# set the path to the build directory
+BUILDPATH = $(GOBIN):$(PATH)
+
 LINUX_AMD64 = $(COMMANDS:%=dist/%_linux_amd64)
 DARWIN = $(COMMANDS:%=dist/%_darwin)
 DARWIN_AMD64 = $(COMMANDS:%=dist/%_darwin_amd64)
@@ -16,7 +23,7 @@ $(LINUX_AMD64):dist/%_linux_amd64:
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o $@ ./cmd/$*/
 $(DARWIN):dist/%_darwin: dist/%_darwin_arm64 dist/%_darwin_amd64
 	mkdir -p dist
-	lipo -output $@ -create dist/$*_darwin_arm64 dist/$*_darwin_amd64
+	$(GOBIN)/lipo -output $@ -create dist/$*_darwin_arm64 dist/$*_darwin_amd64
 $(DARWIN_ARM64):dist/%_darwin_arm64:
 	mkdir -p dist
 	CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -o $@ ./cmd/$*/
@@ -31,7 +38,7 @@ clean:
 	rm -rf dist
 
 generate:
-	go generate ./...
+	PATH=$(BUILDPATH) go generate ./...
 
 test:
 	go test ./...

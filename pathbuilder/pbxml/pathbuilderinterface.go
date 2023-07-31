@@ -140,10 +140,10 @@ readloop:
 		default:
 			open, isOpen := token.(xml.StartElement)
 			if isOpen {
-				if open.Name.Local != nextOpen {
+				if !strings.HasPrefix(open.Name.Local, nextOpen) {
 					return errPathArrayNoOpen
 				}
-				if nextOpen == "x" {
+				if strings.HasPrefix(nextOpen, "x") {
 					nextOpen = "y"
 				} else {
 					nextOpen = "x"

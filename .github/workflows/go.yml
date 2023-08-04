@@ -43,15 +43,9 @@ jobs:
             dist/dummysql_darwin_arm64
             dist/dummysql_linux_amd64
             dist/dummysql_windows_amd64.exe
-            dist/hangover_darwin
-            dist/hangover_linux_amd64
-            dist/hangover_windows_amd64.exe
             dist/makeodbc_darwin
             dist/makeodbc_linux_amd64
             dist/makeodbc_windows_amd64.exe
-            dist/n2j_darwin
-            dist/n2j_linux_amd64
-            dist/n2j_windows_amd64.exe
             dist/odbcd_darwin
             dist/odbcd_linux_amd64
             dist/odbcd_windows_amd64.exe

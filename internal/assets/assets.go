@@ -22,7 +22,7 @@ type Assets struct {
 	Styles  string // <link> tags inserted by the asset
 }
 
-//go:generate node build.mjs odbc hangover
+//go:generate node build.mjs odbc
 
 // MustParse parses a new template from the given source
 // and calls [RegisterAssoc] on it.

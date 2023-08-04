@@ -1,4 +1,4 @@
-COMMANDS = addict hangover makeodbc n2j odbcd pbfmt ps2 dummysql pbdot
+COMMANDS = addict makeodbc odbcd pbfmt ps2 dummysql pbdot
 DIST = $(COMMANDS:%=dist/%)
 .PHONY = $(DIST) all dist deps godeps clean test
 

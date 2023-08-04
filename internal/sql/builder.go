@@ -47,8 +47,8 @@ func (b Builder) Apply(server *odbc.Server) error {
 	}
 
 	// re-sort the tables by the provided order
-	slices.SortStableFunc(tables, func(x, y odbc.Table) bool {
-		return orders[x.Name] < orders[y.Name]
+	slices.SortStableFunc(tables, func(x, y odbc.Table) int {
+		return orders[x.Name] - orders[y.Name]
 	})
 
 	server.Tables = tables

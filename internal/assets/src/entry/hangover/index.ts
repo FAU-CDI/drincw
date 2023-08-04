@@ -1,2 +1,0 @@
-import './tripletable';
-import './showable';

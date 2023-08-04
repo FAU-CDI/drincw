@@ -4,12 +4,6 @@ package assets
 
 // Assetsodbc contains assets for the 'odbc' entrypoint.
 var Assetsodbc = Assets{
-	Scripts: `<script type="module" src="/assets/odbc.38d394c2.js"></script><script src="/assets/odbc.2845d50f.js" nomodule="" defer></script><script type="module" src="/assets/odbc.07ea4a36.js"></script><script src="/assets/odbc.1ce8c8fb.js" nomodule="" defer></script>`,
-	Styles:  `<link rel="stylesheet" href="/assets/odbc.0acd24a7.css">`,	
-}
-
-// Assetshangover contains assets for the 'hangover' entrypoint.
-var Assetshangover = Assets{
-	Scripts: `<script type="module" src="/assets/odbc.38d394c2.js"></script><script src="/assets/odbc.2845d50f.js" nomodule="" defer></script><script type="module" src="/assets/hangover.b56ed8cb.js"></script><script src="/assets/hangover.726809f4.js" nomodule="" defer></script>`,
-	Styles:  `<link rel="stylesheet" href="/assets/hangover.b145512e.css">`,	
+	Scripts: `<script type="module" src="/assets/odbc.c7abdb94.js"></script><script src="/assets/odbc.b0ea6023.js" nomodule defer></script><script type="module" src="/assets/odbc.0c619639.js"></script><script src="/assets/odbc.d6f46846.js" nomodule defer></script>`,
+	Styles:  `<link rel="stylesheet" href="/assets/odbc.a49e4321.css">`,	
 }

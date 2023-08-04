@@ -3,10 +3,8 @@
 Drincw (pronounced like `drink`) stands for "Drincw Really Is Not Copying WissKI".
 It's a set of tools to display data from a [WissKI](http://wiss-ki.eu/) instance and help importing data.
 
-It contains two kinds of tools:
-
-- A __WissKI Viewer__ and __WissKI Exporter__ to display or export data found in a WissKI based on a pathbuilder and a triplestore export
-- An __ODBC generator__ and __Pathbuilder Formatter__ to simplify import of data
+It also contains __ODBC generator__ and __Pathbuilder Formatter__ to simplify import of data.
+The WissKI viewer and related tools have been moved the [hangover](https://github.com/FAU-CDI/hangover) repository.
 
 #### Why the name?
 Cause this project really isn't copying WissKI or intended to fully replace it.
@@ -35,7 +33,7 @@ make deps
 make all
 ```
 
-5. Run the exectuables, either by placing them in your `$PATH` or telling your interpreter where they are directly.
+5. Run the executables, either by placing them in your `$PATH` or telling your interpreter where they are directly.
 
 As an alternative to steps 4 and 5, you may also run executables directly:
 
@@ -51,36 +49,6 @@ We publish binaries for Mac, Linux and Windows for every release.
 These can be found on the releases page on GitHub. 
 
 ## Usage
-
-### WissKI Viewer & Exporter
-
-#### hangover - A WissKI Viewer
-
-The `hangover` executable implements a WissKI Viewer.
-It is invoked with two parameters, the pathbuilder to a pathbuilder xml `xml` and triplestore `nquads` export.
-It then starts up a server at `localhost:3000` by default.
-
-For example:
-
-```bash
-hangover schreibkalender.xml schreibkalender.nq
-```
-
-It supports a various set of other options, which can be found using  `hangover -help`.
-The most important ones are:
-
-- `-html`, `-images`: Automatically display html and image content found within the WissKI export. By default, these are only displayed as text.
-- `-public`: Set the _public URL_ this dump originates from, for example `https://wisski.example.com/`. This automatically finds all references to it within the data dump with references to the local viewer.
-- `-cache`: By default all indexes of the dataset required by the viewer are constructed in main memory. This can take several gigabytes. Instead, you can specify a temporary directory to read and write temporary indexes from.
-- `-export`: Index the entire dataset, then dump the export in binary into a file. Afterwards `hangover` can be invoked using only such a file (as opposed to a pathbuilder and triplestore export), skipping the indexing step. The file format may change between different builds of drincw and should be treated as a blackbox.
-
-#### n2j - A WissKI Viewer
-
-n2j stands for `NQuads 2 JSON` and can convert a WissKI export into json (or more general, relational) format.
-Like `hangover`, it takes both a pathbuilder and export as an argument.
-By default, it produces a single `.json` file on standard output.
-
-Further options supports a various set of other options, which can be found using  `n2j -help`.
 
 ### WissKI Import
 

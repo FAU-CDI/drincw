@@ -1,3 +1,6 @@
+
+// cspell:words GOPACKAGE GOFILE
+
 import { Parcel } from "@parcel/core"
 import { mkdir, rm, writeFile, readFile, unlink, rmdir, } from "fs/promises"
 import { join } from "path"
@@ -120,6 +123,7 @@ var Assets${name} = Assets{
 const goSource = `package ${DEST_PACKAGE}
 
 // This file was automatically generated. Do not edit.
+// cspell:disable
 
 ${goAssets}
 `;

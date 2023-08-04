@@ -1,6 +1,8 @@
 // Package pbtxt exports a pathbuilder as text
 package pbtxt
 
+// cspell:words pbtxt pathbuilder
+
 import (
 	"fmt"
 	"strings"

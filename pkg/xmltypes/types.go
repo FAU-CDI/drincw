@@ -6,6 +6,8 @@
 // - MarshalXML and UnmarshalXML marshal to / from xml.
 package xmltypes
 
+// cspell:words xmltypes
+
 import "encoding/xml"
 
 // StringWithZero is like string, but marshals the empty string as "0".

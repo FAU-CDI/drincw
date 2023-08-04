@@ -1,6 +1,8 @@
 // Command parsepb parses the pathbuilder and prints it again.
 package main
 
+// cSpell:words parsepb pathbuilder
+
 import (
 	"encoding/json"
 	"encoding/xml"

@@ -1,6 +1,8 @@
 // Command pbdot turns a pathbuilder into a dot graph
 package main
 
+// cSpell:words pbdot pathbuilder
+
 import (
 	"encoding/json"
 	"flag"

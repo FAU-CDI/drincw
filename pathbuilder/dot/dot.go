@@ -1,6 +1,8 @@
 // Package dot transforms a pathbuilder into a dot file
 package dot
 
+// cspell:words pathbuilder
+
 import (
 	"strings"
 

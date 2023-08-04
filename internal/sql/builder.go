@@ -1,5 +1,7 @@
 package sql
 
+// cspell:words pathbuilder ODBC
+
 import (
 	"fmt"
 	"sort"
@@ -10,7 +12,7 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-// Builder provides a correspondance between bundle ids and TableBuilder.
+// Builder provides a correspondence between bundle ids and TableBuilder.
 //
 // New values should be created using make().
 // The zero value does not cause panic(), but can not hold and correspondences
@@ -30,7 +32,7 @@ func NewBuilder(pb pathbuilder.Pathbuilder) Builder {
 }
 
 // Apply updates the provided ODBC instance tables with correspondences provided within this Builder.
-// Tables that do not have any correspondance will be removed from server.
+// Tables that do not have any correspondence will be removed from server.
 func (b Builder) Apply(server *odbc.Server) error {
 	tables := make([]odbc.Table, 0, len(server.Tables))
 	orders := make(map[string]int, len(server.Tables))
@@ -56,7 +58,7 @@ func (b Builder) Apply(server *odbc.Server) error {
 	return nil
 }
 
-// TableBuilder provides facitilies to create sql statements for ODBC tables.
+// TableBuilder provides facilities to create sql statements for ODBC tables.
 type TableBuilder struct {
 	TableName string // name of the table to use
 	ID        string // name of the column for ID
@@ -153,7 +155,7 @@ func (tb TableBuilder) applyField(field *odbc.Field, selectors map[string]Select
 		return false
 	}
 
-	// set a fieldname, fallback to ID
+	// set a fieldName, fallback to ID
 	if field.FieldName == "" {
 		field.FieldName = field.ID
 	}
@@ -168,7 +170,7 @@ func (tb TableBuilder) applyField(field *odbc.Field, selectors map[string]Select
 // Build builds two sql strings for usage within the odbc importer for this table.
 //
 // The select statement contains a list of fields to be selected.
-// The appen statement represents an abitrary sql statement that should be appened to the sql statement as a whole.
+// The append statement represents an arbitrary sql statement that should be appended to the sql statement as a whole.
 //
 // Either SQL statement is escaped and can be safely inserted inside an sql statement.
 func (tb TableBuilder) Build() (selectS, appendS string, err error) {

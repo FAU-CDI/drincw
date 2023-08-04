@@ -1,5 +1,7 @@
 package assets
 
+// cspell:words odbc
+
 import (
 	"html/template"
 	"net/http"

@@ -1,6 +1,8 @@
 // Command pbfmt formats a pathbuilder and prints it again
 package main
 
+// cSpell:words pbfmt pathbuilder
+
 import (
 	"encoding/xml"
 	"flag"

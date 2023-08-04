@@ -38,7 +38,7 @@ func (tb TableBuilder) MarshalJSON() ([]byte, error) {
 	return json.Marshal(jb)
 }
 
-// UnmarshalJSON unmarshals the provided data into this
+// UnmarshalJSON un-marshals the provided data into this
 func (tb *TableBuilder) UnmarshalJSON(data []byte) error {
 	jb := tableBuilderJSON{}
 	if err := json.Unmarshal(data, &jb); err != nil {
@@ -79,7 +79,7 @@ var MARSHAL_COMMENT_PREFIX = `
 
 {{examples}}
 
-	Aditionally, tables may be reordered (lowest first) by adding an integer "Order" key to each table.
+	Additionally, tables may be reordered (lowest first) by adding an integer "Order" key to each table.
 */
 `
 
@@ -129,7 +129,7 @@ func MarshalSelector(selector Selector) (string, error) {
 		return "", err
 	}
 
-	// preprend the name of the fields
+	// prepend the name of the fields
 	fields = append(fields, Identifier(""))
 	copy(fields[1:], fields[0:])
 	fields[0] = selector.name()
@@ -174,7 +174,7 @@ func marshalSelectorFields(src Selector) (identifiers []Identifier, err error) {
 
 var errUnmarshalSelectorMissingType = errors.New("UnmarshalSelector: selector missing type")
 
-// UnmarshalSelector unmarshals a selector from a string
+// UnmarshalSelector un-marshals a selector from a string
 func UnmarshalSelector(data string) (selector Selector, err error) {
 	fields := TokenizeIdentifiers(data)
 	if len(fields) <= 1 {

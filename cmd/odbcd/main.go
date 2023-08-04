@@ -1,5 +1,7 @@
 package main
 
+// cSpell:words pathbuilder odbc
+
 import (
 	"encoding/json"
 	"encoding/xml"

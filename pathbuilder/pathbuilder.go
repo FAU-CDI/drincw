@@ -1,6 +1,8 @@
 // Package pathbuilder provides the Pathbuilder and related classes
 package pathbuilder
 
+// cspell:words pathbuilder
+
 import (
 	"sort"
 )

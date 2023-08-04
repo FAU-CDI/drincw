@@ -1,5 +1,7 @@
 package drincw
 
+// cspell:words drincw
+
 import _ "embed"
 
 //go:generate gogenlicense -m -t 0.5
@@ -7,7 +9,7 @@ import _ "embed"
 //go:embed LICENSE
 var License string
 
-// LegalText returns legal text to be included in human-readable output using huelio.
+// LegalText returns legal text to be included in human-readable output using drincw.
 func LegalText() string {
 	return `
 ================================================================================

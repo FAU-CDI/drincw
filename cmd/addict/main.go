@@ -1,6 +1,8 @@
 // Command addict provides a graphical interface to the makeodbc command.
 package main
 
+// cspell:words makeodbc
+
 import (
 	"bytes"
 	"encoding/json"

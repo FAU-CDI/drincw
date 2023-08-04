@@ -1,6 +1,8 @@
 // Package pbxml implements the XML formats for a pathbuilder.
 package pbxml
 
+// cspell:words pbxml pathbuilder
+
 import (
 	"encoding/xml"
 
@@ -48,7 +50,7 @@ func Marshal(pb pathbuilder.Pathbuilder) ([]byte, error) {
 	return xml.Marshal(New(pb).data)
 }
 
-// Unmarshal unmarshals a pathbuilder from XML
+// Unmarshal un-marshals a pathbuilder from XML
 func Unmarshal(data []byte) (pb pathbuilder.Pathbuilder, err error) {
 	var xpb pathbuilderInterface
 	if err := xml.Unmarshal(data, &xpb); err != nil {

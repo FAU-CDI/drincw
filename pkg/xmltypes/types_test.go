@@ -1,6 +1,8 @@
 // Package xmltypes contains common types marshaled to xml
 package xmltypes
 
+// cspell:words xmltypes
+
 import (
 	"encoding/xml"
 	"fmt"

@@ -1,5 +1,7 @@
 package pathbuilder
 
+// cspell:words pathbuilder toplevel
+
 import (
 	"sort"
 )

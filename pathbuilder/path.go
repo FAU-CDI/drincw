@@ -1,6 +1,8 @@
 // Package Pathbuilder defines Pathbuilder
 package pathbuilder
 
+// cspell:words pathbuilder
+
 // Path represents a single path in the Pathbuilder
 type Path struct {
 	ID   string // Identifier of this path

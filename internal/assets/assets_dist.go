@@ -1,6 +1,7 @@
 package assets
 
 // This file was automatically generated. Do not edit.
+// cspell:disable
 
 // Assetsodbc contains assets for the 'odbc' entrypoint.
 var Assetsodbc = Assets{

@@ -1,6 +1,8 @@
 // Package sql provides facilities for mapping a pathbuilder and odbc importer to sql statements.
 package sql
 
+// cspell:words pathbuilder odbc
+
 import (
 	"fmt"
 

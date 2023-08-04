@@ -1,6 +1,8 @@
 // Package odbc provides facilities for odbc declarations
 package odbc
 
+// cspell:words odbc pathbuilder
+
 import (
 	"encoding/xml"
 

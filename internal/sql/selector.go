@@ -7,7 +7,6 @@ import (
 
 // Selector provides means of selecting a value from an sql table.
 //
-//
 // Selectors are intentionally intransparent to the caller; they should only be accessed using the
 // MarshalSelector and UnmarshalSelector methods.
 //

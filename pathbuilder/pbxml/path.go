@@ -1,5 +1,7 @@
 package pbxml
 
+// cspell:words pathbuilder
+
 import (
 	"encoding/xml"
 

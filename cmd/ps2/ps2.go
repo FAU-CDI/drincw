@@ -1,6 +1,8 @@
 // Command ps2 generates a sparql query for a specific field
 package main
 
+// cspell:words sparql
+
 import (
 	"flag"
 	"fmt"

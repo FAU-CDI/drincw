@@ -106,7 +106,7 @@ var restrictedKeywords = map[string]struct{}{
 // check checks if an identifier is valid
 // valid indicates if the identifier is valid at all.
 // needsQuote indicates if the identifier needs to be quoted.
-// quoteCharCount indiciates the number of characters that need to be prefixed with a quote character.
+// quoteCharCount indicates the number of characters that need to be prefixed with a quote character.
 //
 // Adapted from https://mariadb.com/kb/en/identifier-names/#quote-character.
 func (identifier Identifier) check() (valid bool, needsQuote bool, quoteCharCount int) {
@@ -118,7 +118,7 @@ func (identifier Identifier) check() (valid bool, needsQuote bool, quoteCharCoun
 	var lastRune rune     // the last rune in the string
 	sawOnlyDigits := true // does the identifier contain only digits?
 	for _, r := range identifier {
-		// mmust be part of an identifier
+		// must be part of an identifier
 		if !('\u0001' <= r && r <= '\uffff') {
 			return false, false, 0
 		}

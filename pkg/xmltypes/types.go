@@ -1,14 +1,30 @@
 // Package xmltypes contains several types that encode differently in XML.
-// Each of the types in this package contain four functions.
 //
-// - Get returns the encoded value.
-// - Set sets using an encoded value.
-// - MarshalXML and UnmarshalXML marshal to / from xml.
+// Each type T in this package implements the Type interface.
 package xmltypes
 
 // cspell:words xmltypes
 
 import "encoding/xml"
+
+// Type represents a type represented as X inside of xml.
+type Type[X any] interface {
+	xml.Marshaler
+	xml.Unmarshaler
+
+	// Get the underlying type of this value
+	Get() X
+
+	// Set sets the value of this type
+	Set(v X)
+}
+
+// check that types in this package actually implement Type
+var (
+	_ Type[string] = (*StringWithZero)(nil)
+	_ Type[string] = (*BoolAsString)(nil)
+	_ Type[int]    = (*BoolAsInt)(nil)
+)
 
 // StringWithZero is like string, but marshals the empty string as "0".
 type StringWithZero string
@@ -23,13 +39,14 @@ func (s StringWithZero) Get() string {
 func (s *StringWithZero) Set(v string) {
 	if v == "0" {
 		*s = ""
-	} else {
-		*s = StringWithZero(v)
+		return
 	}
+
+	*s = StringWithZero(v)
 }
 
 func (s StringWithZero) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
-	return marshal[string](s, e, start)
+	return marshal[string](&s, e, start)
 }
 
 func (s *StringWithZero) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
@@ -52,7 +69,7 @@ func (b *BoolAsString) Set(v string) {
 }
 
 func (b BoolAsString) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
-	return marshal[string](b, e, start)
+	return marshal[string](&b, e, start)
 }
 
 func (b *BoolAsString) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
@@ -76,7 +93,7 @@ func (b *BoolAsInt) Set(v int) {
 }
 
 func (b BoolAsInt) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
-	return marshal[int](b, e, start)
+	return marshal[int](&b, e, start)
 }
 
 func (b *BoolAsInt) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
@@ -85,12 +102,12 @@ func (b *BoolAsInt) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 
 // marshal and unmarshal implement xml.Marshal and xml.Unmarshal respectively.
 
-func marshal[T any](w interface{ Get() T }, e *xml.Encoder, start xml.StartElement) error {
+func marshal[X any](w Type[X], e *xml.Encoder, start xml.StartElement) error {
 	return e.EncodeElement(w.Get(), start)
 }
 
-func unmarshal[T any](w interface{ Set(T) }, d *xml.Decoder, start xml.StartElement) error {
-	var value T
+func unmarshal[X any](w Type[X], d *xml.Decoder, start xml.StartElement) error {
+	var value X
 	if err := d.DecodeElement(&value, &start); err != nil {
 		return err
 	}

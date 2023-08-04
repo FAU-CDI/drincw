@@ -1,4 +1,4 @@
-// Package source reads data from a remote or local source.
+// Package source provides ReadAll.
 package source
 
 import (
@@ -8,20 +8,21 @@ import (
 	"strings"
 )
 
-// ReadAll reads all data from src.
-// Source may be a local path, or a url that must start with 'http://' or 'https://'.
+// ReadAll reads all data from the given source.
 //
-// Local files are read using os.ReadFile.
-// Remote URLs are first fetched using http.Get and then passed to io.ReadAll.
-func ReadAll(src string) ([]byte, error) {
-	if strings.HasPrefix(src, "http://") || strings.HasPrefix(src, "https://") {
-		return readURI(src)
+// Source can be a remote url starting with 'http://' or 'https://', in which case [http.Get] is used to fetch it's content.
+// In all other cases, source is assumed to be a local path, which is read with [os.ReadFile].
+func ReadAll(source string) ([]byte, error) {
+	if strings.HasPrefix(source, "http://") || strings.HasPrefix(source, "https://") {
+		return readURL(source)
 	}
-	return os.ReadFile(src)
+
+	return os.ReadFile(source)
 }
 
-func readURI(uri string) ([]byte, error) {
-	res, err := http.Get(uri)
+// readURL implements fetching all content from the given url
+func readURL(url string) ([]byte, error) {
+	res, err := http.Get(url)
 	if err != nil {
 		return nil, err
 	}

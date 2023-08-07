@@ -1,13 +1,13 @@
 // Package pathbuilder provides the Pathbuilder and related classes
 package pathbuilder
 
-// cspell:words pathbuilder
+// cspell:words pathbuilder WissKI
 
 import (
 	"sort"
 )
 
-// Pathbuilder represents a WissKI Pathbuilder
+// Pathbuilder represents a WissKI Pathbuilder.
 //
 // A Pathbuilder consists of an order collection of bundles.
 // A singular bundle can be accessed using it's identifier.

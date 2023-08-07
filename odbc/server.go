@@ -9,8 +9,7 @@ import (
 	"github.com/FAU-CDI/drincw/pathbuilder"
 )
 
-// Server represents an odbc server implementation.
-// It is the main interface to ODBC.
+// Server represents an odbc Server tag.
 //
 // It can be passed to xml.Marshal and xml.Unmarshal.
 type Server struct {

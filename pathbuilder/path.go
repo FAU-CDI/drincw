@@ -1,7 +1,7 @@
 // Package Pathbuilder defines Pathbuilder
 package pathbuilder
 
-// cspell:words pathbuilder
+// cspell:words pathbuilder twiesing
 
 // Path represents a single path in the Pathbuilder
 type Path struct {

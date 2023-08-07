@@ -9,20 +9,35 @@ import (
 	"testing"
 )
 
-func ExampleStringWithZero_Set() {
+func PrintMarshal(x any) {
+	value, err := xml.Marshal(x)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(string(value))
+}
+
+func MustUnmarshal(dst any, src string) {
+	err := xml.Unmarshal([]byte(src), dst)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func ExampleStringWithZero() {
 	var s StringWithZero
 
-	s.Set("0")
+	MustUnmarshal(&s, "<StringWithZero>0</StringWithZero>")
 	fmt.Println(s)
-	fmt.Println(s.Get())
+	PrintMarshal(s)
 
-	s.Set("hello world")
+	MustUnmarshal(&s, "<StringWithZero>hello world</StringWithZero>")
 	fmt.Println(s)
-	fmt.Println(s.Get())
+	PrintMarshal(s)
 
-	// Output: 0
+	// Output: <StringWithZero>0</StringWithZero>
 	// hello world
-	// hello world
+	// <StringWithZero>hello world</StringWithZero>
 }
 
 func ExampleStringWithZero_marshal() {
@@ -74,21 +89,21 @@ func TestStringWithZero(t *testing.T) {
 	}
 }
 
-func ExampleBoolAsString_Set() {
+func ExampleBoolAsString() {
 	var b BoolAsString
 
-	b.Set("FALSE")
+	MustUnmarshal(&b, "<BoolAsString>FALSE</BoolAsString>")
 	fmt.Println(b)
-	fmt.Println(b.Get())
+	PrintMarshal(b)
 
-	b.Set("TRUE")
+	MustUnmarshal(&b, "<BoolAsString>TRUE</BoolAsString>")
 	fmt.Println(b)
-	fmt.Println(b.Get())
+	PrintMarshal(b)
 
 	// Output: false
-	// FALSE
+	// <BoolAsString>FALSE</BoolAsString>
 	// true
-	// TRUE
+	// <BoolAsString>TRUE</BoolAsString>
 }
 
 func ExampleBoolAsString_marshal() {
@@ -140,20 +155,20 @@ func TestBoolAsString(t *testing.T) {
 	}
 }
 
-func ExampleBoolAsInt_Set() {
+func ExampleBoolAsInt() {
 	var b BoolAsInt
 
-	b.Set(0)
+	MustUnmarshal(&b, "<BoolAsInt>0</BoolAsInt>")
 	fmt.Println(b)
-	fmt.Println(b.Get())
+	PrintMarshal(b)
 
-	b.Set(1)
+	MustUnmarshal(&b, "<BoolAsInt>1</BoolAsInt>")
 	fmt.Println(b)
-	fmt.Println(b.Get())
+	PrintMarshal(b)
 	// Output: false
-	// 0
+	// <BoolAsInt>0</BoolAsInt>
 	// true
-	// 1
+	// <BoolAsInt>1</BoolAsInt>
 }
 
 func ExampleBoolAsInt_marshal() {

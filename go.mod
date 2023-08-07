@@ -15,6 +15,6 @@ require (
 	github.com/josephspurrier/goversioninfo v1.4.0 // indirect
 	github.com/randall77/makefat v0.0.0-20210315173500-7ddd0e42c844 // indirect
 	github.com/stretchr/testify v1.8.0 // indirect
-	golang.org/x/image v0.10.0 // indirect
-	golang.org/x/sys v0.10.0 // indirect
+	golang.org/x/image v0.11.0 // indirect
+	golang.org/x/sys v0.11.0 // indirect
 )

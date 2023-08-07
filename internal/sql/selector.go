@@ -7,7 +7,7 @@ import (
 
 // Selector provides means of selecting a value from an sql table.
 //
-// Selectors are intentionally intransparent to the caller; they should only be accessed using the
+// Selectors are intentionally in-transparent to the caller; they should only be accessed using the
 // MarshalSelector and UnmarshalSelector methods.
 //
 // Internally any selector type takes a pointer receiver.
@@ -17,7 +17,7 @@ type Selector interface {
 	// this method must take a pointer receiver.
 	name() Identifier
 
-	// fields returns the fields used for unmarshaling and marshaling this selector.
+	// fields returns the fields used for un-marshaling and marshaling this selector.
 	//
 	// A field must either be of the following forms:
 	// - "$StructField" where StructField is a field of the underlying struct literal.
@@ -35,7 +35,7 @@ type Selector interface {
 	// temp is the name of a temporary identifier that is guaranteed to be unique between different selectors.
 	selectExpression(table Identifier, temp IdentifierFactory) (string, error)
 
-	// appendStatment generates a statement that will be inserted at the end of the sql statement.
+	// appendStatement generates a statement that will be inserted at the end of the sql statement.
 	// when err is
 	// It will be used roughly like:
 	//

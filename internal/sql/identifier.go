@@ -1,5 +1,7 @@
 package sql
 
+// cspell:words twiesing
+
 import (
 	"fmt"
 	"strings"
@@ -171,6 +173,7 @@ func (identifier Identifier) check() (valid bool, needsQuote bool, quoteCharCoun
 // TokenizeIdentifiers is like strings.Split, except that instead of splitting only by spaces
 // uses GobbleIdentifiers instead
 func TokenizeIdentifiers(value string) (results []Identifier) {
+	// NOTE(twiesing): This function is untested because gobbleIdentifier is tested
 	var identifier Identifier
 	for {
 		identifier, value = gobbleIdentifier(value)
@@ -185,57 +188,88 @@ func TokenizeIdentifiers(value string) (results []Identifier) {
 // gobbleIdentifier gobbles a single identifier from value, and returns the remaining text of the string.
 // If no identifiers are left in value, returns an empty identifier.
 func gobbleIdentifier(value string) (identifier Identifier, rest string) {
-
 	// trim spacing
 	value = strings.TrimLeftFunc(value, unicode.IsSpace)
 	if len(value) == 0 { // nothing left!
 		return "", ""
 	}
 
-	// there is no `, so gobble until the next space character
+	// fast path: value does not start with the quote rune
 	if value[0] != byte(RUNE_QUOTE) {
-		index := 0
-		for _, r := range value {
-			if unicode.IsSpace(r) {
-				break
-			}
-			index++
-		}
-		return Identifier(value[:index]), value[index:]
+		return gobbleIdentifierFast(value)
 	}
 
-	// if there is a ` scan until the next ` not also followed by a `
-	// grab a new builder from the pool
-	builder := builderPool.Get().(*strings.Builder)
-	builder.Reset()
-	defer builderPool.Put(builder)
+	// slow path: need to work with quotes
+	return gobbleIdentifierSlow(value)
+}
 
-	index := 1 // first character is a quote by construction
-	sawQuote := false
-	for _, r := range value[1:] {
-		// quote followed by non-quote
-		if sawQuote {
-			// rune followed by non-rune, so we are done
-			if r != RUNE_QUOTE {
-				break
+// gobbleIdentifierFast gobbles an identifier from the start of value.
+// value must not start with RUNE_QUOTE.
+func gobbleIdentifierFast(value string) (identifier Identifier, rest string) {
+	index := len(value)
+	for i, r := range value {
+		if unicode.IsSpace(r) || r == RUNE_QUOTE {
+			index = i
+			break
+		}
+	}
+	return Identifier(value[:index]), value[index:]
+}
+
+// gobbleIdentifierFast gobbles an identifier from the start of value.
+// value must start with RUNE_QUOTE.
+func gobbleIdentifierSlow(value string) (identifier Identifier, rest string) {
+	doubleQuote := false // did we at any point see a double QUOTE_CHARACTER and need to escape it?
+	closed := false
+
+	index := len(value) - 1
+	{
+		sawQuote := false // did we see a quote in the last index?
+		for i, r := range value[1:] {
+			if sawQuote {
+				// quote followed by non-quote => we are closed
+				// so we can break out of the entire loop
+				if r != RUNE_QUOTE {
+					index = i
+					closed = true
+					break
+				}
+
+				// double quote character => we continue
+				sawQuote = false
+				doubleQuote = true // we did see a double quote character
+				closed = false
+
+				continue
 			}
 
-			// quote followed by a quote; continue
-			sawQuote = false
-			builder.WriteRune(RUNE_QUOTE)
-			index++
-			continue
-		}
+			// saw a quote character
+			if r == RUNE_QUOTE {
+				sawQuote = true
+				closed = true
+				continue
+			}
 
+		}
+	}
+
+	// the rest is whatever is left from the string
+	rest = value[index+1:]
+
+	// if the string was not closed, include the last character
+	if !closed {
 		index++
-		if r == RUNE_QUOTE {
-			sawQuote = true
-			continue
-		}
-		builder.WriteRune(r)
 	}
 
-	return Identifier(builder.String()), value[index:]
+	// identifier goes up to the index
+	found := value[1:index]
+
+	// if we had a double quote, we need to replace them in the input
+	if doubleQuote {
+		found = strings.ReplaceAll(found, string(RUNE_QUOTE)+string(RUNE_QUOTE), string(RUNE_QUOTE))
+	}
+
+	return Identifier(found), rest
 }
 
 // IdentifierFactory can generate identifiers with a prefix

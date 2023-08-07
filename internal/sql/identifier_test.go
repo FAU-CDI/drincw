@@ -1,6 +1,7 @@
 package sql
 
 import (
+	"reflect"
 	"testing"
 )
 
@@ -121,15 +122,38 @@ func TestGobbleIdentifier(t *testing.T) {
 
 		{"`hello` next", "hello", " next"},              // quoted word without escape
 		{"`hello``world` next", "hello`world", " next"}, // quoted word with escape
+
+		{"`hello", "hello", ""},              // unclosed quote without `s`
+		{"`hello``world", "hello`world", ""}, // unclosed quote with ``s
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			gotIdentifier, gotRest := gobbleIdentifier(tt.name)
 			if gotIdentifier != tt.wantIdentifier {
-				t.Errorf("GobbleIdentifier() gotIdentifier = %v, want %v", gotIdentifier, tt.wantIdentifier)
+				t.Errorf("gobbleIdentifier() gotIdentifier = %v, want %v", gotIdentifier, tt.wantIdentifier)
 			}
 			if gotRest != tt.wantRest {
-				t.Errorf("GobbleIdentifier() gotRest = %v, want %v", gotRest, tt.wantRest)
+				t.Errorf("gobbleIdentifier() gotRest = %v, want %v", gotRest, tt.wantRest)
+			}
+		})
+	}
+}
+
+func TestTokenizeIdentifiers(t *testing.T) {
+	type args struct {
+		value string
+	}
+	tests := []struct {
+		name        string
+		args        args
+		wantResults []Identifier
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if gotResults := TokenizeIdentifiers(tt.args.value); !reflect.DeepEqual(gotResults, tt.wantResults) {
+				t.Errorf("TokenizeIdentifiers() = %v, want %v", gotResults, tt.wantResults)
 			}
 		})
 	}

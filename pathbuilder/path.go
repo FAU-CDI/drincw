@@ -1,7 +1,7 @@
 // Package Pathbuilder defines Pathbuilder
 package pathbuilder
 
-// cspell:words pathbuilder twiesing
+// cspell:words pathbuilder twiesing sparql
 
 // Path represents a single path in the Pathbuilder
 type Path struct {
@@ -42,6 +42,18 @@ func (p Path) Datatype() string {
 		return ""
 	}
 	return dp
+}
+
+// Paths returns a copy of the path array and the datatype property (if any).
+// It is intended to be used during building a SPARQL query pertaining to this path.
+func (p Path) Paths() []string {
+	uris := make([]string, 0, len(p.PathArray)+1)
+
+	uris = append(uris, p.PathArray...)
+	if datatype := p.Datatype(); !p.IsGroup && datatype != "" {
+		uris = append(uris, datatype)
+	}
+	return uris
 }
 
 // MakeCardinality returns the cardinality to use for a call to make()

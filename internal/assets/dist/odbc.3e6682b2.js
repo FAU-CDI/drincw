@@ -1,0 +1,1 @@
+!function(){let e=void 0;if(e){let n=document.createElement("footer");n.innerHTML=e,document.body.append(n)}}();

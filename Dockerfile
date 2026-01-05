@@ -1,4 +1,4 @@
-FROM docker.io/library/alpine:3.14 as os
+FROM docker.io/library/alpine:3.23 AS os
 
 # install ca-certificates
 RUN apk add --update --no-cache ca-certificates
@@ -9,14 +9,14 @@ RUN set -x ; \
   adduser -u 82 -D -S -G www-data www-data && exit 0 ; exit 1
 
 # build the backend
-FROM docker.io/library/golang:1.19 as builder
+FROM docker.io/library/golang:1.25 AS builder
 ADD . /app/
 WORKDIR /app/
 RUN go get ./...
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o odbcd ./cmd/odbcd
 
 # add it into a scratch image
-FROM docker.io/library/alpine:3.14
+FROM docker.io/library/alpine:3.23
 
 # add the user
 COPY --from=os /etc/passwd /etc/passwd

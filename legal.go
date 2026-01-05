@@ -4,7 +4,7 @@ package drincw
 
 import _ "embed"
 
-//go:generate gogenlicense -m -t 0.5
+//go:generate go tool gogenlicense -m
 
 //go:embed LICENSE
 var License string

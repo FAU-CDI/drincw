@@ -23,7 +23,7 @@ $(LINUX_AMD64):dist/%_linux_amd64:
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o $@ ./cmd/$*/
 $(DARWIN):dist/%_darwin: dist/%_darwin_arm64 dist/%_darwin_amd64
 	mkdir -p dist
-	$(GOBIN)/lipo -output $@ -create dist/$*_darwin_arm64 dist/$*_darwin_amd64
+	go tool lipo -output $@ -create dist/$*_darwin_arm64 dist/$*_darwin_amd64
 $(DARWIN_ARM64):dist/%_darwin_arm64:
 	mkdir -p dist
 	CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -o $@ ./cmd/$*/
@@ -47,8 +47,6 @@ deps: godeps internal/assets/node_modules
 godeps:
 	go get ./...
 	go mod tidy
-	go install github.com/tkw1536/lipo@latest
-	go install github.com/tkw1536/gogenlicense/cmd/gogenlicense@latest
 
 internal/assets/node_modules:
 	cd internal/assets/ && yarn install

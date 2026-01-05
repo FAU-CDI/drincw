@@ -18,7 +18,7 @@ It is an auxiliary tool on top.
 
 ### from source
 
-1. Install [Go](https://go.dev/), Version 1.18 or newer
+1. Install [Go](https://go.dev/), Version 1.21 or newer
 2. Install [Yarn](https://yarnpkg.com/) (to build some frontends)
 3. Clone this repository somewhere.
 4. Fetch dependencies:
